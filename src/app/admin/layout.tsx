@@ -1,0 +1,36 @@
+import type { Metadata } from 'next';
+import { Inter } from 'next/font/google';
+import TopBar from '@/components/layout/TopBar';
+import NavbarAdmin from '@/components/layout/NavBarAdmin';
+import SidebarAdmin from '@/components/layout/SideBarAdmin';
+import '../globals.css';
+const inter = Inter({ subsets: ['latin'] });
+
+export const metadata: Metadata = {
+  title: 'Jouets E-Commerce - Admin',
+  description: 'Panneau d’administration pour la gestion des utilisateurs',
+};
+
+export default function AdminLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
+  return (
+    // This layout replaces RootLayout for admin routes
+    <html lang="fr" data-theme="light">
+      <body className={inter.className}>
+        <NavbarAdmin/>
+          <div className="flex h-[calc(100vh-64px)]"> 
+          <SidebarAdmin>
+          <main className="flex-1 p-6 overflow-y-auto">{children}</main>
+</SidebarAdmin>
+          </div>
+      </body>
+    </html>
+  );
+}
+
+
+
+
