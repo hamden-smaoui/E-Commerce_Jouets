@@ -1,95 +1,201 @@
-
 "use client";
 import React from "react";
+import Image from "next/image";
+import { useStoreInfo } from "@/hooks/useStoreInfo";
+import { 
+  MapPinIcon, 
+  PhoneIcon, 
+  EnvelopeIcon,
+  ClockIcon 
+} from '@heroicons/react/24/outline';
 
 export default function Footer() {
+  const { storeInfo } = useStoreInfo();
+
   return (
-    <footer className="footer bg-base-200 text-base-content p-6 sm:p-10 flex flex-col sm:flex-row sm:items-start items-center text-center sm:text-left gap-6 sm:gap-0">
-      <aside className="mb-4 sm:mb-0">
-        <img
-          className="w-[200px] h-[150px] sm:w-[280px] sm:h-[208px] object-cover mx-auto sm:mx-0"
-          src="/images/logo2.png"
-          alt="Toy Universe Logo"
-          onError={() => console.error("Failed to load logo image")}
-        />
-      </aside>
-      <nav className="min-w-[120px]">
-        <h6 className="footer-title">Services</h6>
-        <a className="link link-hover block">Branding</a>
-        <a className="link link-hover block">Design</a>
-        <a className="link link-hover block">Marketing</a>
-        <a className="link link-hover block">Advertisement</a>
-      </nav>
-      <nav className="min-w-[120px]">
-        <h6 className="footer-title">Company</h6>
-        <a className="link link-hover block">About us</a>
-        <a className="link link-hover block">Contact</a>
-        <a className="link link-hover block">Jobs</a>
-        <a className="link link-hover block">Press kit</a>
-      </nav>
-      <nav className="min-w-[120px]">
-        <h6 className="footer-title">Legal</h6>
-        <a className="link link-hover block">Terms of use</a>
-        <a className="link link-hover block">Privacy policy</a>
-        <a className="link link-hover block">Cookie policy</a>
-      </nav>
-      <div>
-        <h6 className="footer-title">Newsletter</h6>
-        <fieldset className="w-full sm:w-80">
-          <label className="block text-sm text-gray-600">Enter your email address</label>
-          <div className="join w-full">
-            <input
-              type="text"
-              placeholder="username@site.com"
-              className="input input-bordered join-item w-full"
-            />
-            <button className="btn btn-primary join-item">Subscribe</button>
+    <footer className="bg-gray-800 text-white">
+      {/* Main Footer Content */}
+      <div className="max-w-7xl mx-auto px-4 py-16">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-12 text-center md:text-left">
+          
+          {/* Company Info */}
+          <div className="lg:col-span-1">
+            <div className="mb-6 flex justify-center md:justify-start">
+              {storeInfo?.logo2 ? (
+                <div className="relative w-48 h-36">
+                  <Image
+                    src={`http://localhost:3001${storeInfo.logo2}`}
+                    alt={storeInfo.nom || "Logo"}
+                    fill
+                    className="object-contain"
+                  />
+                </div>
+              ) : (
+                <img
+                  className="w-48 h-36 object-contain"
+                  src="/images/logo2.png"
+                  alt="Toy Universe Logo"
+                  onError={() => console.error("Failed to load logo image")}
+                />
+              )}
+            </div>
+            
+            {/* Contact Info */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-center md:justify-start text-gray-300">
+                <MapPinIcon className="w-5 h-5 mr-3 text-purple-400" />
+                <span className="text-sm">
+                  {storeInfo?.adresse ? 
+                    `${storeInfo.adresse}, ${storeInfo.ville || ''}` : 
+                    '123 Avenue des Jouets, Tunis'
+                  }
+                </span>
+              </div>
+              <div className="flex items-center justify-center md:justify-start text-gray-300">
+                <PhoneIcon className="w-5 h-5 mr-3 text-purple-400" />
+                <span className="text-sm">
+                  {storeInfo?.telephonePrincipal || '+216 XX XXX XXX'}
+                </span>
+              </div>
+              <div className="flex items-center justify-center md:justify-start text-gray-300">
+                <EnvelopeIcon className="w-5 h-5 mr-3 text-purple-400" />
+                <span className="text-sm">
+                  {storeInfo?.emailPrincipal || 'contact@toyuniverse.tn'}
+                </span>
+              </div>
+              <div className="flex items-center justify-center md:justify-start text-gray-300">
+                <ClockIcon className="w-5 h-5 mr-3 text-purple-400" />
+                <span className="text-sm">
+                  {storeInfo?.heuresOuverture || 'Lun-Sam: 9h-19h'}
+                </span>
+              </div>
+            </div>
           </div>
-        </fieldset>
-        <nav className="mt-4">
-          <h6 className="footer-title">Social</h6>
-          <div className="grid grid-flow-col gap-4 justify-center sm:justify-start">
-            <a>
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                className="fill-current"
-              >
-                <path
-                  d="M24 4.557c-.883.392-1.832.656-2.828.775 1.017-.609 1.798-1.574 2.165-2.724-.951.564-2.005.974-3.127 1.195-.897-.957-2.178-1.555-3.594-1.555-3.179 0-5.515 2.966-4.797 6.045-4.091-.205-7.719-2.165-10.148-5.144-1.29 2.213-.669 5.108 1.523 6.574-.806-.026-1.566-.247-2.229-.616-.054 2.281 1.581 4.415 3.949 4.89-.693.188-1.452.232-2.224.084.626 1.956 2.444 3.379 4.6 3.419-2.07 1.623-4.678 2.348-7.29 2.04 2.179 1.397 4.768 2.212 7.548 2.212 9.142 0 14.307-7.721 13.995-14.646.962-.695 1.797-1.562 2.457-2.549z"
-                ></path>
-              </svg>
-            </a>
-            <a>
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                className="fill-current"
-              >
-                <path
-                  d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0-3.897.266-4.356 2.62-4.385 8.816.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.246 15.23 0 3.897-.266 4.356-2.62 4.385-8.816-.029-6.185-.484-8.549-4.385-8.816zm-10.615 12.816v-8l8 3.993-8 4.007z"
-                ></path>
-              </svg>
-            </a>
-            <a>
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                className="fill-current"
-              >
-                <path
-                  d="M9 8h-3v4h3v12h5v-12h3.642l.358-4h-4v-1.667c0-.955.192-1.333 1.115-1.333h2.885v-5h-3.808c-3.596 0-5.192 1.583-5.192 4.615v3.385z"
-                ></path>
-              </svg>
-            </a>
+
+          {/* Quick Links */}
+          <div>
+            <h3 className="text-lg font-semibold mb-6 text-white">Liens Rapides</h3>
+            <ul className="space-y-3">
+              <li><a href="/about" className="text-gray-300 hover:text-purple-400 transition-colors duration-300">À Propos</a></li>
+              <li><a href="/products" className="text-gray-300 hover:text-purple-400 transition-colors duration-300">Nos Produits</a></li>
+              <li><a href="/categories" className="text-gray-300 hover:text-purple-400 transition-colors duration-300">Catégories</a></li>
+              <li><a href="/promotions" className="text-gray-300 hover:text-purple-400 transition-colors duration-300">Promotions</a></li>
+              <li><a href="/contact" className="text-gray-300 hover:text-purple-400 transition-colors duration-300">Contact</a></li>
+              <li><a href="/blog" className="text-gray-300 hover:text-purple-400 transition-colors duration-300">Blog</a></li>
+            </ul>
           </div>
-        </nav>
+
+          {/* Categories */}
+          <div>
+            <h3 className="text-lg font-semibold mb-6 text-white">Catégories</h3>
+            <ul className="space-y-3">
+              <li><a href="/category/puericulture" className="text-gray-300 hover:text-purple-400 transition-colors duration-300">Puériculture</a></li>
+              <li><a href="/category/0-2" className="text-gray-300 hover:text-purple-400 transition-colors duration-300">Jouets 0-2 ans</a></li>
+              <li><a href="/category/2-4" className="text-gray-300 hover:text-purple-400 transition-colors duration-300">Jouets 2-4 ans</a></li>
+              <li><a href="/category/5-7" className="text-gray-300 hover:text-purple-400 transition-colors duration-300">Jouets 5-7 ans</a></li>
+              <li><a href="/category/8-11" className="text-gray-300 hover:text-purple-400 transition-colors duration-300">Jouets 8-11 ans</a></li>
+              <li><a href="/category/12+" className="text-gray-300 hover:text-purple-400 transition-colors duration-300">Jouets +12 ans</a></li>
+            </ul>
+          </div>
+
+          {/* Newsletter & Social */}
+          <div>
+            <h3 className="text-lg font-semibold mb-6 text-white">Newsletter</h3>
+            <p className="text-gray-300 mb-4 text-sm">
+              Inscrivez-vous pour recevoir nos dernières offres et nouveautés.
+            </p>
+            
+            <form className="mb-8">
+              <div className="flex flex-col sm:flex-row gap-2">
+                <input
+                  type="email"
+                  placeholder="Votre email"
+                  className="flex-1 px-4 py-2 rounded-lg bg-gray-700 border border-gray-600 text-white placeholder-gray-400 focus:outline-none focus:border-purple-400 focus:ring-1 focus:ring-purple-400"
+                  required
+                />
+                <button
+                  type="submit"
+                  className="px-6 py-2 bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-lg transition-colors duration-300 whitespace-nowrap"
+                >
+                  S'inscrire
+                </button>
+              </div>
+            </form>
+
+            {/* Social Media */}
+            <div>
+              <h4 className="text-md font-medium mb-4 text-white">Suivez-nous</h4>
+              <div className="flex space-x-4 justify-center md:justify-start">
+                {storeInfo?.urlFacebook && (
+                  <a 
+                    href={storeInfo.urlFacebook} 
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-10 h-10 bg-gray-700 hover:bg-purple-600 rounded-full flex items-center justify-center transition-all duration-300 group"
+                    aria-label="Facebook"
+                  >
+                    <svg className="w-5 h-5 text-gray-300 group-hover:text-white" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                    </svg>
+                  </a>
+                )}
+                
+                {storeInfo?.urlInstagram && (
+                  <a 
+                    href={storeInfo.urlInstagram}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-10 h-10 bg-gray-700 hover:bg-purple-600 rounded-full flex items-center justify-center transition-all duration-300 group"
+                    aria-label="Instagram"
+                  >
+                    <svg className="w-5 h-5 text-gray-300 group-hover:text-white" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
+                    </svg>
+                  </a>
+                )}
+
+                {storeInfo?.urlYoutube && (
+                  <a 
+                    href={storeInfo.urlYoutube}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-10 h-10 bg-gray-700 hover:bg-purple-600 rounded-full flex items-center justify-center transition-all duration-300 group"
+                    aria-label="YouTube"
+                  >
+                    <svg className="w-5 h-5 text-gray-300 group-hover:text-white" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+                    </svg>
+                  </a>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Bottom Footer */}
+      <div className="border-t border-gray-700">
+        <div className="max-w-7xl mx-auto px-4 py-6">
+          <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0 text-center md:text-left">
+            <div className="text-gray-400 text-sm">
+              © 2024 {storeInfo?.nom || 'Toy Universe'}. Tous droits réservés.
+            </div>
+            <div className="flex flex-wrap justify-center md:justify-end gap-6 text-sm">
+              <a href="/privacy" className="text-gray-400 hover:text-purple-400 transition-colors duration-300">
+                Politique de Confidentialité
+              </a>
+              <a href="/terms" className="text-gray-400 hover:text-purple-400 transition-colors duration-300">
+                Conditions d'Utilisation
+              </a>
+              <a href="/cookies" className="text-gray-400 hover:text-purple-400 transition-colors duration-300">
+                Politique des Cookies
+              </a>
+              <a href="/sitemap" className="text-gray-400 hover:text-purple-400 transition-colors duration-300">
+                Plan du Site
+              </a>
+            </div>
+          </div>
+        </div>
       </div>
     </footer>
   );

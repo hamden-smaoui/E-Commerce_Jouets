@@ -3,9 +3,13 @@ interface TopBarProps {
 }
 
 export default function TopBar({ message }: TopBarProps) {
+  if (!message) return null;
+  
   return (
-    <div className="bg-purple-700 text-white text-center py-2 px-4">
-      <p className="text-sm sm:text-base">{message}</p>
+    <div className="bg-purple-700 text-white py-2 px-4 overflow-hidden relative">
+      <div className="whitespace-nowrap animate-scroll">
+        <p className="text-sm sm:text-base inline-block">{message}</p>
+      </div>
     </div>
   );
 }

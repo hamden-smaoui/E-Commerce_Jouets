@@ -1,4 +1,3 @@
-// Produits.tsx
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -8,38 +7,32 @@ import HeaderCardComponent from '@/components/layout/HeaderCardComponent';
 import FormModal from '@/components/layout/FormModal';
 import Notification from '@/components/layout/Notification';
 import ConfirmDeleteModal from '@/components/layout/ConfirmDeleteModal';
-import ProduitsService, { Produit, ProduitFormData } from '@/services/produits-service';
+import ProduitsService, { Produit, ProduitFormData, ImageData } from '@/services/produits-service';
 import CategoriesService from '@/services/categories-service';
 import MarquesService from '@/services/marques-service';
-import FournisseursService from '@/services/fournisseurs-service'; // Added
+import FournisseursService from '@/services/fournisseurs-service';
 import ImageManager from '@/components/layout/ImageManager';
-import { ImageData } from '@/services/produits-service';
-
-// Define TypeScript interface for Type from the backend
 interface Type {
   idType: number;
   nom: string;
 }
 
-// Define TypeScript interface for Categorie from the backend
 interface Categorie {
   idCategorie: number;
   nom: string;
   types?: Type[];
 }
 
-// Define TypeScript interface for Marque from the backend
 interface Marque {
   idMarque: number;
   nom: string;
 }
-  interface Fournisseur {
+
+interface Fournisseur {
   idFournisseur: number;
   nom: string;
- 
 }
 
-// Updated FormData interface to include idFournisseur
 interface FormData {
   idProduit: number | null;
   nom: string;
@@ -48,22 +41,23 @@ interface FormData {
   quantiteStock: number;
   idCategorie: number;
   idMarque: number;
-  idFournisseur: number; // Added
+  idFournisseur: number;
   idType: number | null;
-  trancheAge: string | null;
+  minAge: string | null;
+  maxAge: string | null;
+  typeAge: 'mois' | 'ans';
+  genre: 'fille' | 'garçon' | 'enfant';
   images: File[];
 }
 
-// Updated ProduitResponse interface to include fournisseur
 interface ProduitResponse extends Produit {
   categorie?: Categorie;
   marque?: Marque;
-  fournisseur?: Fournisseur; // Added
+  fournisseur?: Fournisseur;
   type?: Type;
   images?: ImageData[];
 }
 
-// Define Field interface for FormModal
 interface Field<T> {
   name: keyof T;
   label: string;
@@ -91,7 +85,7 @@ const Produits: React.FC = () => {
   const [produits, setProduits] = useState<ProduitResponse[]>([]);
   const [categories, setCategories] = useState<Categorie[]>([]);
   const [marques, setMarques] = useState<Marque[]>([]);
-  const [fournisseurs, setFournisseurs] = useState<Fournisseur[]>([]); // Added
+  const [fournisseurs, setFournisseurs] = useState<Fournisseur[]>([]);
   const [types, setTypes] = useState<Type[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -109,9 +103,12 @@ const Produits: React.FC = () => {
     quantiteStock: 0,
     idCategorie: 0,
     idMarque: 0,
-    idFournisseur: 0, // Added
+    idFournisseur: 0,
     idType: null,
-    trancheAge: '',
+    minAge: '',
+    maxAge: '',
+    typeAge: 'mois',
+    genre: 'enfant',
     images: [],
   });
   const [selectedProduits, setSelectedProduits] = useState<number[]>([]);
@@ -124,12 +121,12 @@ const Produits: React.FC = () => {
           ProduitsService.getAllProduits(),
           CategoriesService.getAllCategories(),
           MarquesService.getAllMarques(),
-          FournisseursService.getAllFournisseurs(), // Added
+          FournisseursService.getAllFournisseurs(),
         ]);
         setProduits(fetchedProduits);
         setCategories(fetchedCategories);
         setMarques(fetchedMarques);
-        setFournisseurs(fetchedFournisseurs); // Added
+        setFournisseurs(fetchedFournisseurs);
         setLoading(false);
         console.log('Produits fetched:', fetchedProduits);
         console.log('Categories fetched:', fetchedCategories);
@@ -177,6 +174,13 @@ const Produits: React.FC = () => {
     return Number(stock);
   };
 
+  const formatAgeRange = (produit: ProduitResponse): string => {
+    if (!produit.minAge && !produit.maxAge) return 'N/A';
+    if (produit.minAge && !produit.maxAge) return `${produit.minAge} ${produit.typeAge}`;
+    if (!produit.minAge && produit.maxAge) return `Jusqu'à ${produit.maxAge} ${produit.typeAge}`;
+    return `${produit.minAge} - ${produit.maxAge} ${produit.typeAge}`;
+  };
+
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(e.target.value);
   };
@@ -188,9 +192,11 @@ const Produits: React.FC = () => {
         (produit.description && produit.description.toLowerCase().includes(searchTerm.toLowerCase())) ||
         (produit.categorie && produit.categorie.nom.toLowerCase().includes(searchTerm.toLowerCase())) ||
         (produit.marque && produit.marque.nom.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (produit.fournisseur && produit.fournisseur.nom.toLowerCase().includes(searchTerm.toLowerCase())) || // Added
+        (produit.fournisseur && produit.fournisseur.nom.toLowerCase().includes(searchTerm.toLowerCase())) ||
         (produit.type && produit.type.nom.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (produit.trancheAge && produit.trancheAge.toLowerCase().includes(searchTerm.toLowerCase())))
+        (produit.minAge && produit.minAge.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (produit.maxAge && produit.maxAge.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (produit.genre && produit.genre.toLowerCase().includes(searchTerm.toLowerCase())))
   );
 
   const columns = [
@@ -232,7 +238,7 @@ const Produits: React.FC = () => {
       render: (item: ProduitResponse) => (item.marque ? item.marque.nom : 'N/A'),
     },
     {
-      header: 'Fournisseur', // Added
+      header: 'Fournisseur',
       render: (item: ProduitResponse) => (item.fournisseur ? item.fournisseur.nom : 'N/A'),
     },
     {
@@ -240,8 +246,12 @@ const Produits: React.FC = () => {
       render: (item: ProduitResponse) => (item.type ? item.type.nom : 'N/A'),
     },
     {
-      header: 'Tranche d\'âge',
-      render: (item: ProduitResponse) => item.trancheAge || 'N/A',
+      header: 'Âge',
+      render: (item: ProduitResponse) => formatAgeRange(item),
+    },
+    {
+      header: 'Genre',
+      render: (item: ProduitResponse) => item.genre || 'N/A',
     },
   ];
 
@@ -486,7 +496,7 @@ const Produits: React.FC = () => {
       hint: 'Choisissez une marque associée',
     },
     {
-      name: 'idFournisseur', // Added
+      name: 'idFournisseur',
       label: 'Fournisseur',
       type: 'custom',
       render: ({ value, onChange }) => {
@@ -536,16 +546,100 @@ const Produits: React.FC = () => {
       hint: 'Choisissez un fournisseur associé',
     },
     {
-      name: 'trancheAge',
-      label: 'Tranche d\'âge',
+      name: 'minAge',
+      label: 'Âge minimum',
       type: 'text',
-      placeholder: 'Ex: 3-6 ans',
+      placeholder: 'Ex: 3',
       validation: {
         required: false,
-        maxLength: 50,
-        title: 'Maximum 50 caractères',
+        maxLength: 10,
+        pattern: '^[0-9]*$',
+        title: 'Entrez un nombre pour l\'âge minimum (optionnel)',
       },
-      hint: 'Tranche d\'âge recommandée (optionnel)',
+      hint: 'Âge minimum recommandé (optionnel)',
+    },
+    {
+      name: 'maxAge',
+      label: 'Âge maximum',
+      type: 'text',
+      placeholder: 'Ex: 6',
+      validation: {
+        required: false,
+        maxLength: 10,
+        pattern: '^[0-9]*$',
+        title: 'Entrez un nombre pour l\'âge maximum (optionnel)',
+      },
+      hint: 'Âge maximum recommandé (optionnel)',
+    },
+    {
+      name: 'typeAge',
+      label: 'Type d\'âge',
+      type: 'custom',
+      render: ({ value, onChange }) => (
+        <Select
+          options={[
+            { value: 'mois', label: 'Mois' },
+            { value: 'ans', label: 'Ans' },
+          ]}
+          value={{ value: value, label: value === 'mois' ? 'Mois' : 'Ans' }}
+          onChange={(selectedOption) => {
+            const newValue = selectedOption ? selectedOption.value : 'mois';
+            setFormData((prev) => ({
+              ...prev,
+              typeAge: newValue as 'mois' | 'ans',
+            }));
+            onChange(newValue);
+          }}
+          className="w-full"
+          isClearable={false}
+          styles={customSelectStyles}
+          menuPortalTarget={document.body}
+          menuPosition="absolute"
+          menuShouldScrollIntoView={true}
+        />
+      ),
+      validation: {
+        required: true,
+        title: 'Sélectionnez le type d\'âge',
+      },
+      hint: 'Choisissez entre mois ou ans',
+    },
+    {
+      name: 'genre',
+      label: 'Genre',
+      type: 'custom',
+      render: ({ value, onChange }) => (
+        <Select
+          options={[
+            { value: 'enfant', label: 'Enfant' },
+            { value: 'fille', label: 'Fille' },
+            { value: 'garçon', label: 'Garçon' },
+          ]}
+          value={{
+            value: value,
+            label: value === 'enfant' ? 'Enfant' : value === 'fille' ? 'Fille' : 'Garçon',
+          }}
+          onChange={(selectedOption) => {
+            const newValue = selectedOption ? selectedOption.value : 'enfant';
+            setFormData((prev) => ({
+              ...prev,
+              genre: newValue as 'fille' | 'garçon' | 'enfant',
+            }));
+            onChange(newValue);
+          }}
+          className="w-full"
+          isClearable={false}
+          styles={customSelectStyles}
+          menuPortalTarget={document.body}
+          menuPosition="absolute"
+          menuShouldScrollIntoView={true}
+        />
+      ),
+      validation: {
+        required: true,
+        title: 'Sélectionnez le genre',
+      },
+      hint: 'Choisissez le genre associé',
     },
     {
       name: 'images',
@@ -582,7 +676,7 @@ const Produits: React.FC = () => {
         });
         return;
       }
-      if (data.idFournisseur === 0) { // Added
+      if (data.idFournisseur === 0) {
         setNotification({
           type: 'error',
           message: 'Veuillez sélectionner un fournisseur valide.',
@@ -600,7 +694,7 @@ const Produits: React.FC = () => {
         ...response,
         categorie: categories.find((cat) => cat.idCategorie === data.idCategorie),
         marque: marques.find((m) => m.idMarque === data.idMarque),
-        fournisseur: fournisseurs.find((f) => f.idFournisseur === data.idFournisseur), // Added
+        fournisseur: fournisseurs.find((f) => f.idFournisseur === data.idFournisseur),
         type: data.idType ? types.find((t) => t.idType === data.idType) : undefined,
       };
 
@@ -644,7 +738,7 @@ const Produits: React.FC = () => {
         });
         return;
       }
-      if (data.idFournisseur === 0) { // Added
+      if (data.idFournisseur === 0) {
         setNotification({
           type: 'error',
           message: 'Veuillez sélectionner un fournisseur valide.',
@@ -662,7 +756,7 @@ const Produits: React.FC = () => {
         ...updatedProduit,
         categorie: categories.find((cat) => cat.idCategorie === data.idCategorie),
         marque: marques.find((m) => m.idMarque === data.idMarque),
-        fournisseur: fournisseurs.find((f) => f.idFournisseur === data.idFournisseur), // Added
+        fournisseur: fournisseurs.find((f) => f.idFournisseur === data.idFournisseur),
         type: data.idType ? types.find((t) => t.idType === data.idType) : undefined,
       };
 
@@ -729,7 +823,7 @@ const Produits: React.FC = () => {
   };
 
   const handleAdd = () => {
-    const newFormData = {
+    const newFormData: FormData = {
       idProduit: null,
       nom: '',
       description: '',
@@ -737,9 +831,12 @@ const Produits: React.FC = () => {
       quantiteStock: 0,
       idCategorie: 0,
       idMarque: 0,
-      idFournisseur: 0, // Added
+      idFournisseur: 0,
       idType: null,
-      trancheAge: '',
+      minAge: '',
+      maxAge: '',
+      typeAge: 'mois',
+      genre: 'enfant',
       images: [],
     };
     setFormData(newFormData);
@@ -755,7 +852,7 @@ const Produits: React.FC = () => {
       const selectedCategory = categories.find((cat) => cat.idCategorie === fetchedProduit.idCategorie);
       setTypes(selectedCategory?.types || []);
 
-      const newFormData = {
+      const newFormData: FormData = {
         idProduit: fetchedProduit.idProduit,
         nom: fetchedProduit.nom || '',
         description: fetchedProduit.description || '',
@@ -763,9 +860,12 @@ const Produits: React.FC = () => {
         quantiteStock: fetchedProduit.quantiteStock || 0,
         idCategorie: fetchedProduit.idCategorie || 0,
         idMarque: fetchedProduit.idMarque || 0,
-        idFournisseur: fetchedProduit.idFournisseur || 0, // Added
+        idFournisseur: fetchedProduit.idFournisseur || 0,
         idType: fetchedProduit.idType || null,
-        trancheAge: fetchedProduit.trancheAge || '',
+        minAge: fetchedProduit.minAge || '',
+        maxAge: fetchedProduit.maxAge || '',
+        typeAge: fetchedProduit.typeAge || 'mois',
+        genre: fetchedProduit.genre || 'enfant',
         images: [],
       };
 
@@ -794,7 +894,7 @@ const Produits: React.FC = () => {
     return <div className="text-center p-6 text-error">{error}</div>;
   }
 
-  if (categories.length === 0 || marques.length === 0 || fournisseurs.length === 0) { // Added fournisseurs check
+  if (categories.length === 0 || marques.length === 0 || fournisseurs.length === 0) {
     return (
       <div className="text-center p-6 text-error">
         {categories.length === 0 && marques.length === 0 && fournisseurs.length === 0

@@ -1,68 +1,343 @@
+"use client";
+import { useState, useRef, useEffect } from "react";
+import Link from "next/link";
+import Image from "next/image";
+import { useCart } from "@/hooks/useCart";
+import { useRouter } from "next/navigation";
+import { useFavorites } from "@/hooks/useFavorites";
+import { useStoreInfo } from "@/hooks/useStoreInfo";
 
-import { EnvelopeIcon, UserIcon, HeartIcon, ShoppingBagIcon, MagnifyingGlassIcon } from '@heroicons/react/24/solid';
+import {
+  EnvelopeIcon,
+  HeartIcon,
+  MagnifyingGlassIcon,
+  UserIcon,
+  ChevronDownIcon,
+  ArrowRightOnRectangleIcon,
+  Cog6ToothIcon,
+  ShoppingCartIcon,
+  UserCircleIcon,
+} from "@heroicons/react/24/solid";
+import { useAuth } from "../../hooks/useAuth";
+import CartDropdown from "./CartDropdown";
+
+interface User {
+  prenom?: string;
+  nom?: string;
+  email?: string;
+  role?: string;
+}
 
 export default function Navbar() {
+  const { user, logout, isAuthenticated } = useAuth();
+  const { storeInfo } = useStoreInfo();
+  const [isDropdownOpen, setIsDropdownOpen] = useState<boolean>(false);
+  const [searchQuery, setSearchQuery] = useState<string>("");
+  const [isSearchFocused, setIsSearchFocused] = useState<boolean>(false);
+  const mobileDropdownRef = useRef<HTMLDivElement>(null);
+  const desktopDropdownRef = useRef<HTMLDivElement>(null);
+  const router = useRouter();
+  const { totalItems } = useCart();
+  const { favorites } = useFavorites();
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        mobileDropdownRef.current &&
+        !mobileDropdownRef.current.contains(event.target as Node) &&
+        desktopDropdownRef.current &&
+        !desktopDropdownRef.current.contains(event.target as Node)
+      ) {
+        setIsDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
+  const toggleDropdown = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsDropdownOpen((prev) => !prev);
+  };
+
+  const handleLogout = () => {
+    logout();
+    setIsDropdownOpen(false);
+    router.push("/");
+  };
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      router.push(`/site/search?q=${encodeURIComponent(searchQuery.trim())}`);
+    }
+  };
+
   return (
     <div className="navbar bg-base-100 shadow-md px-4 py-2">
       <div className="flex flex-col w-full md:flex-row md:items-center">
         {/* First Line: Logo and Icons on Mobile */}
         <div className="flex items-center justify-between w-full md:justify-start md:w-auto">
-          {/* Logo */}
-          <a href="/site" className="flex items-center">
-            <img src="/images/logo.png" alt="Toy Universe Logo" className="h-8 w-auto sm:h-10" />
-          </a>
-          {/* Navigation Icons (Visible on Mobile and Desktop) */}
-          <div className="flex space-x-2 md:hidden md:ml-2">
-            <a href="/site/contact" className="btn btn-ghost btn-circle" title="Contact">
-              <EnvelopeIcon className="h-5 w-5 sm:h-6 sm:w-6" />
-            </a>
-            <button className="btn btn-ghost btn-circle" title="Profil">
-              <UserIcon className="h-5 w-5 sm:h-6 sm:w-6" />
-            </button>
+         <Link href="/site" className="flex items-center">
+            {storeInfo?.logo1 ? (
+              <div className="relative h-8 w-auto sm:h-10">
+                <Image 
+                  src={`http://localhost:3001${storeInfo.logo1}`}
+                  alt={storeInfo.nom || "Logo"}
+                  height={40}
+                  width={120}
+                  className="h-8 w-auto sm:h-12 object-contain"
+                  priority
+                />
+              </div>
+            ) : (
+              <img src="/images/logo.png" alt="Toy Universe Logo" className="h-8 w-auto sm:h-10" />
+            )}
+          </Link>
+          <div className="flex space-x-2 md:hidden">
+            <Link href="/site/contact" className="btn btn-ghost btn-circle btn-sm" title="Contact">
+              <EnvelopeIcon className="h-5 w-5 text-gray-600" />
+            </Link>
             <div className="indicator">
-              <span className="indicator-item badge badge-primary badge-xs">0</span>
-              <a href="/site/favoris" className="btn btn-ghost btn-circle" title="Favoris">
-                <HeartIcon className="h-5 w-5 sm:h-6 sm:w-6" />
-              </a>
-            </div>
-            <div className="indicator">
-              <span className="indicator-item badge badge-warning badge-xs">1</span>
-              <a href="/site/cart" className="btn btn-ghost btn-circle" title="Panier">
-                <ShoppingBagIcon className="h-5 w-5 sm:h-6 sm:w-6" />
-              </a>
+  <span className="indicator-item badge badge-primary badge-xs">
+    {favorites.length}
+  </span>
+  <Link href="/site/favoris" className="btn btn-ghost btn-circle btn-sm" title="Favoris">
+    <HeartIcon className="h-5 w-5 text-gray-600" />
+  </Link>
+</div>
+            <CartDropdown />
+            <div className="relative" ref={mobileDropdownRef}>
+              <button
+                tabIndex={0}
+                onClick={toggleDropdown}
+                className="btn btn-ghost btn-circle btn-sm"
+                title={isAuthenticated ? "Mon compte" : "Se connecter"}
+              >
+                <div className="flex items-center space-x-1">
+                  <UserIcon className="h-5 w-5 text-gray-600" />
+                  {isAuthenticated && (
+                    <span className="text-sm font-medium text-gray-700">
+                      {user?.prenom}
+                    </span>
+                  )}
+                </div>
+              </button>
+              {isDropdownOpen && (
+                <ul className="absolute right-0 mt-2 p-2 shadow-xl bg-white rounded-lg w-56 border border-gray-200 z-[1000]">
+                  {isAuthenticated ? (
+                    <>
+                      <li className="px-4 py-2 border-b border-gray-100">
+                        <div className="flex items-center space-x-3">
+                          <div className="avatar placeholder">
+                            <div className="bg-purple-100 text-purple-600 rounded-full w-10 h-10 flex items-center justify-center">
+                              <span className="text-sm font-medium">
+                                {user?.prenom?.[0]}
+                                {user?.nom?.[0]}
+                              </span>
+                            </div>
+                          </div>
+                          <div>
+                            <p className="font-semibold text-gray-800">
+                              {user?.prenom} {user?.nom}
+                            </p>
+                            <p className="text-xs text-gray-500">{user?.email}</p>
+                          </div>
+                        </div>
+                      </li>
+                      <li>
+                        <Link href="/site/profile" className="flex items-center py-2 hover:bg-purple-50">
+                          <UserCircleIcon className="h-5 w-5 text-gray-500 mr-3" />
+                          Mon profil
+                        </Link>
+                      </li>
+                      <li>
+                        <Link href="/site/profile?tab=orders" className="flex items-center py-2 hover:bg-purple-50">
+                          <ShoppingCartIcon className="h-5 w-5 text-gray-500 mr-3" />
+                          Mes commandes
+                        </Link>
+                      </li>
+                      {user?.role === "admin" && (
+                        <li>
+                          <Link href="/admin" className="flex items-center py-2 hover:bg-purple-50">
+                            <Cog6ToothIcon className="h-5 w-5 text-gray-500 mr-3" />
+                            Administration
+                          </Link>
+                        </li>
+                      )}
+                      <li className="border-t border-gray-100 mt-2 pt-2">
+                        <button
+                          onClick={handleLogout}
+                          className="flex items-center py-2 w-full text-red-600 hover:bg-red-50"
+                        >
+                          <ArrowRightOnRectangleIcon className="h-5 w-5 mr-3" />
+                          Se déconnecter
+                        </button>
+                      </li>
+                    </>
+                  ) : (
+                    <>
+                      <li>
+                        <Link href="/signIn" className="flex items-center py-2 hover:bg-purple-50">
+                          <ArrowRightOnRectangleIcon className="h-5 w-5 text-gray-500 mr-3" />
+                          Se connecter
+                        </Link>
+                      </li>
+                      <li>
+                        <Link href="/signUp" className="flex items-center py-2 hover:bg-purple-50">
+                          <UserIcon className="h-5 w-5 text-gray-500 mr-3" />
+                          S'inscrire
+                        </Link>
+                      </li>
+                    </>
+                  )}
+                </ul>
+              )}
             </div>
           </div>
         </div>
 
-        {/* Second Line: Search Bar on Mobile */}
         <div className="relative w-full mt-2 md:mt-0 md:flex-1 md:mx-4">
-          <input
-            type="text"
-            placeholder="Rechercher vos jouets..."
-            className="input input-bordered w-full p-2 text-sm sm:text-base rounded-lg focus:outline-none focus:ring-2 focus:ring-primary pr-10"
-          />
-          <MagnifyingGlassIcon className="h-5 w-5 absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-600" />
+          <form onSubmit={handleSearch} className="relative">
+            <div className={`relative transition-all duration-300 ${isSearchFocused ? "transform scale-105" : ""}`}>
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onFocus={() => setIsSearchFocused(true)}
+                onBlur={() => setIsSearchFocused(false)}
+                placeholder="Rechercher vos jouets..."
+                className={`w-full px-4 py-2 pl-10 pr-16 text-gray-700 bg-gray-50 border rounded-lg transition-all duration-300 focus:outline-none focus:bg-white focus:shadow-lg ${
+                  isSearchFocused ? "border-purple-400 shadow-md" : "border-gray-200 hover:border-gray-300"
+                }`}
+              />
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <MagnifyingGlassIcon
+                  className={`h-5 w-5 transition-colors duration-300 ${
+                    isSearchFocused ? "text-purple-500" : "text-gray-400"
+                  }`}
+                />
+              </div>
+              <button type="submit" className="absolute inset-y-0 right-0 pr-2 flex items-center">
+                <div
+                  className={`px-3 py-1 rounded-lg transition-all duration-300 ${
+                    searchQuery.trim() ? "bg-purple-600 text-white hover:bg-purple-700" : "bg-gray-300 text-gray-500"
+                  }`}
+                >
+                  <span className="text-sm font-medium hidden sm:block">Rechercher</span>
+                  <MagnifyingGlassIcon className="h-4 w-4 sm:hidden" />
+                </div>
+              </button>
+            </div>
+          </form>
+          {isSearchFocused && searchQuery && (
+            <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-gray-200 rounded-lg shadow-lg z-[1000] max-h-60 overflow-y-auto">
+              <div className="p-2">
+                <p className="text-sm text-gray-500 px-3 py-2">Suggestions de recherche</p>
+                <div className="px-3 py-2 hover:bg-gray-50 cursor-pointer rounded text-sm">
+                  {searchQuery} - Jouets éducatifs
+                </div>
+                <div className="px-3 py-2 hover:bg-gray-50 cursor-pointer rounded text-sm">
+                  {searchQuery} - Peluches
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
-        {/* Navigation Icons (Visible on Desktop) */}
         <div className="hidden md:flex space-x-2 md:ml-2">
-          <a href="/site/contact" className="btn btn-ghost btn-circle" title="Contact">
-            <EnvelopeIcon className="h-5 w-5 sm:h-6 sm:w-6" />
-          </a>
-          <button className="btn btn-ghost btn-circle" title="Profil">
-            <UserIcon className="h-5 w-5 sm:h-6 sm:w-6" />
-          </button>
+          <Link href="/site/contact" className="btn btn-ghost btn-circle" title="Contact">
+            <EnvelopeIcon className="h-5 w-5 sm:h-6 sm:w-6 text-gray-600" />
+          </Link>
           <div className="indicator">
-            <span className="indicator-item badge badge-primary badge-xs">0</span>
-            <a href="/site/favoris" className="btn btn-ghost btn-circle" title="Favoris">
-              <HeartIcon className="h-5 w-5 sm:h-6 sm:w-6" />
-            </a>
-          </div>
-          <div className="indicator">
-            <span className="indicator-item badge badge-warning badge-xs">1</span>
-            <a href="/site/cart" className="btn btn-ghost btn-circle" title="Panier">
-              <ShoppingBagIcon className="h-5 w-5 sm:h-6 sm:w-6" />
-            </a>
+  <span className="indicator-item badge badge-primary badge-xs">
+    {favorites.length}
+  </span>
+  <Link href="/site/favoris" className="btn btn-ghost btn-circle" title="Favoris">
+    <HeartIcon className="h-5 w-5 sm:h-6 sm:w-6 text-gray-600" />
+  </Link>
+</div>
+          <CartDropdown />
+          <div className="relative" ref={desktopDropdownRef}>
+            <button
+              tabIndex={0}
+              onClick={toggleDropdown}
+              className="btn btn-ghost"
+              title={isAuthenticated ? "Mon compte" : "Se connecter"}
+            >
+              <div className="flex items-center space-x-1">
+                <UserIcon className="h-5 w-5 sm:h-6 sm:w-6 text-gray-600" />
+                {isAuthenticated && (
+                  <span className="text-sm font-medium text-gray-700 hidden xl:block">
+                    {user?.prenom}
+                  </span>
+                )}
+              </div>
+            </button>
+            {isDropdownOpen && (
+              <ul className="absolute right-0 mt-2 p-2 shadow-xl bg-white rounded-lg w-56 border border-gray-200 z-[1000]">
+                {isAuthenticated ? (
+                  <>
+                    <li className="px-4 py-2 border-b border-gray-100">
+                      <div className="flex items-center space-x-3">
+                        <div>
+                          <p className="font-semibold text-gray-800">
+                            {user?.prenom} {user?.nom}
+                          </p>
+                          <p className="text-xs text-gray-500">{user?.email}</p>
+                        </div>
+                      </div>
+                    </li>
+                    <li>
+                      <Link href="/site/profile" className="flex items-center py-2 hover:bg-purple-50">
+                        <UserCircleIcon className="h-5 w-5 text-gray-500 mr-3" />
+                        Mon profil
+                      </Link>
+                    </li>
+                    <li>
+                      <Link href="/site/profile?tab=orders" className="flex items-center py-2 hover:bg-purple-50">
+                        <ShoppingCartIcon className="h-5 w-5 text-gray-500 mr-3" />
+                        Mes commandes
+                      </Link>
+                    </li>
+                    {user?.role === "admin" && (
+                      <li>
+                        <Link href="/admin" className="flex items-center py-2 hover:bg-purple-50">
+                          <Cog6ToothIcon className="h-5 w-5 text-gray-500 mr-3" />
+                          Administration
+                        </Link>
+                      </li>
+                    )}
+                    <li className="border-t border-gray-100 mt-2 pt-2">
+                      <button
+                        onClick={handleLogout}
+                        className="flex items-center py-2 w-full text-red-600 hover:bg-red-50"
+                      >
+                        <ArrowRightOnRectangleIcon className="h-5 w-5 mr-3" />
+                        Se déconnecter
+                      </button>
+                    </li>
+                  </>
+                ) : (
+                  <>
+                    <li>
+                      <Link href="/signIn" className="flex items-center py-2 hover:bg-purple-50">
+                        <ArrowRightOnRectangleIcon className="h-5 w-5 text-gray-500 mr-3" />
+                        Se connecter
+                      </Link>
+                    </li>
+                    <li>
+                      <Link href="/signUp" className="flex items-center py-2 hover:bg-purple-50">
+                        <UserIcon className="h-5 w-5 text-gray-500 mr-3" />
+                        S'inscrire
+                      </Link>
+                    </li>
+                  </>
+                )}
+              </ul>
+            )}
           </div>
         </div>
       </div>

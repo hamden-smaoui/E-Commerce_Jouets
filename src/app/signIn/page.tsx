@@ -2,90 +2,88 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
-import { 
-  EyeIcon, 
-  EyeSlashIcon,
-  EnvelopeIcon,
-  LockClosedIcon
-} from '@heroicons/react/24/solid';
+import { useRouter } from "next/navigation";
+import { EyeIcon, EyeSlashIcon, EnvelopeIcon, LockClosedIcon } from "@heroicons/react/24/solid";
+import { useAuth } from "../../hooks/useAuth";
 
 export default function SignIn() {
+  const router = useRouter();
+  const { login } = useAuth();
   const [formData, setFormData] = useState({
-    email: '',
-    motDePasse: ''
+    email: "",
+    motDePasse: "",
   });
-
   const [showPassword, setShowPassword] = useState(false);
-  const [errors, setErrors] = useState<{[key: string]: string}>({});
+  const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [rememberMe, setRememberMe] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
-    // Clear error when user starts typing
     if (errors[name]) {
-      setErrors(prev => ({
+      setErrors((prev) => ({
         ...prev,
-        [name]: ''
+        [name]: "",
       }));
     }
   };
 
   const validateForm = () => {
-    const newErrors: {[key: string]: string} = {};
+    const newErrors: { [key: string]: string } = {};
 
     if (!formData.email.trim()) {
-      newErrors.email = 'L\'email est requis';
+      newErrors.email = "L'email est requis";
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = 'Format d\'email invalide';
+      newErrors.email = "Format d'email invalide";
     }
 
     if (!formData.motDePasse) {
-      newErrors.motDePasse = 'Le mot de passe est requis';
+      newErrors.motDePasse = "Le mot de passe est requis";
     }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (validateForm()) {
-      // Ici vous pouvez traiter la connexion
-      console.log('Données de connexion:', formData);
-      console.log('Se souvenir de moi:', rememberMe);
-      // Redirection ou message de succès
+    if (!validateForm()) return;
+
+    setLoading(true);
+    try {
+      await login(formData.email, formData.motDePasse);
+      router.push("/site");
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Erreur inconnue";
+      setErrors({ submit: message });
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
-        {/* Header avec logo */}
         <div className="text-center">
           <div className="flex justify-center mb-6">
-            <Image
-              src="/images/logo2.png"
-              alt="Toy Universe Logo"
-              width={120}
-              height={120}
-            />
+            <Image src="/images/logo2.png" alt="Toy Universe Logo" width={120} height={120} />
           </div>
-          <h2 className="text-3xl font-bold text-gray-900 mb-2">
-            Connexion
-          </h2>
-          <p className="text-gray-600">
-            Accédez à votre compte Toy Universe
-          </p>
+          <h2 className="text-3xl font-bold text-gray-900 mb-2">Connexion</h2>
+          <p className="text-gray-600">Accédez à votre compte Toy Universe</p>
         </div>
 
-        {/* Formulaire */}
         <div className="bg-white rounded-xl shadow-lg p-8">
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Email */}
+            {errors.submit && (
+              <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg">
+                {errors.submit}
+              </div>
+            )}
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Adresse email
@@ -100,17 +98,14 @@ export default function SignIn() {
                   value={formData.email}
                   onChange={handleInputChange}
                   className={`w-full pl-10 pr-3 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 ${
-                    errors.email ? 'border-red-500' : 'border-gray-300'
+                    errors.email ? "border-red-500" : "border-gray-300"
                   }`}
                   placeholder="votre.email@example.com"
                 />
               </div>
-              {errors.email && (
-                <p className="mt-1 text-sm text-red-600">{errors.email}</p>
-              )}
+              {errors.email && <p className="mt-1 text-sm text-red-600">{errors.email}</p>}
             </div>
 
-            {/* Mot de passe */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Mot de passe
@@ -125,7 +120,7 @@ export default function SignIn() {
                   value={formData.motDePasse}
                   onChange={handleInputChange}
                   className={`w-full pl-10 pr-12 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 ${
-                    errors.motDePasse ? 'border-red-500' : 'border-gray-300'
+                    errors.motDePasse ? "border-red-500" : "border-gray-300"
                   }`}
                   placeholder="Votre mot de passe"
                 />
@@ -146,7 +141,6 @@ export default function SignIn() {
               )}
             </div>
 
-            {/* Options */}
             <div className="flex items-center justify-between">
               <div className="flex items-center">
                 <input
@@ -166,29 +160,27 @@ export default function SignIn() {
               </Link>
             </div>
 
-            {/* Bouton de connexion */}
             <button
               type="submit"
-              className="w-full bg-purple-600 text-white py-3 px-4 rounded-lg hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 font-semibold transition-colors"
+              disabled={loading}
+              className="w-full bg-purple-600 text-white py-3 px-4 rounded-lg hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Se connecter
+              {loading ? "Connexion..." : "Se connecter"}
             </button>
           </form>
 
-          {/* Lien vers sign up */}
           <div className="mt-6 text-center">
             <p className="text-gray-600">
-              Vous n'avez pas encore de compte ?{' '}
-              <Link href="/signup" className="text-purple-600 hover:text-purple-800 font-semibold">
+              Vous n'avez pas encore de compte ?{" "}
+              <Link href="/signUp" className="text-purple-600 hover:text-purple-800 font-semibold">
                 Créer un compte
               </Link>
             </p>
           </div>
         </div>
 
-        {/* Retour à l'accueil */}
         <div className="text-center">
-          <Link href="/" className="text-purple-600 hover:text-purple-800 font-medium">
+          <Link href="/site" className="text-purple-600 hover:text-purple-800 font-medium">
             ← Retour à l'accueil
           </Link>
         </div>

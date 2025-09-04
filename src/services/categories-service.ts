@@ -9,6 +9,7 @@ interface Produit {
 interface Type {
   idType: number;
   nom: string;
+  description: string | null;
 }
 
 export interface Categorie {

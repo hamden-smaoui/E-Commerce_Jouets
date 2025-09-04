@@ -260,6 +260,64 @@ class CommandesService {
       throw new Error(`Error fetching commande stats: ${message}`);
     }
   }
+  // Ajoutez ces méthodes à votre fichier commandes-service.ts
+
+// Calculate cart with promotions
+async calculerPanier(panierData: {
+  lignesCommandes: LigneCommande[];
+  codePromo?: string;
+  idClient?: number;
+  fraisLivraison?: number;
+}): Promise<any> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/commandes/calculer-panier`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(panierData),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Failed to calculate cart');
+    }
+
+    const data = await response.json();
+    return data;
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Unknown error occurred';
+    throw new Error(`Error calculating cart: ${message}`);
+  }
+}
+
+// Validate promo code
+async validerCodePromo(codeData: {
+  codePromo: string;
+  lignesCommandes: LigneCommande[];
+  idClient?: number;
+}): Promise<any> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/commandes/valider-code-promo`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(codeData),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Failed to validate promo code');
+    }
+
+    const data = await response.json();
+    return data;
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Unknown error occurred';
+    throw new Error(`Error validating promo code: ${message}`);
+  }
+}
 }
 
 export default new CommandesService();

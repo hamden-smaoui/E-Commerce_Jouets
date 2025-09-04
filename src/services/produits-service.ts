@@ -1,39 +1,31 @@
-// produits-service.ts
-// Base URL for the API
 const API_BASE_URL = 'http://localhost:3001/api/jouets';
 
-// Interface for Categorie as included in the backend response
 interface Categorie {
   idCategorie: number;
   nom: string;
 }
 
-// Interface for Marque as included in the backend response
 interface Marque {
   idMarque: number;
   nom: string;
 }
 
-// Interface for Fournisseur as included in the backend response
 interface Fournisseur {
   idFournisseur: number;
   nom: string;
 }
 
-// Interface for Type as included in the backend response
 interface Type {
   idType: number;
   nom: string;
 }
 
-// Interface for images
 export interface ImageData {
-  idImage?: number;
+  idImage: number;
   rang: number;
   url: string;
 }
 
-// Updated Produit interface to include idFournisseur
 export interface Produit {
   idProduit: number;
   nom: string;
@@ -42,12 +34,14 @@ export interface Produit {
   quantiteStock: number;
   idCategorie: number;
   idMarque: number;
-  idFournisseur: number; // Added
+  idFournisseur: number;
   idType: number | null;
-  trancheAge: string | null;
+  minAge: string | null;
+  maxAge: string | null;
+  typeAge: 'mois' | 'ans';
+  genre: 'fille' | 'garçon' | 'enfant';
 }
 
-// Updated ProduitFormData interface to include idFournisseur
 export interface ProduitFormData {
   idProduit?: number | null;
   nom: string;
@@ -56,14 +50,20 @@ export interface ProduitFormData {
   quantiteStock: number;
   idCategorie: number;
   idMarque: number;
-  idFournisseur: number; // Added
+  idFournisseur: number;
   idType: number | null;
-  trancheAge: string | null;
-  images?: File[]; // Files to upload
-  imageRangs?: number[]; // Ranks corresponding to images
+  minAge: string | null;
+  maxAge: string | null;
+  typeAge: 'mois' | 'ans';
+  genre: 'fille' | 'garçon' | 'enfant';
+  images?: File[];
+  imageRangs?: number[];
 }
 
-// Updated ProduitResponse interface to include fournisseur
+export interface BestSellingProduit extends ProduitResponse {
+  totalVendu: number;
+}
+
 export interface ProduitResponse extends Produit {
   categorie?: {
     idCategorie: number;
@@ -76,7 +76,7 @@ export interface ProduitResponse extends Produit {
   fournisseur?: {
     idFournisseur: number;
     nom: string;
-  }; // Added
+  };
   type?: {
     idType: number;
     nom: string;
@@ -85,37 +85,38 @@ export interface ProduitResponse extends Produit {
 }
 
 class ProduitsService {
-  // Create a new produit with images
   async createProduit(produitData: ProduitFormData): Promise<ProduitResponse> {
     try {
       const formData = new FormData();
 
-      // Add product data
       formData.append('nom', produitData.nom);
       formData.append('description', produitData.description);
       formData.append('prix', produitData.prix.toString());
       formData.append('quantiteStock', produitData.quantiteStock.toString());
       formData.append('idCategorie', produitData.idCategorie.toString());
       formData.append('idMarque', produitData.idMarque.toString());
-      formData.append('idFournisseur', produitData.idFournisseur.toString()); // Added
+      formData.append('idFournisseur', produitData.idFournisseur.toString());
       if (produitData.idType) {
         formData.append('idType', produitData.idType.toString());
       }
-      if (produitData.trancheAge) {
-        formData.append('trancheAge', produitData.trancheAge);
+      if (produitData.minAge) {
+        formData.append('minAge', produitData.minAge);
       }
+      if (produitData.maxAge) {
+        formData.append('maxAge', produitData.maxAge);
+      }
+      formData.append('typeAge', produitData.typeAge);
+      formData.append('genre', produitData.genre);
 
-      // Add images with their ranks
       if (produitData.images && produitData.images.length > 0) {
-        produitData.images.forEach((image, index) => {
+        produitData.images.forEach((image) => {
           formData.append('images', image);
-          // Rank will be handled by the order in the array on the backend
         });
       }
 
       const response = await fetch(`${API_BASE_URL}/produits`, {
         method: 'POST',
-        body: formData, // No Content-Type header for FormData
+        body: formData,
       });
 
       if (!response.ok) {
@@ -131,7 +132,6 @@ class ProduitsService {
     }
   }
 
-  // Get all produits with their images and associations
   async getAllProduits(): Promise<ProduitResponse[]> {
     try {
       const response = await fetch(`${API_BASE_URL}/produits`, {
@@ -154,7 +154,6 @@ class ProduitsService {
     }
   }
 
-  // Get a produit by ID with its images and associations
   async getProduitById(id: number): Promise<ProduitResponse> {
     try {
       const response = await fetch(`${API_BASE_URL}/produits/${id}`, {
@@ -177,27 +176,29 @@ class ProduitsService {
     }
   }
 
-  // Update a produit with images
   async updateProduit(id: number, produitData: ProduitFormData): Promise<ProduitResponse> {
     try {
       const formData = new FormData();
-      
-      // Ajouter les données du produit
+
       formData.append('nom', produitData.nom);
       formData.append('description', produitData.description);
       formData.append('prix', produitData.prix.toString());
       formData.append('quantiteStock', produitData.quantiteStock.toString());
       formData.append('idCategorie', produitData.idCategorie.toString());
       formData.append('idMarque', produitData.idMarque.toString());
-      formData.append('idFournisseur', produitData.idFournisseur.toString())
+      formData.append('idFournisseur', produitData.idFournisseur.toString());
       if (produitData.idType) {
         formData.append('idType', produitData.idType.toString());
       }
-      if (produitData.trancheAge) {
-        formData.append('trancheAge', produitData.trancheAge);
+      if (produitData.minAge) {
+        formData.append('minAge', produitData.minAge);
       }
+      if (produitData.maxAge) {
+        formData.append('maxAge', produitData.maxAge);
+      }
+      formData.append('typeAge', produitData.typeAge);
+      formData.append('genre', produitData.genre);
 
-      // Ajouter les images avec leurs rangs
       if (produitData.images && produitData.images.length > 0) {
         produitData.images.forEach((image) => {
           formData.append('images', image);
@@ -222,7 +223,6 @@ class ProduitsService {
     }
   }
 
-  // Delete a produit
   async deleteProduit(id: number): Promise<void> {
     try {
       const response = await fetch(`${API_BASE_URL}/produits/${id}`, {
@@ -239,6 +239,28 @@ class ProduitsService {
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Unknown error occurred';
       throw new Error(`Error deleting produit: ${message}`);
+    }
+  }
+
+  async getTop10BestSellingProduits(): Promise<BestSellingProduit[]> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/best-sellers`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to fetch best selling products');
+      }
+
+      const data = await response.json();
+      return data.data;
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Unknown error occurred';
+      throw new Error(`Error fetching best selling products: ${message}`);
     }
   }
 }

@@ -1,7 +1,8 @@
+// app/(site)/layout.tsx
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "../globals.css";
-import TopBar from "@/components/layout/TopBar";
+import TopBarWrapper from "@/components/layout/TopBarWrapper";
 import Navbar from "@/components/layout/Navbar";
 
 const inter = Inter({ subsets: ["latin"] });
@@ -19,7 +20,7 @@ export default function RootLayout({
   return (
     <html lang="fr" data-theme="light">
       <body className={inter.className}>
-        <TopBar message="Soldes jusqu'à 60% ! Profitez maintenant !" />
+        <TopBarWrapper />
         <Navbar />
         <main className="min-h-[calc(100vh-120px)]">{children}</main>
       </body>

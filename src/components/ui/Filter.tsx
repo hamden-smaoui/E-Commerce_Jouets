@@ -3,73 +3,64 @@ import React, { useState, useRef, useEffect, useCallback } from "react";
 import CategoriesService, { Categorie } from "@/services/categories-service";
 import MarquesService, { Marque } from "@/services/marques-service";
 import TypesService, { Type, TypeResponse } from "@/services/types-service";
-
+import DualRangeSlider from './DualRangeSlider';
 interface FilterProps {
   onFiltersChange?: (filters: FilterState) => void;
 }
 
+// Dans Filter.tsx
 export interface FilterState {
   categories: number[];
   marques: number[];
   types: number[];
-  genres: string[];
+  genres: ("fille" | "garçon" | "enfant")[];
   prix: { min: number; max: number };
   age: { min: number; max: number };
 }
 
 const Filter: React.FC<FilterProps> = ({ onFiltersChange }) => {
-  // États pour sélections multiples (IDs maintenant)
   const [categories, setCategories] = useState<number[]>([]);
   const [marques, setMarques] = useState<number[]>([]);
   const [types, setTypes] = useState<number[]>([]);
-  const [genres, setGenres] = useState<string[]>([]);
+  const [genres, setGenres] = useState<("fille" | "garçon" | "enfant")[]>([]);
 
-  // États sliders
   const [prixMin, setPrixMin] = useState<number>(0);
-  const [prixMax, setPrixMax] = useState<number>(500);
+  const [prixMax, setPrixMax] = useState<number>(1500);
   const [ageMin, setAgeMin] = useState<number>(0);
   const [ageMax, setAgeMax] = useState<number>(144);
 
-  // États dropdown
   const [showCategories, setShowCategories] = useState(false);
   const [showMarques, setShowMarques] = useState(false);
   const [showTypes, setShowTypes] = useState(false);
   const [showGenres, setShowGenres] = useState(false);
 
-  // États pour les données
   const [categoriesList, setCategoriesList] = useState<Categorie[]>([]);
   const [marquesList, setMarquesList] = useState<Marque[]>([]);
   const [typesList, setTypesList] = useState<TypeResponse[]>([]);
   const [availableTypes, setAvailableTypes] = useState<Type[]>([]);
 
-  // États de chargement
   const [loadingCategories, setLoadingCategories] = useState(true);
   const [loadingMarques, setLoadingMarques] = useState(true);
   const [loadingTypes, setLoadingTypes] = useState(true);
 
-  // Réfs pour clic extérieur
   const categoryRef = useRef<HTMLDivElement>(null);
   const marqueRef = useRef<HTMLDivElement>(null);
   const typeRef = useRef<HTMLDivElement>(null);
   const genreRef = useRef<HTMLDivElement>(null);
 
-  // Store callback in ref to avoid dependency issues
   const onFiltersChangeRef = useRef(onFiltersChange);
   useEffect(() => {
     onFiltersChangeRef.current = onFiltersChange;
   }, [onFiltersChange]);
 
-  // Genres statiques
-  const genresList = ["Garçon", "Fille", "Mixte"];
+  const genresList: ("fille" | "garçon" | "enfant")[] = ["enfant", "fille", "garçon"];
 
-  // Charger les données au montage
   useEffect(() => {
     loadCategories();
     loadMarques();
     loadTypes();
   }, []);
 
-  // Filtrer les types selon les catégories sélectionnées
   useEffect(() => {
     if (categories.length === 0) {
       setAvailableTypes(typesList);
@@ -79,7 +70,6 @@ const Filter: React.FC<FilterProps> = ({ onFiltersChange }) => {
       );
       setAvailableTypes(filteredTypes);
       
-      // Nettoyer les types sélectionnés qui ne sont plus disponibles
       setTypes(prevTypes => 
         prevTypes.filter(typeId => 
           filteredTypes.some(type => type.idType === typeId)
@@ -88,24 +78,22 @@ const Filter: React.FC<FilterProps> = ({ onFiltersChange }) => {
     }
   }, [categories, typesList]);
 
-  // Notifier les changements de filtres avec debounce
   const notifyFiltersChange = useCallback(() => {
-    const filters: FilterState = {
-      categories,
-      marques,
-      types,
-      genres,
-      prix: { min: prixMin, max: prixMax },
-      age: { min: ageMin, max: ageMax },
-    };
-    onFiltersChangeRef.current?.(filters);
-  }, [categories, marques, types, genres, prixMin, prixMax, ageMin, ageMax]);
+  const filters: FilterState = {
+    categories,
+    marques,
+    types,
+    genres,
+    prix: { min: prixMin, max: prixMax },
+    age: { min: ageMin, max: ageMax },
+  };
+  onFiltersChangeRef.current?.(filters);
+}, [categories, marques, types, genres, prixMin, prixMax, ageMin, ageMax]);
 
-  // Debounced notification
   useEffect(() => {
     const timer = setTimeout(() => {
       notifyFiltersChange();
-    }, 300); // 300ms debounce
+    }, 300);
 
     return () => clearTimeout(timer);
   }, [notifyFiltersChange]);
@@ -146,7 +134,6 @@ const Filter: React.FC<FilterProps> = ({ onFiltersChange }) => {
     }
   };
 
-  // Fermer dropdowns au clic extérieur
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (categoryRef.current && !categoryRef.current.contains(event.target as Node)) setShowCategories(false);
@@ -176,16 +163,15 @@ const Filter: React.FC<FilterProps> = ({ onFiltersChange }) => {
   };
 
   const resetAllFilters = useCallback(() => {
-    setCategories([]);
-    setMarques([]);
-    setTypes([]);
-    setGenres([]);
-    setPrixMin(0);
-    setPrixMax(500);
-    setAgeMin(0);
-    setAgeMax(144);
-  }, []);
-
+  setCategories([]);
+  setMarques([]);
+  setTypes([]);
+  setGenres([]);
+  setPrixMin(0);
+  setPrixMax(1500);
+  setAgeMin(0);
+  setAgeMax(144);
+}, []);
   const getSelectedNames = (selectedIds: number[], itemsList: any[], nameKey: string) => {
     return selectedIds.map(id => {
       const item = itemsList.find(item => item[`id${nameKey}`] === id);
@@ -195,7 +181,6 @@ const Filter: React.FC<FilterProps> = ({ onFiltersChange }) => {
 
   const totalSelections = categories.length + marques.length + types.length + genres.length;
 
-  // Component dropdown avec support pour les données dynamiques
   const Dropdown = ({
     label,
     color,
@@ -257,117 +242,7 @@ const Filter: React.FC<FilterProps> = ({ onFiltersChange }) => {
     </div>
   );
 
-  // Component slider
-  const RangeSlider = ({ 
-    label, 
-    color, 
-    min, 
-    max, 
-    step, 
-    minValue, 
-    maxValue, 
-    setMin, 
-    setMax, 
-    valueFormatter 
-  }: any) => {
-    
-    const handleMinChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-      const value = parseInt(e.target.value);
-      if (value <= maxValue) {
-        setMin(value);
-      }
-    };
-
-    const handleMaxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-      const value = parseInt(e.target.value);
-      if (value >= minValue) {
-        setMax(value);
-      }
-    };
-
-    const minPercent = ((minValue - min) / (max - min)) * 100;
-    const maxPercent = ((maxValue - min) / (max - min)) * 100;
-
-    return (
-      <div className="mb-6">
-        <h3 className={`text-sm font-semibold mb-2 text-${color}-600`}>{label}</h3>
-        <div className="px-3">
-          <div className="flex justify-between mb-2 text-xs text-gray-600">
-            <span>{valueFormatter(minValue)}</span>
-            <span>{valueFormatter(maxValue)}</span>
-          </div>
-          
-          <div className="relative h-6 mb-4">
-            <div className="absolute w-full h-2 bg-gray-200 rounded-lg top-2"></div>
-            <div 
-              className={`absolute h-2 bg-${color}-400 rounded-lg top-2`}
-              style={{
-                left: `${minPercent}%`,
-                width: `${maxPercent - minPercent}%`
-              }}
-            ></div>
-            
-            <input
-              type="range"
-              min={min}
-              max={max}
-              step={step}
-              value={minValue}
-              onChange={handleMinChange}
-              className="absolute w-full h-6 bg-transparent appearance-none cursor-pointer slider-thumb"
-              style={{ zIndex: minValue > max - 100 ? 5 : 3 }}
-            />
-            
-            <input
-              type="range"
-              min={min}
-              max={max}
-              step={step}
-              value={maxValue}
-              onChange={handleMaxChange}
-              className="absolute w-full h-6 bg-transparent appearance-none cursor-pointer slider-thumb"
-              style={{ zIndex: 4 }}
-            />
-          </div>
-          
-          <div className="flex justify-between gap-2">
-            <div className="flex-1">
-              <input
-                type="number"
-                value={minValue}
-                onChange={(e) => {
-                  const value = parseInt(e.target.value) || min;
-                  if (value >= min && value <= maxValue) {
-                    setMin(value);
-                  }
-                }}
-                className="input input-bordered input-xs w-full text-center"
-                min={min}
-                max={maxValue}
-                placeholder="Min"
-              />
-            </div>
-            <div className="flex-1">
-              <input
-                type="number"
-                value={maxValue}
-                onChange={(e) => {
-                  const value = parseInt(e.target.value) || max;
-                  if (value <= max && value >= minValue) {
-                    setMax(value);
-                  }
-                }}
-                className="input input-bordered input-xs w-full text-center"
-                min={minValue}
-                max={max}
-                placeholder="Max"
-              />
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  };
+  
 
   return (
     <div className="w-full p-4 bg-white shadow-lg rounded-lg border">
@@ -424,32 +299,36 @@ const Filter: React.FC<FilterProps> = ({ onFiltersChange }) => {
           loading={loadingTypes}
           idKey="idType"
         />
-        
-        <RangeSlider 
-          label="Prix (€)" 
-          color="orange" 
-          min={0} 
-          max={500} 
-          step={1} 
-          minValue={prixMin} 
-          maxValue={prixMax} 
-          setMin={setPrixMin} 
-          setMax={setPrixMax} 
-          valueFormatter={(v: number) => `${v}€`} 
-        />
-        
-        <RangeSlider 
-          label="Âge" 
-          color="pink" 
-          min={0} 
-          max={144} 
-          step={1} 
-          minValue={ageMin} 
-          maxValue={ageMax} 
-          setMin={setAgeMin} 
-          setMax={setAgeMax} 
-          valueFormatter={convertAgeToText} 
-        />
+
+       <DualRangeSlider
+  min={0}
+  max={1500}
+  step={1}
+  minValue={prixMin}
+  maxValue={prixMax}
+  onChange={(min, max) => {
+    setPrixMin(min);
+    setPrixMax(max);
+  }}
+  label="Prix (TND)"
+  color="orange"
+  valueFormatter={(v: number) => `${v} TND`}
+/>
+
+<DualRangeSlider
+  min={0}
+  max={144}
+  step={1}
+  minValue={ageMin}
+  maxValue={ageMax}
+  onChange={(min, max) => {
+    setAgeMin(min);
+    setAgeMax(max);
+  }}
+  label="Âge"
+  color="pink"
+  valueFormatter={convertAgeToText}
+/>
         
         <Dropdown 
           label="Genre" 

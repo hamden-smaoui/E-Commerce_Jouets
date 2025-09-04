@@ -1,182 +1,163 @@
-"use client"
-import { useState } from "react";
+"use client";
+import { useState, useEffect } from "react";
+import { useFavorites } from "@/hooks/useFavorites";
 import ProductCard from "@/components/ui/ProductCard";
 import Footer from "@/components/ui/Footer";
+import Link from 'next/link';
+import KidsCornerLoader from '@/components/ui/KidsCornerLoader';
+import { 
+  HeartIcon, 
+  XMarkIcon,
+  ArrowLeftIcon
+} from '@heroicons/react/24/solid';
 
 export default function Favoris() {
-  const [products, setProducts] = useState([
-   {
-    idProduit: 1,
-    nom: "Peluche Ours",
-    prix: 19.99,
-    image: "/images/hero1.jpeg",
-    description: "Une peluche douce et câline en forme d’ours.",
-    quantiteStock: 10,
-    marque: "TeddyCo",
-    categorie: "Peluches"
-  },
-  {
-    idProduit: 2,
-    nom: "Voiture Télécommandée",
-    prix: 29.99,
-    image: "/images/hero2.jpeg",
-    description: "Une voiture rapide contrôlable à distance.",
-    quantiteStock: 5,
-    marque: "SpeedToys",
-    categorie: "Voitures"
-  },
-  {
-    idProduit: 3,
-    nom: "Peluche Ours",
-    prix: 19.99,
-    image: "/images/hero1.jpeg",
-    description: "Une peluche douce et câline en forme d’ours.",
-    quantiteStock: 12,
-    marque: "TeddyCo",
-    categorie: "Peluches"
-  },
-  {
-    idProduit: 4,
-    nom: "Voiture Télécommandée",
-    prix: 29.99,
-    image: "/images/hero2.jpeg",
-    description: "Une voiture rapide contrôlable à distance.",
-    quantiteStock: 4,
-    marque: "SpeedToys",
-    categorie: "Voitures"
-  },
-  {
-    idProduit: 5,
-    nom: "Peluche Ours",
-    prix: 19.99,
-    image: "/images/hero1.jpeg",
-    description: "Une peluche douce et câline en forme d’ours.",
-    quantiteStock: 15,
-    marque: "TeddyCo",
-    categorie: "Peluches"
-  },
-  {
-    idProduit: 6,
-    nom: "Voiture Télécommandée",
-    prix: 29.99,
-    image: "/images/hero2.jpeg",
-    description: "Une voiture rapide contrôlable à distance.",
-    quantiteStock: 3,
-    marque: "SpeedToys",
-    categorie: "Voitures"
-  },
-  {
-    idProduit: 7,
-    nom: "Peluche Ours",
-    prix: 19.99,
-    image: "/images/hero1.jpeg",
-    description: "Une peluche douce et câline en forme d’ours.",
-    quantiteStock: 8,
-    marque: "TeddyCo",
-    categorie: "Peluches"
-  },
-  {
-    idProduit: 8,
-    nom: "Voiture Télécommandée",
-    prix: 29.99,
-    image: "/images/hero2.jpeg",
-    description: "Une voiture rapide contrôlable à distance.",
-    quantiteStock: 6,
-    marque: "SpeedToys",
-    categorie: "Voitures"
-  },
-  {
-    idProduit: 9,
-    nom: "Peluche Ours",
-    prix: 19.99,
-    image: "/images/hero1.jpeg",
-    description: "Une peluche douce et câline en forme d’ours.",
-    quantiteStock: 11,
-    marque: "TeddyCo",
-    categorie: "Peluches"
-  },
-  {
-    idProduit: 10,
-    nom: "Voiture Télécommandée",
-    prix: 29.99,
-    image: "/images/hero2.jpeg",
-    description: "Une voiture rapide contrôlable à distance.",
-    quantiteStock: 7,
-    marque: "SpeedToys",
-    categorie: "Voitures"
-  },
-    // ...etc
-  ]);
-
-  const [visibleProducts, setVisibleProducts] = useState(4);
   const [sortBy, setSortBy] = useState("");
+  const { favorites, loading, removeFromFavorites, clearFavorites } = useFavorites();
 
-  const handleSortChange = (e:any) => {
+  // Map favorites to products for ProductCard
+  const products = favorites.map(fav => ({
+    idProduit: fav.idProduit,
+    nom: fav.produit?.nom || "Produit inconnu",
+    prix: fav.produit?.prix || 0,
+    description: fav.produit?.description || "",
+    quantiteStock: fav.produit?.quantiteStock || 0,
+    marque: fav.produit?.marque,
+    categorie: fav.produit?.categorie,
+    images: fav.produit?.images || []
+  }));
+
+  const [sortedProducts, setSortedProducts] = useState(products);
+
+  useEffect(() => {
+    setSortedProducts(products);
+  }, [favorites]);
+
+  const handleSortChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const value = e.target.value;
     setSortBy(value);
 
-    let sortedProducts = [...products];
+    let sorted = [...products];
 
-    if (value === "a-z") {
-      sortedProducts.sort((a, b) => a.nom.localeCompare(b.nom));
-    } else if (value === "z-a") {
-      sortedProducts.sort((a, b) => b.nom.localeCompare(a.nom));
-    } else if (value === "price-asc") {
-      sortedProducts.sort((a, b) => a.prix - b.prix);
-    } else if (value === "price-desc") {
-      sortedProducts.sort((a, b) => b.prix - a.prix);
+    switch (value) {
+      case "a-z":
+        sorted.sort((a, b) => a.nom.localeCompare(b.nom));
+        break;
+      case "z-a":
+        sorted.sort((a, b) => b.nom.localeCompare(a.nom));
+        break;
+      case "price-asc":
+        sorted.sort((a, b) => a.prix - b.prix);
+        break;
+      case "price-desc":
+        sorted.sort((a, b) => b.prix - a.prix);
+        break;
+      default:
+        sorted = products;
     }
 
-    setProducts(sortedProducts);
+    setSortedProducts(sorted);
   };
 
-  const handleShowMore = () => {
-    setVisibleProducts((prev) => prev + 4);
+  const handleClearFavorites = () => {
+    if (window.confirm('Êtes-vous sûr de vouloir supprimer tous vos favoris ?')) {
+      clearFavorites();
+    }
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <KidsCornerLoader 
+          message="Chargement de vos favoris..."
+          size="lg"
+          showMessage={true}
+        />
+      </div>
+    );
+  }
 
   return (
-    <div>
-    <div className="container mx-auto p-4">
-      {/* Header */}
-      <div className="flex justify-center items-center mb-4">
-        <h2 className="text-3xl font-serif italic text-purple-500">
-          Votre Favoris
-        </h2>
-      </div>
-      <hr className="mb-6 border-purple-300" />
-      <div className="flex justify-between items-center mb-4 border-b pb-4">
-        <p>Nous avons trouvé {products.length} produits favoris pour vous.</p>
-        <select
-          className="select select-bordered"
-          value={sortBy}
-          onChange={handleSortChange}
-        >
-          <option value="">Trier par</option>
-          <option value="a-z">A-Z</option>
-          <option value="z-a">Z-A</option>
-          <option value="price-asc">Prix croissant</option>
-          <option value="price-desc">Prix décroissant</option>
-        </select>
-      </div>
-
-      <div className="h-screen overflow-y-auto overflow-x-hidden">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6 mt-4">
-          {products.slice(0, visibleProducts).map((product) => (
-            <ProductCard key={product.idProduit} product={product} />
-          ))}
+    <div className="min-h-screen bg-gray-50">
+      <div className="container mx-auto px-4 py-8 max-w-7xl">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
+              <HeartIcon className="w-6 h-6 text-red-600" />
+            </div>
+            <h1 className="text-3xl font-bold text-gray-900">
+              Mes Favoris
+            </h1>
+          </div>
+          {products.length > 0 && (
+            <button
+              onClick={handleClearFavorites}
+              className="flex items-center gap-2 text-red-500 hover:text-red-700 transition-colors px-4 py-2 rounded-lg hover:bg-red-50"
+            >
+              <XMarkIcon className="w-5 h-5" />
+              <span className="font-medium">Vider les favoris</span>
+            </button>
+          )}
         </div>
 
-        {visibleProducts < products.length && (
-          <div className="flex flex-col items-center mt-4">
-            <p>Il reste {products.length - visibleProducts} produits</p>
-            <button className="btn btn-link" onClick={handleShowMore}>
-              Afficher plus de produits
-            </button>
+        {products.length === 0 ? (
+          <div className="text-center py-20">
+            <div className="max-w-md mx-auto">
+              <div className="w-24 h-24 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                <HeartIcon className="h-12 w-12 text-red-400" />
+              </div>
+              <h3 className="text-2xl font-bold text-gray-900 mb-3">Aucun favori pour le moment</h3>
+              <p className="text-gray-600 mb-8">Découvrez notre sélection de produits et ajoutez vos coups de cœur !</p>
+              <Link href="/site">
+                <button className="bg-gradient-to-r from-purple-600 to-blue-600 text-white px-8 py-3 rounded-xl hover:from-purple-700 hover:to-blue-700 transition-all transform hover:scale-105 font-medium shadow-lg">
+                  Découvrir nos produits
+                </button>
+              </Link>
+            </div>
           </div>
+        ) : (
+          <>
+            {/* Top Bar with Sort Dropdown */}
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+              <div className="flex items-center gap-4">
+                <p className="text-sm sm:text-base text-gray-600">
+                  <span className="font-medium">{products.length}</span> produit{products.length > 1 ? 's' : ''} en favoris
+                </p>
+              </div>
+              
+              {/* Sort Dropdown */}
+              <select
+                className="select select-bordered select-sm sm:select-md w-full sm:w-auto"
+                value={sortBy}
+                onChange={handleSortChange}
+              >
+                <option value="">Trier par</option>
+                <option value="a-z">A-Z</option>
+                <option value="z-a">Z-A</option>
+                <option value="price-asc">Prix croissant</option>
+                <option value="price-desc">Prix décroissant</option>
+              </select>
+            </div>
+
+            {/* Products Grid */}
+            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6 mb-8">
+              {sortedProducts.map((product) => (
+                <ProductCard key={product.idProduit} product={product} />
+              ))}
+            </div>
+
+            {/* Continue Shopping */}
+            <div className="flex justify-center">
+              <Link href="/site" className="inline-flex items-center gap-2 text-purple-600 hover:text-purple-800 transition-colors font-medium">
+                <ArrowLeftIcon className="w-5 h-5" />
+                Continuer vos achats
+              </Link>
+            </div>
+          </>
         )}
       </div>
+      <Footer />
     </div>
-  <Footer />
-</div>
   );
 }

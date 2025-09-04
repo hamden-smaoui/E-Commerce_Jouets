@@ -1,3 +1,4 @@
+import authService from './auth-service';
 
 // Base URL for the API
 const API_BASE_URL = 'http://localhost:3001/api/jouets';
@@ -8,33 +9,35 @@ interface Commande {
   dateCommande: string;
   statut: string;
 }
+
 export interface User {
   idUtilisateur: number;
   prenom: string;
   nom: string;
-  email: string | null;
+  email?: string;
   motDePasse?: string;
   telephone: string;
-  adresseRue: string | null;
-  adresseVille: string | null;
-  adresseCodePostal: string | null;
-  adressePays: string | null;
-  role: 'admin' | 'client';
+  adresseRue?: string;
+  adresseVille?: string;
+  adresseCodePostal?: string;
+  adressePays?: string;
+  role: 'admin' | 'client' | null;
 }
 
 export interface FormData {
   idUtilisateur: number | null;
   prenom: string;
   nom: string;
-  email: string | null;
+  email?: string;
   motDePasse?: string;
   telephone: string;
-  adresseRue: string | null;
-  adresseVille: string | null;
-  adresseCodePostal: string | null;
-  adressePays: string | null;
+  adresseRue?: string;
+  adresseVille?: string;
+  adresseCodePostal?: string;
+  adressePays?: string;
   role: 'admin' | 'client' | null;
 }
+
 // Interface for API response user data (including commandes)
 interface UserResponse extends User {
   commandes?: Commande[];
@@ -42,14 +45,16 @@ interface UserResponse extends User {
 
 // UsersService class to handle API calls
 class UsersService {
+  private getHeaders(): HeadersInit {
+    return authService.getAuthHeaders();
+  }
+
   // Create a new user
   async createUser(userData: FormData): Promise<UserResponse> {
     try {
       const response = await fetch(`${API_BASE_URL}/utilisateurs`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: this.getHeaders(),
         body: JSON.stringify(userData),
       });
 
@@ -71,9 +76,7 @@ class UsersService {
     try {
       const response = await fetch(`${API_BASE_URL}/utilisateurs`, {
         method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: this.getHeaders(),
       });
 
       if (!response.ok) {
@@ -94,9 +97,7 @@ class UsersService {
     try {
       const response = await fetch(`${API_BASE_URL}/utilisateurs/${id}`, {
         method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: this.getHeaders(),
       });
 
       if (!response.ok) {
@@ -117,9 +118,7 @@ class UsersService {
     try {
       const response = await fetch(`${API_BASE_URL}/utilisateurs/${id}`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: this.getHeaders(),
         body: JSON.stringify(userData),
       });
 
@@ -141,9 +140,7 @@ class UsersService {
     try {
       const response = await fetch(`${API_BASE_URL}/utilisateurs/${id}`, {
         method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: this.getHeaders(),
       });
 
       if (!response.ok) {

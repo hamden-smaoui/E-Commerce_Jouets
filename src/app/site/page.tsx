@@ -1,93 +1,101 @@
 "use client";
-import React from "react";
+import React, { useState, useEffect } from "react";
 import Categories from "@/components/ui/Categories";
 import Hero from "@/components/ui/Hero";
 import BestOffers from "@/components/ui/BestOffers";
 import FeaturedSection from "@/components/ui/FeaturedSection";
 import Footer from "@/components/ui/Footer";
+import { useStoreInfo } from "@/hooks/useStoreInfo";
+import ProduitsService, { BestSellingProduit } from "@/services/produits-service";
+import CategoriesService, { Categorie } from "@/services/categories-service";
+import KidsCornerLoader from "@/components/ui/KidsCornerLoader";
+import {
+  ShieldCheckIcon,
+  CubeIcon,
+  CurrencyDollarIcon,
+  ChatBubbleLeftRightIcon,
+} from '@heroicons/react/24/outline';
 
-const categories = [
-  { name: "Puericulture", path: "/category/puericulture" },
-  { name: "Jouets 0-2 Ans", path: "/category/0-2" },
-  { name: "Jouets 2-4 Ans", path: "/category/2-4" },
-  { name: "Jouets 5-7 Ans", path: "/category/5-7" },
-  { name: "Jouets 8-11 Ans", path: "/category/8-11" },
-  { name: "Jouets +12 Ans", path: "/category/12+" },
-  { name: "Promotion", path: "/category/promotion" },
-  { name: "Scolaire", path: "/category/scolaire" },
-];
 const features = [
-  { imageSrc: "https://img.daisyui.com/images/stock/photo-1567653418876-5bb0e566e1c2.webp", text: "Qualité supérieure" },
-  { imageSrc: "https://img.daisyui.com/images/stock/photo-1567653418876-5bb0e566e1c2.webp", text: "Large variété" },
-  { imageSrc: "https://img.daisyui.com/images/stock/photo-1567653418876-5bb0e566e1c2.webp", text: "Prix compétitifs" },
-  { imageSrc: "https://img.daisyui.com/images/stock/photo-1567653418876-5bb0e566e1c2.webp", text: "Service client" },
-];
-const bestOffers = [
   {
-    idProduit: 1,
-    nom: "Peluche Ours",
-    prix: 19.99,
-    image: "/images/hero1.jpeg",
-    description: "Une peluche douce et câline en forme d’ours.",
-    quantiteStock: 10,
-    marque: "TeddyCo",
-    categorie: "Peluches"
+    icon: <ShieldCheckIcon className="w-full h-full" />,
+    title: "Qualité Garantie",
+    description: "Tous nos produits sont testés et certifiés selon les normes de sécurité les plus strictes pour garantir la sécurité de vos enfants.",
   },
   {
-    idProduit: 2,
-    nom: "Voiture Télécommandée",
-    prix: 29.99,
-    image: "/images/hero2.jpeg",
-    description: "Une voiture rapide contrôlable à distance.",
-    quantiteStock: 5,
-    marque: "SpeedToys",
-    categorie: "Voitures"
+    icon: <CubeIcon className="w-full h-full" />,
+    title: "Large Sélection",
+    description: "Des milliers de jouets et produits de puériculture pour tous les âges, des plus petits aux adolescents.",
   },
   {
-    idProduit: 3,
-    nom: "Peluche Ours",
-    prix: 19.99,
-    image: "/images/hero1.jpeg",
-    description: "Une peluche douce et câline en forme d’ours.",
-    quantiteStock: 12,
-    marque: "TeddyCo",
-    categorie: "Peluches"
+    icon: <CurrencyDollarIcon className="w-full h-full" />,
+    title: "Prix Compétitifs",
+    description: "Les meilleurs prix du marché avec des promotions régulières et un excellent rapport qualité-prix.",
   },
   {
-    idProduit: 4,
-    nom: "Voiture Télécommandée",
-    prix: 29.99,
-    image: "/images/hero2.jpeg",
-    description: "Une voiture rapide contrôlable à distance.",
-    quantiteStock: 4,
-    marque: "SpeedToys",
-    categorie: "Voitures"
-  },
-  {
-    idProduit: 5,
-    nom: "Peluche Ours",
-    prix: 19.99,
-    image: "/images/hero1.jpeg",
-    description: "Une peluche douce et câline en forme d’ours.",
-    quantiteStock: 15,
-    marque: "TeddyCo",
-    categorie: "Peluches"
+    icon: <ChatBubbleLeftRightIcon className="w-full h-full" />,
+    title: "Service Client",
+    description: "Une équipe dédiée à votre service pour vous conseiller et répondre à toutes vos questions rapidement.",
   },
 ];
 
 export default function Home() {
+  const { storeInfo } = useStoreInfo();
+  const [bestOffers, setBestOffers] = useState<BestSellingProduit[]>([]);
+  const [categories, setCategories] = useState<Categorie[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        // Fetch both BestOffers and Categories concurrently
+        const [bestOffersData, categoriesData] = await Promise.all([
+          ProduitsService.getTop10BestSellingProduits(),
+          CategoriesService.getAllCategories(),
+        ]);
+        setBestOffers(bestOffersData);
+        setCategories(categoriesData);
+      } catch (err) {
+        console.error('Error fetching data:', err);
+        setError(err instanceof Error ? err.message : 'Failed to load data');
+        setBestOffers([]);
+        setCategories([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-r from-gray-50 to-gray-100">
+        <KidsCornerLoader message="Chargement de la page..." size="lg" />
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen">
-      <Categories categories={categories} />
-      <Hero
-        title="Bienvenue chez Toy Universe !"
-        description="Découvrez notre collection de jouets pour tous les âges."
-        buttonText="Voir les produits"
-        buttonLink="/products"
-      />
-      <BestOffers offers={bestOffers} />
-       <FeaturedSection title="Pourquoi choisir Toy Universe?" features={features} />
-<Footer />
+    <div className="min-h-screen flex flex-col">
+      {error ? (
+        <div className="py-12 text-center text-red-600">
+          <p>Erreur lors du chargement des données: {error}</p>
+        </div>
+      ) : (
+        <>
+          <Categories categories={categories} />
+          <Hero
+            buttonText="Voir les produits"
+            buttonLink="/site/products"
+          />
+          <BestOffers offers={bestOffers} />
+          <FeaturedSection title={`Pourquoi choisir ${storeInfo?.nom || 'Toy Universe'} ?`} features={features} />
+          <Footer />
+        </>
+      )}
     </div>
   );
 }

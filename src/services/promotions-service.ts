@@ -47,7 +47,16 @@ export interface Promotion {
   utilisationParClient: number | null;
   utilisationActuelle: number;
 }
-
+export interface PromotionActive {
+  idPromotion: number;
+  nom: string;
+  description: string;
+  typePromotion: 'pourcentage' | 'montant_fixe' | 'livraison_gratuite';
+  valeurPromotion: number;
+  typeApplication: string;
+  reduction?: number;
+  applicable?: boolean;
+}
 export interface PromotionFormData {
   idPromotion?: number | null;
   nom: string;
@@ -360,6 +369,50 @@ class PromotionsService {
       throw new Error(`Error duplicating promotion: ${message}`);
     }
   }
+   // services/promotions-service.ts - Ajoutez cette méthode
+async getPromotionsPourProduit(idProduit: number): Promise<PromotionActive[]> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/promotions/produit/${idProduit}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      return [];
+    }
+
+    const data = await response.json();
+    return data.data || [];
+  } catch (error) {
+    console.error('Erreur lors de la récupération des promotions:', error);
+    return [];
+  }
+}
+
+// Nouvelle méthode pour calculer le prix
+async calculerPrixProduit(idProduit: number, prix: number, quantite: number = 1) {
+  try {
+    const response = await fetch(`${API_BASE_URL}/promotions/calculer-prix/${idProduit}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ prix, quantite }),
+    });
+
+    if (!response.ok) {
+      throw new Error('Erreur calcul prix');
+    }
+
+    const data = await response.json();
+    return data.data;
+  } catch (error) {
+    console.error('Erreur calcul prix:', error);
+    throw error;
+  }
+}
 }
 
 export default new PromotionsService();
