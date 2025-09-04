@@ -4,116 +4,126 @@ const sequelize = require('../config/database');
 const { Op } = require('sequelize');
 
 class CommandeController {
-        async createCommande(req, res) {
-        const transaction = await sequelize.transaction(); // Ajouter transaction pour sécurité
+// Dans CommandeController.createCommande()
+async createCommande(req, res) {
+    const transaction = await sequelize.transaction();
+    
+    try {
+        const { lignesCommandes, codePromo, fraisLivraison = 0, ...commandeData } = req.body;
         
-        try {
-            const { lignesCommandes, codePromo, ...commandeData } = req.body;
-            
-            // Calculer le montant total basé sur les lignes de commande
-            let montantTotal = 0;
-            if (lignesCommandes && lignesCommandes.length > 0) {
-                montantTotal = lignesCommandes.reduce((total, ligne) => {
-                    return total + (ligne.quantite * ligne.prixUnitaire);
-                }, 0);
-            }
-
-            // Préparer les données pour le service de promotion
-            const donneesCommande = {
-                ...commandeData,
-                montantTotal,
-                lignesCommandes,
-                fraisLivraison: commandeData.fraisLivraison || 0
-            };
-
-            // Appliquer les promotions
-            const promotionResult = await PromotionService.appliquerPromotionCommande(
-                donneesCommande, 
-                codePromo
-            );
-
-            // Créer la commande avec le montant final
-            const commande = await Commande.create({
-                ...commandeData,
-                montantTotal: promotionResult.montantFinal,
-                montantOriginal: montantTotal, // Garder trace du montant original
-                montantReduction: promotionResult.montantReduction,
-                idPromotionUtilisee: promotionResult.promotion?.idPromotion || null,
-                codePromoUtilise: codePromo || null
-            }, { transaction });
-
-            // Créer les lignes de commande
-            if (lignesCommandes && lignesCommandes.length > 0) {
-                const lignes = lignesCommandes.map(ligne => ({
-                    ...ligne,
-                    idCommande: commande.idCommande,
-                    sousTotal: ligne.quantite * ligne.prixUnitaire
-                }));
-                await LigneCommande.bulkCreate(lignes, { transaction });
-            }
-
-            // Créer une facture associée
-            await Facture.create({
-                idCommande: commande.idCommande,
-                montantTotal: commande.montantTotal,
-            }, { transaction });
-
-            // Enregistrer l'utilisation de la promotion si applicable
-            if (promotionResult.promotion) {
-                await PromotionService.enregistrerUtilisation(
-                    promotionResult.promotion.idPromotion,
-                    commande.idCommande,
-                    commandeData.idClient,
-                    promotionResult.montantReduction,
-                    promotionResult.codePromo?.idCodePromo || null
-                );
-            }
-
-            await transaction.commit();
-
-            // Récupérer la commande créée avec toutes les associations
-            const commandeComplete = await Commande.findByPk(commande.idCommande, {
-                include: [
-                    {
-                        model: Utilisateur,
-                        as: 'client',
-                        attributes: ['idUtilisateur', 'prenom', 'nom']
-                    },
-                    {
-                        model: LigneCommande,
-                        as: 'lignesCommandes',
-                        include: [{
-                            model: Produit,
-                            as: 'produit',
-                            attributes: ['idProduit', 'nom']
-                        }]
-                    },
-                    {
-                        model: Facture,
-                        as: 'facture',
-                        attributes: ['idFacture', 'statut']
-                    }
-                ]
-            });
-
-            res.status(201).json({
-                message: 'Commande créée avec succès',
-                data: commandeComplete,
-                promotion: promotionResult.promotion ? {
-                    nom: promotionResult.promotion.nom,
-                    reduction: promotionResult.montantReduction,
-                    codePromo: codePromo || 'Automatique'
-                } : null
-            });
-        } catch (error) {
-            await transaction.rollback();
-            console.error('Create commande error:', error);
-            res.status(500).json({
-                message: 'Erreur lors de la création de la commande',
-                error: error.message
-            });
+        // Calculer le montant total basé sur les lignes de commande ORIGINALES
+        let montantTotal = 0;
+        if (lignesCommandes && lignesCommandes.length > 0) {
+            montantTotal = lignesCommandes.reduce((total, ligne) => {
+                return total + (ligne.quantite * ligne.prixUnitaire);
+            }, 0);
         }
+
+        // Préparer les données pour le service de promotion
+        const donneesCommande = {
+            ...commandeData,
+            montantTotal,
+            lignesCommandes,
+            fraisLivraison: parseFloat(fraisLivraison) || 0
+        };
+
+        // Appliquer les promotions
+        const promotionResult = await PromotionService.appliquerPromotionCommande(
+            donneesCommande, 
+            codePromo,
+            transaction
+        );
+
+        // IMPORTANT : Calculer le montant final avec frais de livraison
+        const montantFinalSansLivraison = promotionResult.montantFinal;
+        const montantTotalAvecLivraison = montantFinalSansLivraison + (parseFloat(fraisLivraison) || 0);
+
+        // Créer la commande avec le montant final COMPLET
+        const commande = await Commande.create({
+            ...commandeData,
+            montantTotal: montantTotalAvecLivraison, // ⚠️ TOTAL AVEC LIVRAISON
+            montantOriginal: montantTotal + (parseFloat(fraisLivraison) || 0),
+            montantReduction: promotionResult.montantReduction,
+            idPromotionUtilisee: promotionResult.promotion?.idPromotion || null,
+            codePromoUtilise: codePromo || null
+        }, { transaction });
+
+        // Créer les lignes de commande avec prix ORIGINAUX
+        if (lignesCommandes && lignesCommandes.length > 0) {
+            const lignes = lignesCommandes.map(ligne => ({
+                ...ligne,
+                idCommande: commande.idCommande,
+                prixUnitaire: ligne.prixUnitaire, // Prix original
+                sousTotal: ligne.quantite * ligne.prixUnitaire // Sous-total original
+            }));
+            await LigneCommande.bulkCreate(lignes, { transaction });
+        }
+
+        // Créer une facture associée
+        await Facture.create({
+            idCommande: commande.idCommande,
+            montantTotal: commande.montantTotal,
+        }, { transaction });
+
+        // Enregistrer l'utilisation de la promotion si applicable
+        if (promotionResult.promotion) {
+            await PromotionService.enregistrerUtilisation(
+                promotionResult.promotion.idPromotion,
+                commande.idCommande,
+                commandeData.idClient,
+                promotionResult.montantReduction,
+                promotionResult.codePromo?.idCodePromo || null,
+                transaction
+            );
+        }
+
+        await transaction.commit();
+
+        // Récupérer la commande créée
+        const commandeComplete = await Commande.findByPk(commande.idCommande, {
+            include: [
+                {
+                    model: Utilisateur,
+                    as: 'client',
+                    attributes: ['idUtilisateur', 'prenom', 'nom']
+                },
+                {
+                    model: LigneCommande,
+                    as: 'lignesCommandes',
+                    include: [{
+                        model: Produit,
+                        as: 'produit',
+                        attributes: ['idProduit', 'nom']
+                    }]
+                }
+            ]
+        });
+
+        res.status(201).json({
+            message: 'Commande créée avec succès',
+            data: commandeComplete,
+            calculDetails: {
+                montantOriginal: montantTotal,
+                montantReduction: promotionResult.montantReduction,
+                montantProduits: montantFinalSansLivraison,
+                fraisLivraison: parseFloat(fraisLivraison) || 0,
+                montantTotal: montantTotalAvecLivraison
+            },
+            promotion: promotionResult.promotion ? {
+                nom: promotionResult.promotion.nom,
+                reduction: promotionResult.montantReduction,
+                codePromo: codePromo || 'Automatique'
+            } : null
+        });
+    } catch (error) {
+        await transaction.rollback();
+        console.error('Create commande error:', error);
+        res.status(500).json({
+            message: 'Erreur lors de la création de la commande',
+            error: error.message
+        });
     }
+}
 
     // Nouvelle méthode pour calculer le panier avec promotions
     async calculerPanier(req, res) {

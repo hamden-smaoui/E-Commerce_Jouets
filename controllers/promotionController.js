@@ -569,6 +569,51 @@ class PromotionController {
             });
         }
     }
+// Ajoutez cette nouvelle méthode dans PromotionController
+static async getPromotionsPourProduit(req, res) {
+    try {
+        const { idProduit } = req.params;
+        
+        // Utiliser le service pour récupérer toutes les promotions applicables
+        const promotions = await PromotionService.getPromotionsActives(parseInt(idProduit));
+        
+        res.status(200).json({
+            message: 'Promotions récupérées avec succès',
+            data: promotions
+        });
+    } catch (error) {
+        console.error('Erreur récupération promotions produit:', error);
+        res.status(500).json({
+            message: 'Erreur lors de la récupération des promotions',
+            error: error.message
+        });
+    }
+}
+
+// Nouvelle méthode pour calculer le prix avec promotions
+static async calculerPrixProduit(req, res) {
+    try {
+        const { idProduit } = req.params;
+        const { prix, quantite = 1 } = req.body;
+        
+        const resultat = await PromotionService.calculerPrixAvecPromotions(
+            parseInt(idProduit), 
+            parseFloat(prix), 
+            parseInt(quantite)
+        );
+        
+        res.status(200).json({
+            message: 'Prix calculé avec succès',
+            data: resultat
+        });
+    } catch (error) {
+        console.error('Erreur calcul prix produit:', error);
+        res.status(500).json({
+            message: 'Erreur lors du calcul du prix',
+            error: error.message
+        });
+    }
+}
 }
 
 module.exports = PromotionController;

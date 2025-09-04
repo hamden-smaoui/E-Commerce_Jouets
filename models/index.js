@@ -9,19 +9,21 @@ const Image = require('./Image');
 const Panier = require('./Panier');
 const PanierProduit = require('./PanierProduit');
 const Favori = require('./Favori');
-const Type = require('./Type'); // Add Type model
-const Marque = require('./Marque'); // Add Marque model
-const CategorieType = require('./CategorieType'); // Add CategorieType model
-const Fournisseur = require('./Fournisseur'); // Add Fournisseur model
-const CodePromo = require('./CodePromo'); // Add CodePromo model
-const PromotionProduit = require('./PromotionProduit'); // Add PromotionProduit model
-const PromotionCategorie = require('./PromotionCategorie'); // Add PromotionCategorie model
-const PromotionMarque = require('./PromotionMarque'); // Add PromotionMarque model
-const PromotionType = require('./PromotionType'); // Add PromotionType model
-const PromotionUtilisation = require('./PromotionUtilisation'); // Add PromotionUtilisation model
+const Type = require('./Type');
+const Marque = require('./Marque');
+const CategorieType = require('./CategorieType');
+const Fournisseur = require('./Fournisseur');
+const CodePromo = require('./CodePromo');
+const PromotionProduit = require('./PromotionProduit');
+const PromotionCategorie = require('./PromotionCategorie');
+const PromotionMarque = require('./PromotionMarque');
+const PromotionType = require('./PromotionType');
+const PromotionUtilisation = require('./PromotionUtilisation');
 const Promotion = require('./promotion');
+const Reclamation = require('./Reclamation');
+const StoreInfo = require('./StoreInfo');
 
-// Existing associations (unchanged)
+// Existing associations
 Utilisateur.hasMany(Commande, { foreignKey: 'idClient', as: 'commandes' });
 Commande.belongsTo(Utilisateur, { foreignKey: 'idClient', as: 'client' });
 
@@ -42,6 +44,9 @@ Facture.belongsTo(Commande, { foreignKey: 'idCommande', as: 'commande' });
 
 Produit.hasMany(Image, { foreignKey: 'idProduit', as: 'images' });
 Image.belongsTo(Produit, { foreignKey: 'idProduit', as: 'produit' });
+
+StoreInfo.hasMany(Image, { foreignKey: 'idStoreInfo', as: 'heroImages' });
+Image.belongsTo(StoreInfo, { foreignKey: 'idStoreInfo', as: 'storeInfo' });
 
 Utilisateur.hasOne(Panier, { foreignKey: 'idUtilisateur', as: 'panier' });
 Panier.belongsTo(Utilisateur, { foreignKey: 'idUtilisateur', as: 'utilisateur' });
@@ -65,6 +70,9 @@ Produit.belongsToMany(Utilisateur, {
     otherKey: 'idUtilisateur',
 });
 
+Favori.belongsTo(Produit, { foreignKey: 'idProduit', as: 'produit' });
+Favori.belongsTo(Utilisateur, { foreignKey: 'idUtilisateur', as: 'utilisateur' });
+
 Categorie.belongsToMany(Type, {
     through: CategorieType,
     foreignKey: 'idCategorie',
@@ -79,20 +87,15 @@ Type.belongsToMany(Categorie, {
     as: 'categories',
 });
 
-// New associations for Marque
 Marque.hasMany(Produit, { foreignKey: 'idMarque', as: 'produits' });
 Produit.belongsTo(Marque, { foreignKey: 'idMarque', as: 'marque' });
 
 Fournisseur.hasMany(Produit, { foreignKey: 'idFournisseur', as: 'produits' });
 Produit.belongsTo(Fournisseur, { foreignKey: 'idFournisseur', as: 'fournisseur' });
 
-
-
-
 Promotion.hasMany(CodePromo, { foreignKey: 'idPromotion', as: 'codesPromo' });
 CodePromo.belongsTo(Promotion, { foreignKey: 'idPromotion', as: 'promotion' });
 
-// Many-to-many associations
 Promotion.belongsToMany(Produit, {
     through: PromotionProduit,
     foreignKey: 'idPromotion',
@@ -121,9 +124,18 @@ Promotion.belongsToMany(Type, {
     as: 'types'
 });
 
-// Utilisation associations
 Promotion.hasMany(PromotionUtilisation, { foreignKey: 'idPromotion', as: 'utilisations' });
 PromotionUtilisation.belongsTo(Promotion, { foreignKey: 'idPromotion', as: 'promotion' });
+
+Reclamation.belongsTo(Utilisateur, { 
+    foreignKey: 'idUtilisateur', 
+    as: 'utilisateur' 
+});
+
+Utilisateur.hasMany(Reclamation, { 
+    foreignKey: 'idUtilisateur', 
+    as: 'reclamations' 
+});
 
 module.exports = {
     sequelize,
@@ -148,4 +160,6 @@ module.exports = {
     PromotionMarque,
     PromotionType,
     PromotionUtilisation,
+    Reclamation,
+    StoreInfo,
 };

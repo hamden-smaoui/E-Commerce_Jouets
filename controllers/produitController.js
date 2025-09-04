@@ -1,10 +1,10 @@
-const { Produit, Categorie, Marque, Type, Image,Fournisseur } = require('../models');
+const { Produit, Categorie, Marque, Type, Image, Fournisseur, LigneCommande } = require('../models');
 const upload = require('../multerConfig');
 const path = require('path');
 const fs = require('fs').promises;
+const { Sequelize, Op } = require('sequelize');
 
 class ProduitController {
-  // Middleware for multiple file uploads
   static uploadImages = upload.array('images', 10); // 'images' field name, max 10 files
 
   async createProduit(req, res) {
@@ -17,19 +17,22 @@ class ProduitController {
         });
       }
       try {
-        const { nom, description, prix, quantiteStock, idCategorie, idMarque,idFournisseur ,idType, trancheAge } = req.body;
+        const { nom, description, prix, quantiteStock, idCategorie, idMarque, idFournisseur, idType, minAge, maxAge, typeAge, genre } = req.body;
 
         // Create product without images
         const produit = await Produit.create({
           nom,
           description,
-          prix: parseFloat(prix),
+          prix: nom ? parseFloat(prix) : null,
           quantiteStock: parseInt(quantiteStock),
           idCategorie: parseInt(idCategorie),
           idMarque: parseInt(idMarque),
           idType: idType ? parseInt(idType) : null,
           idFournisseur: parseInt(idFournisseur),
-          trancheAge,
+          minAge,
+          maxAge,
+          typeAge,
+          genre,
         });
 
         // Save images to Image model
@@ -49,7 +52,7 @@ class ProduitController {
             { model: Marque, as: 'marque', attributes: ['idMarque', 'nom'] },
             { model: Type, as: 'type', attributes: ['idType', 'nom'] },
             { model: Fournisseur, as: 'fournisseur', attributes: ['idFournisseur', 'nom'] },
-            { model: Image, as: 'images', attributes: ['idImage', 'url', 'rang'], orderBy: [['rang', 'ASC']] },
+            { model: Image, as: 'images', attributes: ['idImage', 'url', 'rang'], order: [['rang', 'ASC']] },
           ],
         });
 
@@ -74,7 +77,7 @@ class ProduitController {
           { model: Categorie, as: 'categorie', attributes: ['idCategorie', 'nom'] },
           { model: Marque, as: 'marque', attributes: ['idMarque', 'nom'] },
           { model: Type, as: 'type', attributes: ['idType', 'nom'] },
-          {model : Fournisseur, as: 'fournisseur', attributes: ['idFournisseur', 'nom']},
+          { model: Fournisseur, as: 'fournisseur', attributes: ['idFournisseur', 'nom'] },
           { 
             model: Image, 
             as: 'images', 
@@ -100,8 +103,7 @@ class ProduitController {
           { model: Categorie, as: 'categorie', attributes: ['idCategorie', 'nom'] },
           { model: Marque, as: 'marque', attributes: ['idMarque', 'nom'] },
           { model: Type, as: 'type', attributes: ['idType', 'nom'] },
-          {model : Fournisseur, as: 'fournisseur', attributes: ['idFournisseur', 'nom']},
-
+          { model: Fournisseur, as: 'fournisseur', attributes: ['idFournisseur', 'nom'] },
           { 
             model: Image, 
             as: 'images', 
@@ -118,6 +120,69 @@ class ProduitController {
       console.error('Get produit by ID error:', error);
       res.status(500).json({
         message: 'Erreur lors de la récupération du produit',
+        error: error.message,
+      });
+    }
+  }
+
+  async getTop10BestSellingProduits(req, res) {
+    try {
+      const produits = await Produit.findAll({
+        attributes: [
+          'idProduit',
+          'nom',
+          'description',
+          'prix',
+          'quantiteStock',
+          'idCategorie',
+          'idMarque',
+          'idType',
+          'idFournisseur',
+          'minAge',
+          'maxAge',
+          'typeAge',
+          'genre',
+          [Sequelize.fn('COALESCE', Sequelize.fn('SUM', Sequelize.col('lignesCommandes.quantite')), 0), 'totalVendu'],
+        ],
+        include: [
+          {
+            model: LigneCommande,
+            as: 'lignesCommandes',
+            attributes: [],
+            required: false,
+          },
+          { model: Categorie, as: 'categorie', attributes: ['idCategorie', 'nom'] },
+          { model: Marque, as: 'marque', attributes: ['idMarque', 'nom'] },
+          { model: Type, as: 'type', attributes: ['idType', 'nom'] },
+          { model: Fournisseur, as: 'fournisseur', attributes: ['idFournisseur', 'nom'] },
+          { 
+            model: Image, 
+            as: 'images', 
+            attributes: ['idImage', 'url', 'rang'],
+            separate: true,
+            order: [['rang', 'ASC']],
+          },
+        ],
+        group: [
+          'Produit.idProduit',
+          'categorie.idCategorie',
+          'marque.idMarque',
+          'type.idType', 
+          'fournisseur.idFournisseur'
+        ],
+        order: [[Sequelize.literal('totalVendu'), 'DESC']],
+        limit: 10,
+        subQuery: false,
+      });
+
+      res.status(200).json({
+        message: 'Top 10 des produits les plus vendus récupérés avec succès',
+        data: produits,
+      });
+    } catch (error) {
+      console.error('Get top 10 best selling produits error:', error);
+      res.status(500).json({
+        message: 'Erreur lors de la récupération des produits les plus vendus',
         error: error.message,
       });
     }
@@ -149,9 +214,12 @@ class ProduitController {
           idMarque, 
           idType, 
           idFournisseur,
-          trancheAge,
-          imagesToDelete, // IDs des images à supprimer (envoyé depuis le frontend)
-          imageRangs // Nouveaux rangs pour les images existantes (optionnel)
+          minAge,
+          maxAge,
+          typeAge,
+          genre,
+          imagesToDelete,
+          imageRangs
         } = req.body;
 
         // Update product data
@@ -164,7 +232,10 @@ class ProduitController {
           idMarque: parseInt(idMarque),
           idType: idType ? parseInt(idType) : null,
           idFournisseur: parseInt(idFournisseur),
-          trancheAge,
+          minAge,
+          maxAge,
+          typeAge,
+          genre,
         });
 
         // Handle image deletions if specified
@@ -239,8 +310,7 @@ class ProduitController {
             { model: Categorie, as: 'categorie', attributes: ['idCategorie', 'nom'] },
             { model: Marque, as: 'marque', attributes: ['idMarque', 'nom'] },
             { model: Type, as: 'type', attributes: ['idType', 'nom'] },
-            {model : Fournisseur, as: 'fournisseur', attributes: ['idFournisseur', 'nom']},
-
+            { model: Fournisseur, as: 'fournisseur', attributes: ['idFournisseur', 'nom'] },
             { 
               model: Image, 
               as: 'images', 
@@ -264,7 +334,6 @@ class ProduitController {
     });
   }
 
-  // Nouvelle méthode pour supprimer une image spécifique
   async deleteImage(req, res) {
     try {
       const { imageId } = req.params;

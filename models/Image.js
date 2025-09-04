@@ -16,10 +16,18 @@ const Image = sequelize.define('Image', {
     },
     idProduit: {
         type: DataTypes.INTEGER,
-        allowNull: false,
+        allowNull: true,
         references: {
             model: 'produits',
             key: 'idProduit',
+        },
+    },
+    idStoreInfo: {
+        type: DataTypes.INTEGER,
+        allowNull: true, 
+        references: {
+            model: 'store_infos',
+            key: 'idStoreInfo',
         },
     },
 }, {

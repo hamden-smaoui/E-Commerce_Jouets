@@ -55,10 +55,26 @@ const Produit = sequelize.define('Produit', {
             key: 'idType',
         },
     },
-    trancheAge: {
+    
+     minAge: {
         type: DataTypes.STRING,
         allowNull: true,
     },
+    maxAge: {
+        type: DataTypes.STRING,
+        allowNull: true,
+    },
+    typeAge: {
+        type: DataTypes.ENUM('mois', 'ans'),
+        allowNull: false,
+        defaultValue: 'mois',
+    },  
+    genre: {
+        type: DataTypes.ENUM('fille', 'garçon', 'enfant'),
+        allowNull: false,
+        defaultValue: 'enfant',
+    },
+     
 }, {
     timestamps: true,
     tableName: 'produits',

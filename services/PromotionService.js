@@ -16,57 +16,88 @@ const { Op } = require('sequelize');
 
 class PromotionService {
     
-    // Méthode principale pour appliquer une promotion lors d'une commande
-    static async appliquerPromotionCommande(commandeData, codePromo = null) {
-        try {
-            const promotion = await this.trouverPromotionApplicable(commandeData, codePromo);
-            
-            if (!promotion.promotion) {
-                return { 
-                    montantReduction: 0, 
-                    promotion: null,
-                    montantFinal: commandeData.montantTotal,
-                    codePromo: null
-                };
-            }
+    // Dans PromotionService.js
 
-            const eligibilite = await this.verifierEligibiliteComplete(
-                promotion.promotion, 
-                commandeData, 
-                commandeData.idClient,
-                promotion.codePromoObjet
-            );
-
-            if (!eligibilite.eligible) {
-                return { 
-                    montantReduction: 0, 
-                    promotion: null,
-                    montantFinal: commandeData.montantTotal,
-                    error: eligibilite.message,
-                    codePromo: null
-                };
-            }
-
-            const montantReduction = await this.calculerReductionComplete(promotion.promotion, commandeData);
-            
-            return {
-                montantReduction,
-                promotion: promotion.promotion,
-                codePromo: promotion.codePromoObjet,
-                montantFinal: Math.max(0, commandeData.montantTotal - montantReduction)
-            };
-
-        } catch (error) {
-            console.error('Erreur service promotion:', error);
+static async appliquerPromotionCommande(commandeData, codePromo = null, transaction = null) {
+    try {
+        const promotion = await this.trouverPromotionApplicable(commandeData, codePromo, transaction);
+        
+        if (!promotion.promotion) {
             return { 
                 montantReduction: 0, 
                 promotion: null,
                 montantFinal: commandeData.montantTotal,
-                error: error.message,
                 codePromo: null
             };
         }
+
+        const eligibilite = await this.verifierEligibiliteComplete(
+            promotion.promotion, 
+            commandeData, 
+            commandeData.idClient,
+            promotion.codePromoObjet,
+            transaction
+        );
+
+        if (!eligibilite.eligible) {
+            return { 
+                montantReduction: 0, 
+                promotion: null,
+                montantFinal: commandeData.montantTotal,
+                error: eligibilite.message,
+                codePromo: null
+            };
+        }
+
+        const montantReduction = await this.calculerReductionComplete(promotion.promotion, commandeData, transaction);
+        
+        return {
+            montantReduction,
+            promotion: promotion.promotion,
+            codePromo: promotion.codePromoObjet,
+            montantFinal: Math.max(0, commandeData.montantTotal - montantReduction)
+        };
+
+    } catch (error) {
+        console.error('Erreur service promotion:', error);
+        return { 
+            montantReduction: 0, 
+            promotion: null,
+            montantFinal: commandeData.montantTotal,
+            error: error.message,
+            codePromo: null
+        };
     }
+}
+
+// Modifier aussi cette méthode
+static async enregistrerUtilisation(idPromotion, idCommande, idUtilisateur, montantReduction, idCodePromo = null, transaction = null) {
+    try {
+        await PromotionUtilisation.create({
+            idPromotion,
+            idCodePromo,
+            idCommande,
+            idUtilisateur,
+            montantReduction
+        }, { transaction }); // Utiliser la transaction ici
+
+        await Promotion.increment('utilisationActuelle', {
+            where: { idPromotion },
+            transaction // Utiliser la transaction ici
+        });
+
+        if (idCodePromo) {
+            await CodePromo.increment('utilisationActuelle', {
+                where: { idCodePromo },
+                transaction // Utiliser la transaction ici
+            });
+        }
+
+    } catch (error) {
+        console.error('Erreur enregistrement utilisation:', error);
+        throw error;
+    }
+}
 
     // Trouver une promotion applicable avec vérification des produits
     static async trouverPromotionApplicable(commandeData, codePromo = null) {
@@ -448,56 +479,200 @@ class PromotionService {
         return 0;
     }
 
-    // Enregistrer l'utilisation d'une promotion
-    static async enregistrerUtilisation(idPromotion, idCommande, idUtilisateur, montantReduction, idCodePromo = null) {
+    
+
+   static async getPromotionsActives(idProduit = null) {
         try {
-            await PromotionUtilisation.create({
-                idPromotion,
-                idCodePromo,
-                idCommande,
-                idUtilisateur,
-                montantReduction
-            });
-
-            await Promotion.increment('utilisationActuelle', {
-                where: { idPromotion }
-            });
-
-            if (idCodePromo) {
-                await CodePromo.increment('utilisationActuelle', {
-                    where: { idCodePromo }
+            const now = new Date();
+            
+            // Si un idProduit est fourni, récupérer les infos du produit
+            let produit = null;
+            if (idProduit) {
+                produit = await Produit.findByPk(idProduit, {
+                    include: [
+                        { model: Categorie, as: 'categorie' },
+                        { model: Marque, as: 'marque' },
+                        { model: Type, as: 'type' }
+                    ]
                 });
+                
+                if (!produit) {
+                    throw new Error('Produit non trouvé');
+                }
             }
 
+            const promotionsApplicables = [];
+
+            // 1. Promotions globales
+            const promotionsGlobales = await Promotion.findAll({
+                where: {
+                    typeApplication: 'global',
+                    actif: true,
+                    dateDebut: { [Op.lte]: now },
+                    dateFin: { [Op.gte]: now }
+                }
+            });
+            promotionsApplicables.push(...promotionsGlobales);
+
+            // 2. Promotions panier (s'appliquent à tous les produits)
+            const promotionsPanier = await Promotion.findAll({
+                where: {
+                    typeApplication: 'panier',
+                    actif: true,
+                    dateDebut: { [Op.lte]: now },
+                    dateFin: { [Op.gte]: now }
+                }
+            });
+            promotionsApplicables.push(...promotionsPanier);
+
+            if (produit) {
+                // 3. Promotions spécifiques au produit
+                const promotionsProduit = await Promotion.findAll({
+                    where: {
+                        typeApplication: 'produit',
+                        actif: true,
+                        dateDebut: { [Op.lte]: now },
+                        dateFin: { [Op.gte]: now }
+                    },
+                    include: [{
+                        model: Produit,
+                        as: 'produits',
+                        where: { idProduit: produit.idProduit },
+                        through: { attributes: [] }
+                    }]
+                });
+                promotionsApplicables.push(...promotionsProduit);
+
+                // 4. Promotions par catégorie
+                if (produit.idCategorie) {
+                    const promotionsCategorie = await Promotion.findAll({
+                        where: {
+                            typeApplication: 'categorie',
+                            actif: true,
+                            dateDebut: { [Op.lte]: now },
+                            dateFin: { [Op.gte]: now }
+                        },
+                        include: [{
+                            model: Categorie,
+                            as: 'categories',
+                            where: { idCategorie: produit.idCategorie },
+                            through: { attributes: [] }
+                        }]
+                    });
+                    promotionsApplicables.push(...promotionsCategorie);
+                }
+
+                // 5. Promotions par marque
+                if (produit.idMarque) {
+                    const promotionsMarque = await Promotion.findAll({
+                        where: {
+                            typeApplication: 'marque',
+                            actif: true,
+                            dateDebut: { [Op.lte]: now },
+                            dateFin: { [Op.gte]: now }
+                        },
+                        include: [{
+                            model: Marque,
+                            as: 'marques',
+                            where: { idMarque: produit.idMarque },
+                            through: { attributes: [] }
+                        }]
+                    });
+                    promotionsApplicables.push(...promotionsMarque);
+                }
+
+                // 6. Promotions par type
+                if (produit.idType) {
+                    const promotionsType = await Promotion.findAll({
+                        where: {
+                            typeApplication: 'type',
+                            actif: true,
+                            dateDebut: { [Op.lte]: now },
+                            dateFin: { [Op.gte]: now }
+                        },
+                        include: [{
+                            model: Type,
+                            as: 'types',
+                            where: { idType: produit.idType },
+                            through: { attributes: [] }
+                        }]
+                    });
+                    promotionsApplicables.push(...promotionsType);
+                }
+            }
+
+            // Éliminer les doublons et formater la réponse
+            const promotionsUniques = promotionsApplicables.reduce((acc, promo) => {
+                if (!acc.find(p => p.idPromotion === promo.idPromotion)) {
+                    acc.push({
+                        idPromotion: promo.idPromotion,
+                        nom: promo.nom,
+                        description: promo.description,
+                        typePromotion: promo.typePromotion,
+                        valeurPromotion: promo.valeurPromotion,
+                        typeApplication: promo.typeApplication
+                    });
+                }
+                return acc;
+            }, []);
+
+            return promotionsUniques;
+
         } catch (error) {
-            console.error('Erreur enregistrement utilisation:', error);
+            console.error('Erreur récupération promotions actives:', error);
             throw error;
         }
     }
 
-    // Obtenir les promotions actives pour un produit
-    static async getPromotionsActives(idProduit = null) {
-        const maintenant = new Date();
-        const where = {
-            actif: true,
-            dateDebut: { [Op.lte]: maintenant },
-            dateFin: { [Op.gte]: maintenant }
-        };
+    // Méthode pour calculer le prix avec promotions
+    static async calculerPrixAvecPromotions(idProduit, prixOriginal, quantite = 1) {
+        try {
+            const promotions = await this.getPromotionsActives(idProduit);
+            
+            if (promotions.length === 0) {
+                return {
+                    prixFinal: prixOriginal,
+                    reduction: 0,
+                    pourcentageReduction: 0,
+                    promotionAppliquee: null
+                };
+            }
 
-        if (idProduit) {
-            return await Promotion.findAll({
-                where,
-                include: [{
-                    model: Produit,
-                    as: 'produits',
-                    where: { idProduit },
-                    through: { attributes: [] }
-                }]
+            let meilleurReduction = 0;
+            let promotionAppliquee = null;
+
+            promotions.forEach(promo => {
+                let reduction = 0;
+                
+                if (promo.typePromotion === 'pourcentage') {
+                    reduction = prixOriginal * (promo.valeurPromotion / 100);
+                } else if (promo.typePromotion === 'montant_fixe') {
+                    reduction = Math.min(promo.valeurPromotion, prixOriginal);
+                }
+                
+                if (reduction > meilleurReduction) {
+                    meilleurReduction = reduction;
+                    promotionAppliquee = promo;
+                }
             });
-        }
 
-        return await Promotion.findAll({ where });
+            const prixFinal = Math.max(0, prixOriginal - meilleurReduction);
+            const pourcentageReduction = prixOriginal > 0 ? (meilleurReduction / prixOriginal) * 100 : 0;
+
+            return {
+                prixFinal,
+                reduction: meilleurReduction,
+                pourcentageReduction,
+                promotionAppliquee,
+                promotionsDisponibles: promotions
+            };
+
+        } catch (error) {
+            console.error('Erreur calcul prix avec promotions:', error);
+            throw error;
+        }
     }
+
 }
 
 module.exports = PromotionService;

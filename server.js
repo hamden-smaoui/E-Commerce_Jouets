@@ -5,24 +5,31 @@ const cors = require('cors');
 require('dotenv').config();
 
 const jouetsRoutes = require('./routes/jouetsRoutes');
-
-
+const authRoutes = require('./routes/auth');
+const panierRoutes = require('./routes/panier');
+const favoriRoutes = require('./routes/favori');
+const reclamationRoutes  = require('./routes/reclamation');
+const storeInfoRoutes = require('./routes/storeInfo');
 const app = express();
 const server = http.createServer(app);
 
-
-
 // Middleware
 app.use(cors());
-
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ limit: '10mb', extended: true }));
 app.use('/uploads', express.static('uploads'));
 app.use((req, res, next) => {
   next();
 });
-// Serve static files from the uploads folder
+
+// Routes
 app.use('/api/jouets', jouetsRoutes);
+app.use('/api/auth', authRoutes);
+app.use('/api/panier', panierRoutes);
+app.use('/api/favoris', favoriRoutes);
+app.use('/api/reclamations', reclamationRoutes);
+app.use('/api/store-info', storeInfoRoutes);
+
 
 app.get('/', (req, res) => {
   res.send('🚀 Bienvenue dans le microservice unifié Gestion Centre et Réservation');
@@ -57,13 +64,9 @@ const startServer = async () => {
   try {
     await waitForDatabase();
 
-    await sequelize.sync({ alter: true, force: false });
-    console.log('Les tables ont été synchronisées.');
-
-
     const PORT = process.env.PORT || 3001;
     server.listen(PORT, '0.0.0.0', () => {
-      console.log(`Microservice  Gestion Centre running on port ${PORT}`);
+      console.log(`Microservice Gestion Centre running on port ${PORT}`);
     });
   } catch (err) {
     console.error('Erreur lors du démarrage du microservice :', err);

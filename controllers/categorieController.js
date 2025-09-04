@@ -35,7 +35,7 @@ class CategorieController {
                     {
                         model: Type,
                         as: 'types',
-                        attributes: ['idType', 'nom'],
+                        attributes: ['idType', 'nom','description'],
                         through: { attributes: [] } // Exclure les attributs de la table de jonction
                     }
                 ]
@@ -61,7 +61,7 @@ class CategorieController {
                     {
                         model: Type,
                         as: 'types',
-                        attributes: ['idType', 'nom'],
+                        attributes: ['idType', 'nom','description'],
                         through: { attributes: [] }
                     }
                 ]

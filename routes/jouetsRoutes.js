@@ -55,6 +55,7 @@ router.get('/produits/:id', ProduitController.getProduitById);
 router.put('/produits/:id', ProduitController.updateProduit);
 router.delete('/produits/:id', ProduitController.deleteProduit);
 router.delete('/images/:imageId', ProduitController.deleteImage);
+router.get('/best-sellers', ProduitController.getTop10BestSellingProduits);
 
 // Routes Commande
 router.get('/commandes/stats', CommandeController.getCommandeStats);
@@ -97,6 +98,8 @@ router.get('/promotions/actives/list', PromotionController.getPromotionsActives)
 router.get('/promotions/stats/utilisation', PromotionController.getStatsUtilisation);
 router.patch('/promotions/:id/toggle', PromotionController.togglePromotion);
 router.post('/promotions/:id/dupliquer', PromotionController.dupliquerPromotion);
+router.get('/promotions/produit/:idProduit', PromotionController.getPromotionsPourProduit);
+router.post('/promotions/calculer-prix/:idProduit', PromotionController.calculerPrixProduit);
 
 
 // Routes CodePromo
