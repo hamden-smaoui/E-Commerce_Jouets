@@ -2,6 +2,8 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { Utilisateur } = require('../models');
+const nodemailer = require('nodemailer');
+const crypto = require('crypto');
 
 class AuthController {
     // Inscription
@@ -220,6 +222,139 @@ class AuthController {
         } catch (error) {
             res.status(500).json({
                 message: 'Erreur lors du changement de mot de passe',
+                error: error.message
+            });
+        }
+    }
+
+     async forgotPassword(req, res) {
+        try {
+            const { email } = req.body;
+
+            // Vérifier si l'utilisateur existe
+            const user = await Utilisateur.findOne({ where: { email } });
+            if (!user) {
+                return res.status(404).json({
+                    message: 'Aucun compte associé à cet email'
+                });
+            }
+
+            // Générer un code de vérification à 6 chiffres
+            const resetCode = Math.floor(100000 + Math.random() * 900000).toString();
+            const resetCodeExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+            // Sauvegarder le code dans la base de données
+            await user.update({
+                resetCode,
+                resetCodeExpiry
+            });
+
+            // Configuration de l'email
+            const transporter = nodemailer.createTransport({
+                service: 'gmail', // ou votre service email
+                auth: {
+                    user: process.env.EMAIL_USER,
+                    pass: process.env.EMAIL_PASSWORD
+                }
+            });
+
+            const mailOptions = {
+                from: process.env.EMAIL_FROM,
+                to: email,
+                subject: 'Code de récupération - Toy Universe',
+                html: `
+                    <div style="max-width: 600px; margin: 0 auto; padding: 20px; font-family: Arial, sans-serif;">
+                        <div style="text-align: center; margin-bottom: 30px;">
+                            <h1 style="color: #9333ea;">Toy Universe</h1>
+                        </div>
+                        <div style="background: #f8fafc; padding: 30px; border-radius: 10px; border-left: 4px solid #9333ea;">
+                            <h2 style="color: #1f2937; margin-bottom: 20px;">Récupération de mot de passe</h2>
+                            <p style="color: #4b5563; margin-bottom: 20px;">
+                                Bonjour ${user.prenom},
+                            </p>
+                            <p style="color: #4b5563; margin-bottom: 20px;">
+                                Vous avez demandé la réinitialisation de votre mot de passe. 
+                                Voici votre code de vérification :
+                            </p>
+                            <div style="text-align: center; margin: 30px 0;">
+                                <div style="background: #9333ea; color: white; padding: 15px 25px; border-radius: 8px; font-size: 24px; font-weight: bold; letter-spacing: 3px; display: inline-block;">
+                                    ${resetCode}
+                                </div>
+                            </div>
+                            <p style="color: #4b5563; margin-bottom: 10px;">
+                                <strong>Ce code expire dans 10 minutes.</strong>
+                            </p>
+                            <p style="color: #6b7280; font-size: 14px;">
+                                Si vous n'avez pas demandé cette réinitialisation, ignorez cet email.
+                                Votre mot de passe restera inchangé.
+                            </p>
+                        </div>
+                        <div style="text-align: center; margin-top: 30px; color: #6b7280; font-size: 12px;">
+                            <p>© 2024 Toy Universe. Tous droits réservés.</p>
+                        </div>
+                    </div>
+                `
+            };
+
+            await transporter.sendMail(mailOptions);
+
+            res.status(200).json({
+                message: 'Code de vérification envoyé par email'
+            });
+
+        } catch (error) {
+            console.error('Erreur lors de l\'envoi de l\'email:', error);
+            res.status(500).json({
+                message: 'Erreur lors de l\'envoi du code de récupération',
+                error: error.message
+            });
+        }
+    }
+
+    // Réinitialisation du mot de passe
+    async resetPassword(req, res) {
+        try {
+            const { email, code, newPassword } = req.body;
+
+            // Trouver l'utilisateur
+            const user = await Utilisateur.findOne({ where: { email } });
+            if (!user) {
+                return res.status(404).json({
+                    message: 'Utilisateur non trouvé'
+                });
+            }
+
+            // Vérifier le code et son expiration
+            if (!user.resetCode || user.resetCode !== code) {
+                return res.status(400).json({
+                    message: 'Code de vérification invalide'
+                });
+            }
+
+            if (!user.resetCodeExpiry || new Date() > user.resetCodeExpiry) {
+                return res.status(400).json({
+                    message: 'Code de vérification expiré'
+                });
+            }
+
+            // Hasher le nouveau mot de passe
+            const saltRounds = 12;
+            const hashedPassword = await bcrypt.hash(newPassword, saltRounds);
+
+            // Mettre à jour le mot de passe et supprimer le code de réinitialisation
+            await user.update({
+                motDePasse: hashedPassword,
+                resetCode: null,
+                resetCodeExpiry: null
+            });
+
+            res.status(200).json({
+                message: 'Mot de passe réinitialisé avec succès'
+            });
+
+        } catch (error) {
+            res.status(500).json({
+                message: 'Erreur lors de la réinitialisation du mot de passe',
                 error: error.message
             });
         }

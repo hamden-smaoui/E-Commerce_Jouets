@@ -56,7 +56,8 @@ router.put('/produits/:id', ProduitController.updateProduit);
 router.delete('/produits/:id', ProduitController.deleteProduit);
 router.delete('/images/:imageId', ProduitController.deleteImage);
 router.get('/best-sellers', ProduitController.getTop10BestSellingProduits);
-
+router.get('/search', ProduitController.searchProduits);
+router.get('/search-suggestions', ProduitController.getSearchSuggestions); 
 // Routes Commande
 router.get('/commandes/stats', CommandeController.getCommandeStats);
 

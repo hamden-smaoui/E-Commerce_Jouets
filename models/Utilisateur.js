@@ -50,6 +50,14 @@ const Utilisateur = sequelize.define('Utilisateur', {
         allowNull: true,
         defaultValue: 'client',
     },
+    resetCode : {
+        type: DataTypes.STRING,
+        allowNull: true,
+    },
+    resetCodeExpiry : {
+        type: DataTypes.DATE,
+        allowNull: true,
+    },
 }, {
     timestamps: true,
     tableName: 'utilisateurs',
