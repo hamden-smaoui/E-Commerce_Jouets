@@ -5,6 +5,7 @@ import { CartProvider } from "@/hooks/useCart";
 import "./globals.css";
 import { Toaster } from "react-hot-toast";
 import { FavoritesProvider } from "@/hooks/useFavorites";
+import { SessionProvider } from "next-auth/react"
 
 
 
@@ -24,6 +25,7 @@ export default function RootLayout({
     <html lang="fr" data-theme="light">
       <body>
         <div className={inter.className}>
+          
           <AuthProvider>
             <CartProvider>
               <FavoritesProvider>

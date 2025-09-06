@@ -5,7 +5,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { EyeIcon, EyeSlashIcon, EnvelopeIcon, LockClosedIcon } from "@heroicons/react/24/solid";
 import { useAuth } from "../../hooks/useAuth";
-
+import { SessionProvider } from "next-auth/react"
+import GoogleAuthButton from "@/components/ui/GoogleAuthButton";
 export default function SignIn() {
   const router = useRouter();
   const { login } = useAuth();
@@ -17,7 +18,8 @@ export default function SignIn() {
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
-
+  const  searchParams  = new URLSearchParams(window.location.search);
+  const successMessage = searchParams.get('message');
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
@@ -75,7 +77,11 @@ export default function SignIn() {
           <h2 className="text-3xl font-bold text-gray-900 mb-2">Connexion</h2>
           <p className="text-gray-600">Accédez à votre compte Toy Universe</p>
         </div>
-
+{successMessage && (
+  <div className="bg-green-50 border border-green-200 text-green-600 px-4 py-3 rounded-lg mb-6">
+    {successMessage}
+  </div>
+)}
         <div className="bg-white rounded-xl shadow-lg p-8">
           <form onSubmit={handleSubmit} className="space-y-6">
             {errors.submit && (
@@ -168,7 +174,20 @@ export default function SignIn() {
               {loading ? "Connexion..." : "Se connecter"}
             </button>
           </form>
+<div className="mt-6">
+  <div className="relative">
+    <div className="absolute inset-0 flex items-center">
+      <div className="w-full border-t border-gray-300" />
+    </div>
+    <div className="relative flex justify-center text-sm">
+      <span className="px-2 bg-white text-gray-500">Ou</span>
+    </div>
+  </div>
 
+  <div className="mt-6">
+    <GoogleAuthButton mode="signin" />
+  </div>
+</div>
           <div className="mt-6 text-center">
             <p className="text-gray-600">
               Vous n'avez pas encore de compte ?{" "}

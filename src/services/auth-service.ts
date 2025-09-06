@@ -41,6 +41,15 @@ export interface AuthResponse {
     role: 'admin' | 'client' | null; // Align with FormData
   };
 }
+export interface ForgotPasswordData {
+  email: string;
+}
+
+export interface ResetPasswordData {
+  email: string;
+  code: string;
+  newPassword: string;
+}
 
 class AuthService {
   // Connexion
@@ -180,6 +189,52 @@ class AuthService {
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Erreur inconnue';
       throw new Error(`Erreur lors de la récupération du profil: ${message}`);
+    }
+  }
+async forgotPassword(email: string): Promise<{ message: string }> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/auth/forgot-password`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Erreur lors de la demande de réinitialisation');
+      }
+
+      const data = await response.json();
+      return data;
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Erreur inconnue';
+      throw new Error(`Erreur: ${message}`);
+    }
+  }
+
+  // Réinitialisation du mot de passe
+  async resetPassword(resetData: ResetPasswordData): Promise<{ message: string }> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/auth/reset-password`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(resetData),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Erreur lors de la réinitialisation du mot de passe');
+      }
+
+      const data = await response.json();
+      return data;
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Erreur inconnue';
+      throw new Error(`Erreur: ${message}`);
     }
   }
 }

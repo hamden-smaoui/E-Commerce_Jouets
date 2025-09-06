@@ -6,6 +6,7 @@ import { useCart } from "@/hooks/useCart";
 import { useRouter } from "next/navigation";
 import { useFavorites } from "@/hooks/useFavorites";
 import { useStoreInfo } from "@/hooks/useStoreInfo";
+import SearchInput from '../ui/SearchInput';
 
 import {
   EnvelopeIcon,
@@ -200,52 +201,11 @@ export default function Navbar() {
         </div>
 
         <div className="relative w-full mt-2 md:mt-0 md:flex-1 md:mx-4">
-          <form onSubmit={handleSearch} className="relative">
-            <div className={`relative transition-all duration-300 ${isSearchFocused ? "transform scale-105" : ""}`}>
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onFocus={() => setIsSearchFocused(true)}
-                onBlur={() => setIsSearchFocused(false)}
-                placeholder="Rechercher vos jouets..."
-                className={`w-full px-4 py-2 pl-10 pr-16 text-gray-700 bg-gray-50 border rounded-lg transition-all duration-300 focus:outline-none focus:bg-white focus:shadow-lg ${
-                  isSearchFocused ? "border-purple-400 shadow-md" : "border-gray-200 hover:border-gray-300"
-                }`}
-              />
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <MagnifyingGlassIcon
-                  className={`h-5 w-5 transition-colors duration-300 ${
-                    isSearchFocused ? "text-purple-500" : "text-gray-400"
-                  }`}
-                />
-              </div>
-              <button type="submit" className="absolute inset-y-0 right-0 pr-2 flex items-center">
-                <div
-                  className={`px-3 py-1 rounded-lg transition-all duration-300 ${
-                    searchQuery.trim() ? "bg-purple-600 text-white hover:bg-purple-700" : "bg-gray-300 text-gray-500"
-                  }`}
-                >
-                  <span className="text-sm font-medium hidden sm:block">Rechercher</span>
-                  <MagnifyingGlassIcon className="h-4 w-4 sm:hidden" />
-                </div>
-              </button>
-            </div>
-          </form>
-          {isSearchFocused && searchQuery && (
-            <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-gray-200 rounded-lg shadow-lg z-[1000] max-h-60 overflow-y-auto">
-              <div className="p-2">
-                <p className="text-sm text-gray-500 px-3 py-2">Suggestions de recherche</p>
-                <div className="px-3 py-2 hover:bg-gray-50 cursor-pointer rounded text-sm">
-                  {searchQuery} - Jouets éducatifs
-                </div>
-                <div className="px-3 py-2 hover:bg-gray-50 cursor-pointer rounded text-sm">
-                  {searchQuery} - Peluches
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
+  <SearchInput 
+    placeholder="Rechercher vos jouets..."
+    className="w-full"
+  />
+</div>
 
         <div className="hidden md:flex space-x-2 md:ml-2">
           <Link href="/site/contact" className="btn btn-ghost btn-circle" title="Contact">
