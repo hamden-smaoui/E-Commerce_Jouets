@@ -50,6 +50,12 @@ export interface ResetPasswordData {
   code: string;
   newPassword: string;
 }
+export interface GoogleSignInData {
+  email: string;
+  name?: string;
+  googleId: string;
+  image?: string;
+}
 
 class AuthService {
   // Connexion
@@ -237,6 +243,35 @@ async forgotPassword(email: string): Promise<{ message: string }> {
       throw new Error(`Erreur: ${message}`);
     }
   }
+
+  // services/auth-service.ts - Ajouter cette méthode
+async googleSignIn(userData: any): Promise<AuthResponse> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/auth/google-auth`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(userData),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Erreur lors de la connexion Google');
+    }
+
+    const data = await response.json();
+    
+    // Stocker le token et les données utilisateur
+    localStorage.setItem('token', data.token);
+    localStorage.setItem('user', JSON.stringify(data.user));
+    
+    return data;
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Erreur inconnue';
+    throw new Error(`Erreur Google: ${message}`);
+  }
+}
 }
 
 export default new AuthService();
