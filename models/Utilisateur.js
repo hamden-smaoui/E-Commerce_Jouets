@@ -26,7 +26,7 @@ const Utilisateur = sequelize.define('Utilisateur', {
     },
     telephone: {
         type: DataTypes.STRING,
-        allowNull: false,
+        allowNull: true,
     },
     adresseRue: {
         type: DataTypes.STRING,
@@ -58,6 +58,19 @@ const Utilisateur = sequelize.define('Utilisateur', {
         type: DataTypes.DATE,
         allowNull: true,
     },
+    googleId: {
+        type: DataTypes.STRING,
+        allowNull: true,
+    },
+    profileImage: {
+        type: DataTypes.STRING,
+        allowNull: true,
+    },
+    isGoogleUser: {
+        type: DataTypes.BOOLEAN,
+        allowNull: true,
+        defaultValue: false,
+    }
 }, {
     timestamps: true,
     tableName: 'utilisateurs',

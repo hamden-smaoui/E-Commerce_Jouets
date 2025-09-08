@@ -4,7 +4,7 @@ const jwt = require('jsonwebtoken');
 const { Utilisateur } = require('../models');
 const nodemailer = require('nodemailer');
 const crypto = require('crypto');
-
+const { Op } = require('sequelize');
 class AuthController {
     // Inscription
     async register(req, res) {
@@ -359,6 +359,100 @@ class AuthController {
             });
         }
     }
+
+// controllers/AuthController.js - Corriger la méthode googleAuth
+
+async googleAuth(req, res) {
+  try {
+    console.log('Données reçues pour Google Auth:', req.body);
+    
+    const { email, name, googleId, image } = req.body;
+    
+    if (!email || !name || !googleId) {
+      return res.status(400).json({
+        message: 'Données Google incomplètes'
+      });
+    }
+
+    // Diviser le nom complet en prénom et nom
+    const nameParts = name.split(' ');
+    const prenom = nameParts[0] || '';
+    const nom = nameParts.slice(1).join(' ') || '';
+
+    // Vérifier si l'utilisateur existe déjà (syntaxe Sequelize correcte)
+    let user = await Utilisateur.findOne({ 
+      where: { 
+        [Op.or]: [
+          { email: email },
+          { googleId: googleId }
+        ]
+      }
+    });
+
+    if (user) {
+      console.log('Utilisateur existant trouvé:', user.email);
+      // Utilisateur existant - mettre à jour le googleId si nécessaire
+      if (!user.googleId) {
+        await user.update({ 
+          googleId, 
+          profileImage: image 
+        });
+      }
+    } else {
+      console.log('Création d\'un nouvel utilisateur Google');
+      // Nouvel utilisateur - créer le compte
+      user = await Utilisateur.create({
+        prenom,
+        nom,
+        email,
+        googleId,
+        profileImage: image,
+        telephone: '', // Peut être rempli plus tard
+        motDePasse: null, // Null pour Google Auth
+        role: 'client',
+        isGoogleUser: true
+      });
+    }
+
+    // Générer le token JWT
+    const token = jwt.sign(
+      {
+        userId: user.idUtilisateur,
+        email: user.email,
+        role: user.role
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: process.env.JWT_EXPIRES_IN }
+    );
+
+    // Retourner les données utilisateur
+    const userResponse = {
+      idUtilisateur: user.idUtilisateur,
+      prenom: user.prenom,
+      nom: user.nom,
+      email: user.email,
+      telephone: user.telephone,
+      role: user.role,
+      profileImage: user.profileImage,
+      isGoogleUser: user.isGoogleUser
+    };
+
+    console.log('Authentification Google réussie pour:', user.email);
+
+    res.status(200).json({
+      message: 'Authentification Google réussie',
+      token,
+      user: userResponse
+    });
+
+  } catch (error) {
+    console.error('Erreur Google Auth détaillée:', error);
+    res.status(500).json({
+      message: 'Erreur lors de l\'authentification Google',
+      error: error.message
+    });
+  }
+}
 }
 
 module.exports = new AuthController();
