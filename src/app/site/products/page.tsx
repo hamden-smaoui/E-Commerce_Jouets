@@ -6,6 +6,7 @@ import React from "react";
 import Footer from "@/components/ui/Footer";
 import ProduitsService, { Produit } from "@/services/produits-service";
 import KidsCornerLoader from '@/components/ui/KidsCornerLoader';
+import { useSearchParams } from 'next/navigation';
 
 interface ProductWithDetails extends Produit {
   image?: string;
@@ -35,15 +36,21 @@ export default function Products() {
   const [sortBy, setSortBy] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [showFilterModal, setShowFilterModal] = useState(false);
-  const [currentFilters, setCurrentFilters] = useState<FilterState>({
-    categories: [],
-    marques: [],
-    types: [],
-    genres: [],
-    prix: { min: 0, max: 1500 },
-    age: { min: 0, max: 144 },
+  
+  const searchParams = useSearchParams();
+ const [currentFilters, setCurrentFilters] = useState<FilterState>(() => {
+    const categoriesParam = searchParams.get('categories');
+    const typesParam = searchParams.get('types');
+    
+    return {
+      categories: categoriesParam ? [parseInt(categoriesParam)] : [],
+      marques: [],
+      types: typesParam ? [parseInt(typesParam)] : [],
+      genres: [],
+      prix: { min: 0, max: 1500 },
+      age: { min: 0, max: 144 },
+    };
   });
-
   const PRODUCTS_PER_PAGE = 12;
 
   useEffect(() => {
@@ -75,7 +82,19 @@ export default function Products() {
       setLoading(false);
     }
   };
-
+useEffect(() => {
+    const categoriesParam = searchParams.get('categories');
+    const typesParam = searchParams.get('types');
+    
+    setCurrentFilters({
+      categories: categoriesParam ? [parseInt(categoriesParam)] : [],
+      marques: [],
+      types: typesParam ? [parseInt(typesParam)] : [],
+      genres: [],
+      prix: { min: 0, max: 1500 },
+      age: { min: 0, max: 144 },
+    });
+  }, [searchParams]);
   const getAgeInMonths = (minAge: string | null, maxAge: string | null, typeAge: 'mois' | 'ans' | null): { min: number; max: number } | null => {
     if (!minAge && !maxAge) return null;
     
@@ -257,7 +276,10 @@ export default function Products() {
           {/* Sidebar avec filtres */}
           <div className="hidden lg:block w-80 flex-shrink-0">
             <div className="sticky top-6">
-              <Filter onFiltersChange={handleFiltersChange} />
+             <Filter 
+  onFiltersChange={handleFiltersChange} 
+  initialFilters={currentFilters} 
+/>
             </div>
           </div>
           
@@ -440,7 +462,10 @@ export default function Products() {
             </div>
             
             <div className="p-4 pb-24">
-              <Filter onFiltersChange={handleFiltersChange} />
+             <Filter 
+  onFiltersChange={handleFiltersChange} 
+  initialFilters={currentFilters} 
+/>
             </div>
             
             <div className="sticky bottom-0 bg-white border-t border-gray-200 p-4 shadow-lg">

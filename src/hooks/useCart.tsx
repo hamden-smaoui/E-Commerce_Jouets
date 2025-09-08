@@ -16,6 +16,7 @@ interface CartContextType {
   removeFromCart: (idProduit: number) => Promise<void>;
   clearCart: () => Promise<void>;
   refreshCart: () => Promise<void>;
+  clearCartWithoutToast: () => Promise<void>;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -108,6 +109,16 @@ export function CartProvider({ children }: { children: ReactNode }) {
       throw error;
     }
   };
+  const clearCartWithoutToast = async () => {
+    try {
+      await PanierService.viderPanier();
+      await refreshCart();
+    } catch (error: any) {
+      const message = error.message || "Erreur lors du vidage du panier";
+      toast.error(message);
+      throw error;
+    }
+  };
 
   useEffect(() => {
     if (mounted && isAuthenticated) {
@@ -129,6 +140,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         updateQuantity,
         removeFromCart,
         clearCart,
+        clearCartWithoutToast,
         refreshCart,
       }}
     >

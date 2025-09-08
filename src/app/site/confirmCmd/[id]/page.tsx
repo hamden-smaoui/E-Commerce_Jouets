@@ -4,10 +4,12 @@ import Link from "next/link";
 import Footer from "@/components/ui/Footer";
 import CountdownTimer from "@/components/ui/CountdownTimer";
 import CommandeItemPromotion from "@/components/ui/CommandeItemPromotion";
+import ConfirmCancelOrderModal from "@/components/layout/ConfirmCancelOrderModal";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import CommandesService from "@/services/commandes-service";
-import { useCart } from "@/hooks/useCart"; // Added import for useCart
+import { useCart } from "@/hooks/useCart";
+import { toast } from "react-hot-toast";
 import type { CommandeResponse } from "@/services/commandes-service";
 import KidsCornerLoader from "@/components/ui/KidsCornerLoader";
 
@@ -29,12 +31,13 @@ interface Props {
 
 export default function CommandeConfirmation({ params }: Props) {
   const router = useRouter();
-  const { clearCart, cartItems } = useCart(); // Added useCart hook to access clearCart
+  const { clearCartWithoutToast, cartItems } = useCart(); 
   const [commande, setCommande] = useState<CommandeResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [cancelling, setCancelling] = useState(false);
   const [canCancel, setCanCancel] = useState(true);
+  const [showCancelModal, setShowCancelModal] = useState(false);
 
   // Calculer le temps limite d'annulation (2 heures après la création)
   const getCancellationDeadline = (dateCommande: string) => {
@@ -52,7 +55,7 @@ export default function CommandeConfirmation({ params }: Props) {
         
         // Clear cart only if commande is valid and cart is not already empty
         if (commandeData && cartItems.length > 0) {
-          await clearCart();
+          await clearCartWithoutToast();
         }
 
         // Vérifier si on peut encore annuler
@@ -63,25 +66,37 @@ export default function CommandeConfirmation({ params }: Props) {
       } catch (err: any) {
         console.error('Erreur lors du chargement de la commande:', err);
         setError(err.message || 'Erreur lors du chargement de la commande');
+        toast.error('Erreur lors du chargement de la commande');
       } finally {
         setLoading(false);
       }
     };
 
     fetchCommande();
-  }, [params.id, clearCart, cartItems.length]);
+  }, [params.id, clearCartWithoutToast, cartItems.length]);
 
-  const handleCancelCommande = async () => {
-    if (!commande || cancelling) return;
-    
-    const confirmCancel = window.confirm(
-      'Êtes-vous sûr de vouloir annuler cette commande ? Cette action est irréversible.'
-    );
-    
-    if (!confirmCancel) return;
+  const handleOpenCancelModal = () => {
+    if (!commande || cancelling || !canCancel) return;
+    setShowCancelModal(true);
+  };
+
+  const handleCloseCancelModal = () => {
+    if (!cancelling) {
+      setShowCancelModal(false);
+    }
+  };
+
+  const handleConfirmCancel = async () => {
+    if (!commande) return;
 
     try {
       setCancelling(true);
+      
+      // Show loading toast
+      toast.loading('Annulation de votre commande en cours...', {
+        id: 'cancel-order-toast'
+      });
+      
       await CommandesService.updateCommande(commande.idCommande, {
         statut: 'annulée'
       });
@@ -90,12 +105,22 @@ export default function CommandeConfirmation({ params }: Props) {
       const updatedCommande = await CommandesService.getCommandeById(commande.idCommande);
       setCommande(updatedCommande);
       setCanCancel(false);
+      setShowCancelModal(false);
       
-      alert('Votre commande a été annulée avec succès.');
+      // Remove loading toast and show success
+      toast.dismiss('cancel-order-toast');
+      toast.success('Votre commande a été annulée avec succès', {
+        duration: 5000,
+        position: 'top-center',
+      });
       
     } catch (err: any) {
       console.error('Erreur lors de l\'annulation:', err);
-      alert(`Erreur lors de l'annulation: ${err.message}`);
+      toast.dismiss('cancel-order-toast');
+      toast.error(`Erreur lors de l'annulation: ${err.message}`, {
+        duration: 6000,
+        position: 'top-center',
+      });
     } finally {
       setCancelling(false);
     }
@@ -103,6 +128,7 @@ export default function CommandeConfirmation({ params }: Props) {
 
   const handleTimerExpired = () => {
     setCanCancel(false);
+    
   };
 
   if (loading) {
@@ -150,6 +176,7 @@ export default function CommandeConfirmation({ params }: Props) {
   const totalArticles = commande.lignesCommandes?.reduce((sum, ligne) => sum + ligne.quantite, 0) || 0;
   const dateCommande = new Date(commande.dateCommande);
   const cancellationDeadline = getCancellationDeadline(commande.dateCommande);
+  const orderNumber = `CMD-${commande.idCommande.toString().padStart(6, '0')}`;
 
   // Calculer les frais de livraison
   const fraisLivraison = commande.montantTotal >= 100 ? 0 : 7.9;
@@ -179,13 +206,8 @@ export default function CommandeConfirmation({ params }: Props) {
 
   return (
     <div className="min-h-screen bg-white px-2 sm:px-4 py-4 sm:py-6">
-      {/* Header */}
-      <div className="flex justify-center items-center mb-4">
-        <h2 className="text-2xl sm:text-3xl font-serif italic text-purple-500 text-center">
-          {commande.statut === 'annulée' ? 'Commande Annulée' : 'Commande Confirmée'}
-        </h2>
-      </div>
-      <hr className="mb-4 sm:mb-6 border-purple-300" />
+     
+      
 
       {/* Contenu principal centré */}
       <div className="max-w-6xl mx-auto space-y-4 sm:space-y-6 pb-8">
@@ -206,7 +228,7 @@ export default function CommandeConfirmation({ params }: Props) {
               {commande.statut === 'annulée' ? 'Commande Annulée !' : 'Commande Confirmée !'}
             </h2>
             <p className="text-gray-600 text-sm sm:text-base">
-              Commande N° <span className="font-bold text-purple-600">CMD-{commande.idCommande.toString().padStart(6, '0')}</span>
+              Commande N° <span className="font-bold text-purple-600">{orderNumber}</span>
             </p>
             <p className="text-xs sm:text-sm text-gray-500">
               {dateCommande.toLocaleDateString('fr-FR', {
@@ -240,35 +262,19 @@ export default function CommandeConfirmation({ params }: Props) {
                 </div>
               </div>
 
-              <div className="flex items-start gap-3 p-3 bg-purple-50 rounded-lg">
+             
+            </div>
+
+            {/* Colonne droite */}
+            <div className="space-y-3 sm:space-y-4">
+              
+
+               <div className="flex items-start gap-3 p-3 bg-purple-50 rounded-lg">
                 <CheckCircleIcon className="w-5 sm:w-6 h-5 sm:h-6 text-purple-600 flex-shrink-0 mt-1" />
                 <div>
                   <h4 className="font-semibold text-purple-800 text-sm sm:text-base">Commande enregistrée</h4>
                   <p className="text-xs sm:text-sm text-purple-700">
                     Votre commande à <strong>Toy Universe</strong> a bien été enregistrée et sera traitée dans les plus brefs délais.
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Colonne droite */}
-            <div className="space-y-3 sm:space-y-4">
-              <div className="flex items-start gap-3 p-3 bg-orange-50 rounded-lg">
-                <CreditCardIcon className="w-5 sm:w-6 h-5 sm:h-6 text-orange-600 flex-shrink-0 mt-1" />
-                <div>
-                  <h4 className="font-semibold text-orange-800 text-sm sm:text-base">Mode de paiement</h4>
-                  <p className="text-xs sm:text-sm text-orange-700">
-                    Vous avez choisi le <strong>Paiement à la livraison</strong>. Le montant sera à régler lors de la réception de votre commande.
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-3 p-3 bg-green-50 rounded-lg">
-                <TruckIcon className="w-5 sm:w-6 h-5 sm:h-6 text-green-600 flex-shrink-0 mt-1" />
-                <div>
-                  <h4 className="font-semibold text-green-800 text-sm sm:text-base">Expédition</h4>
-                  <p className="text-xs sm:text-sm text-green-700">
-                    Votre commande sera envoyée très prochainement. Vous recevrez un email de suivi avec le numéro de tracking.
                   </p>
                 </div>
               </div>
@@ -298,7 +304,7 @@ export default function CommandeConfirmation({ params }: Props) {
                   
                   {canCancel ? (
                     <button 
-                      onClick={handleCancelCommande}
+                      onClick={handleOpenCancelModal}
                       disabled={cancelling}
                       className="flex items-center gap-2 bg-red-600 text-white px-3 sm:px-4 py-2 rounded hover:bg-red-700 font-medium text-xs sm:text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed w-full sm:w-auto justify-center sm:justify-start"
                     >
@@ -453,6 +459,15 @@ export default function CommandeConfirmation({ params }: Props) {
           </Link>
         </div>
       </div>
+
+      {/* Confirm Cancel Order Modal */}
+      <ConfirmCancelOrderModal
+        isOpen={showCancelModal}
+        onClose={handleCloseCancelModal}
+        onConfirm={handleConfirmCancel}
+        orderNumber={orderNumber}
+        isLoading={cancelling}
+      />
 
       <Footer />
     </div>

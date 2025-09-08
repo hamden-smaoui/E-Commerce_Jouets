@@ -6,6 +6,7 @@ import TypesService, { Type, TypeResponse } from "@/services/types-service";
 import DualRangeSlider from './DualRangeSlider';
 interface FilterProps {
   onFiltersChange?: (filters: FilterState) => void;
+  initialFilters?: Partial<FilterState>; // Nouveau prop
 }
 
 // Dans Filter.tsx
@@ -18,11 +19,11 @@ export interface FilterState {
   age: { min: number; max: number };
 }
 
-const Filter: React.FC<FilterProps> = ({ onFiltersChange }) => {
-  const [categories, setCategories] = useState<number[]>([]);
-  const [marques, setMarques] = useState<number[]>([]);
-  const [types, setTypes] = useState<number[]>([]);
-  const [genres, setGenres] = useState<("fille" | "garçon" | "enfant")[]>([]);
+const Filter: React.FC<FilterProps> = ({ onFiltersChange, initialFilters }) => {
+const [categories, setCategories] = useState<number[]>(initialFilters?.categories || []);
+  const [marques, setMarques] = useState<number[]>(initialFilters?.marques || []);
+  const [types, setTypes] = useState<number[]>(initialFilters?.types || []);
+  const [genres, setGenres] = useState<("fille" | "garçon" | "enfant")[]>(initialFilters?.genres || []);
 
   const [prixMin, setPrixMin] = useState<number>(0);
   const [prixMax, setPrixMax] = useState<number>(1500);
@@ -47,6 +48,7 @@ const Filter: React.FC<FilterProps> = ({ onFiltersChange }) => {
   const marqueRef = useRef<HTMLDivElement>(null);
   const typeRef = useRef<HTMLDivElement>(null);
   const genreRef = useRef<HTMLDivElement>(null);
+  const [isInitialized, setIsInitialized] = useState(false); // AJOUTE CETTE LIGNE
 
   const onFiltersChangeRef = useRef(onFiltersChange);
   useEffect(() => {
@@ -54,14 +56,22 @@ const Filter: React.FC<FilterProps> = ({ onFiltersChange }) => {
   }, [onFiltersChange]);
 
   const genresList: ("fille" | "garçon" | "enfant")[] = ["enfant", "fille", "garçon"];
-
+useEffect(() => {
+    if (initialFilters) {
+      setCategories(initialFilters.categories || []);
+      setMarques(initialFilters.marques || []);
+      setTypes(initialFilters.types || []);
+      setGenres(initialFilters.genres || []);
+      
+    }
+  }, [initialFilters]);
   useEffect(() => {
     loadCategories();
     loadMarques();
     loadTypes();
   }, []);
 
-  useEffect(() => {
+ useEffect(() => {
     if (categories.length === 0) {
       setAvailableTypes(typesList);
     } else {
@@ -70,13 +80,16 @@ const Filter: React.FC<FilterProps> = ({ onFiltersChange }) => {
       );
       setAvailableTypes(filteredTypes);
       
-      setTypes(prevTypes => 
-        prevTypes.filter(typeId => 
-          filteredTypes.some(type => type.idType === typeId)
-        )
-      );
+      // NE SUPPRIMER LES TYPES QUE SI CE N'EST PAS L'INITIALISATION
+      if (isInitialized) {
+        setTypes(prevTypes => 
+          prevTypes.filter(typeId => 
+            filteredTypes.some(type => type.idType === typeId)
+          )
+        );
+      }
     }
-  }, [categories, typesList]);
+  }, [categories, typesList, isInitialized]); // AJOUTER isInitialized
 
   const notifyFiltersChange = useCallback(() => {
   const filters: FilterState = {
