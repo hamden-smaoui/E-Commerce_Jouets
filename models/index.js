@@ -22,6 +22,9 @@ const PromotionUtilisation = require('./PromotionUtilisation');
 const Promotion = require('./promotion');
 const Reclamation = require('./Reclamation');
 const StoreInfo = require('./StoreInfo');
+const Avis = require('./Avis');
+const Commentaire = require('./Commentaire');
+
 
 // Existing associations
 Utilisateur.hasMany(Commande, { foreignKey: 'idClient', as: 'commandes' });
@@ -137,6 +140,21 @@ Utilisateur.hasMany(Reclamation, {
     as: 'reclamations' 
 });
 
+
+// Associations pour les Avis
+Utilisateur.hasMany(Avis, { foreignKey: 'idUtilisateur', as: 'avis' });
+Avis.belongsTo(Utilisateur, { foreignKey: 'idUtilisateur', as: 'utilisateur' });
+
+Produit.hasMany(Avis, { foreignKey: 'idProduit', as: 'avis' });
+Avis.belongsTo(Produit, { foreignKey: 'idProduit', as: 'produit' });
+
+// Associations pour les Commentaires
+Utilisateur.hasMany(Commentaire, { foreignKey: 'idUtilisateur', as: 'commentaires' });
+Commentaire.belongsTo(Utilisateur, { foreignKey: 'idUtilisateur', as: 'utilisateur' });
+
+Produit.hasMany(Commentaire, { foreignKey: 'idProduit', as: 'commentaires' });
+Commentaire.belongsTo(Produit, { foreignKey: 'idProduit', as: 'produit' });
+
 module.exports = {
     sequelize,
     Utilisateur,
@@ -162,4 +180,7 @@ module.exports = {
     PromotionUtilisation,
     Reclamation,
     StoreInfo,
+    Avis,
+    Commentaire
+
 };

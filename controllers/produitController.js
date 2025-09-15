@@ -1,4 +1,4 @@
-const { Produit, Categorie, Marque, Type, Image, Fournisseur, LigneCommande } = require('../models');
+const { Produit, Categorie, Marque, Type, Image, Fournisseur, LigneCommande, Avis, Utilisateur, Commentaire } = require('../models');
 const upload = require('../multerConfig');
 const path = require('path');
 const fs = require('fs').promises;
@@ -110,6 +110,18 @@ class ProduitController {
             attributes: ['idImage', 'url', 'rang'],
             order: [['rang', 'ASC']]
           },
+          { 
+    model: Avis, 
+    as: 'avis',
+    include: [{ model: Utilisateur, as: 'utilisateur', attributes: ['prenom', 'nom'] }]
+  },
+  { 
+    model: Commentaire, 
+    as: 'commentaires',
+    include: [{ model: Utilisateur, as: 'utilisateur', attributes: ['prenom', 'nom'] }],
+    limit: 5, // Limiter à 5 commentaires récents
+    order: [['createdAt', 'DESC']]
+  }
         ],
       });
       if (!produit) {

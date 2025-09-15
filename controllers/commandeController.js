@@ -38,10 +38,52 @@ async createCommande(req, res) {
         const montantFinalSansLivraison = promotionResult.montantFinal;
         const montantTotalAvecLivraison = montantFinalSansLivraison + (parseFloat(fraisLivraison) || 0);
 
+        // NOUVEAU : Mettre à jour le profil utilisateur si connecté et si des infos manquent
+        if (commandeData.idClient) {
+            const utilisateur = await Utilisateur.findByPk(commandeData.idClient, { transaction });
+            
+            if (utilisateur) {
+                const updateData = {};
+                let shouldUpdate = false;
+
+                // Vérifier et mettre à jour les champs d'adresse manquants
+                if (!utilisateur.telephone && commandeData.clientTelephone) {
+                    updateData.telephone = commandeData.clientTelephone;
+                    shouldUpdate = true;
+                }
+                
+                if (!utilisateur.adresseRue && commandeData.clientAdresseRue) {
+                    updateData.adresseRue = commandeData.clientAdresseRue;
+                    shouldUpdate = true;
+                }
+                
+                if (!utilisateur.adresseVille && commandeData.clientAdresseVille) {
+                    updateData.adresseVille = commandeData.clientAdresseVille;
+                    shouldUpdate = true;
+                }
+                
+                if (!utilisateur.adresseCodePostal && commandeData.clientAdresseCodePostal) {
+                    updateData.adresseCodePostal = commandeData.clientAdresseCodePostal;
+                    shouldUpdate = true;
+                }
+                
+                if (!utilisateur.adressePays && commandeData.clientAdressePays) {
+                    updateData.adressePays = commandeData.clientAdressePays;
+                    shouldUpdate = true;
+                }
+
+                // Mettre à jour l'utilisateur si nécessaire
+                if (shouldUpdate) {
+                    await utilisateur.update(updateData, { transaction });
+                    console.log('Profil utilisateur mis à jour avec les informations de commande');
+                }
+            }
+        }
+
         // Créer la commande avec le montant final COMPLET
         const commande = await Commande.create({
             ...commandeData,
-            montantTotal: montantTotalAvecLivraison, // ⚠️ TOTAL AVEC LIVRAISON
+            montantTotal: montantTotalAvecLivraison,
             montantOriginal: montantTotal + (parseFloat(fraisLivraison) || 0),
             montantReduction: promotionResult.montantReduction,
             idPromotionUtilisee: promotionResult.promotion?.idPromotion || null,
@@ -53,8 +95,8 @@ async createCommande(req, res) {
             const lignes = lignesCommandes.map(ligne => ({
                 ...ligne,
                 idCommande: commande.idCommande,
-                prixUnitaire: ligne.prixUnitaire, // Prix original
-                sousTotal: ligne.quantite * ligne.prixUnitaire // Sous-total original
+                prixUnitaire: ligne.prixUnitaire,
+                sousTotal: ligne.quantite * ligne.prixUnitaire
             }));
             await LigneCommande.bulkCreate(lignes, { transaction });
         }

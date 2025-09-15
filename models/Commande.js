@@ -9,7 +9,7 @@ const Commande = sequelize.define('Commande', {
     },
     idClient: {
         type: DataTypes.INTEGER,
-        allowNull: true, // Pour commandes invitées
+        allowNull: true,
         references: {
             model: 'utilisateurs',
             key: 'idUtilisateur',

@@ -45,14 +45,18 @@ class AuthController {
             );
 
             // Retourner les données sans le mot de passe
-            const userResponse = {
-                idUtilisateur: newUser.idUtilisateur,
-                prenom: newUser.prenom,
-                nom: newUser.nom,
-                email: newUser.email,
-                telephone: newUser.telephone,
-                role: newUser.role
-            };
+           const userResponse = {
+    idUtilisateur: newUser.idUtilisateur,
+    prenom: newUser.prenom,
+    nom: newUser.nom,
+    email: newUser.email,
+    telephone: newUser.telephone,
+    adresseRue: newUser.adresseRue,
+    adresseVille: newUser.adresseVille,
+    adresseCodePostal: newUser.adresseCodePostal,
+    adressePays: newUser.adressePays,
+    role: newUser.role
+};
 
             res.status(201).json({
                 message: 'Inscription réussie',
@@ -101,14 +105,18 @@ class AuthController {
             );
 
             // Retourner les données sans le mot de passe
-            const userResponse = {
-                idUtilisateur: user.idUtilisateur,
-                prenom: user.prenom,
-                nom: user.nom,
-                email: user.email,
-                telephone: user.telephone,
-                role: user.role
-            };
+           const userResponse = {
+    idUtilisateur: newUser.idUtilisateur,
+    prenom: newUser.prenom,
+    nom: newUser.nom,
+    email: newUser.email,
+    telephone: newUser.telephone,
+    adresseRue: newUser.adresseRue,
+    adresseVille: newUser.adresseVille,
+    adresseCodePostal: newUser.adresseCodePostal,
+    adressePays: newUser.adressePays,
+    role: newUser.role
+};
 
             res.status(200).json({
                 message: 'Connexion réussie',
@@ -434,7 +442,11 @@ async googleAuth(req, res) {
       telephone: user.telephone,
       role: user.role,
       profileImage: user.profileImage,
-      isGoogleUser: user.isGoogleUser
+      isGoogleUser: user.isGoogleUser,
+      adresseCodePostal: user.adresseCodePostal,
+      adressePays: user.adressePays,
+      adresseRue: user.adresseRue,
+      adresseVille: user.adresseVille
     };
 
     console.log('Authentification Google réussie pour:', user.email);

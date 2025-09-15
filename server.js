@@ -10,6 +10,9 @@ const panierRoutes = require('./routes/panier');
 const favoriRoutes = require('./routes/favori');
 const reclamationRoutes  = require('./routes/reclamation');
 const storeInfoRoutes = require('./routes/storeInfo');
+const avisRoutes = require('./routes/avis');
+const commentaireRoutes = require('./routes/commentaire');
+
 const app = express();
 const server = http.createServer(app);
 
@@ -29,6 +32,8 @@ app.use('/api/panier', panierRoutes);
 app.use('/api/favoris', favoriRoutes);
 app.use('/api/reclamations', reclamationRoutes);
 app.use('/api/store-info', storeInfoRoutes);
+app.use('/api/avis', avisRoutes);
+app.use('/api/commentaires', commentaireRoutes);
 
 
 app.get('/', (req, res) => {
