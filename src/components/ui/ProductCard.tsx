@@ -1,11 +1,12 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useCart } from "@/hooks/useCart";
 import { usePromotions } from "@/hooks/usePromotion";
 import PromotionBadge from "./PromotionBadge";
 import { useFavorites } from "@/hooks/useFavorites";
+import { ShoppingCartIcon } from "@heroicons/react/24/solid";
 
 interface Product {
   idProduit: number;
@@ -36,18 +37,39 @@ interface ProductCardProps {
 const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isAddingToCart, setIsAddingToCart] = useState(false);
-    const [isTogglingFavorite, setIsTogglingFavorite] = useState(false);
-
+  const [isTogglingFavorite, setIsTogglingFavorite] = useState(false);
   const [imageError, setImageError] = useState(false);
+  const [isHovering, setIsHovering] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+  const [touchStart, setTouchStart] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  
   const { addToCart } = useCart();
-    const { addToFavorites, removeFromFavorites, isFavorite } = useFavorites();
+  const { addToFavorites, removeFromFavorites, isFavorite } = useFavorites();
   const { promotions, calculatePriceWithPromotion, hasPromotions } = usePromotions(product.idProduit);
+
+  // Detect mobile device
+  useEffect(() => {
+    const checkIfMobile = () => {
+      setIsMobile(window.innerWidth < 768 || 'ontouchstart' in window);
+    };
+    
+    checkIfMobile();
+    window.addEventListener('resize', checkIfMobile);
+    
+    return () => {
+      window.removeEventListener('resize', checkIfMobile);
+    };
+  }, []);
 
   // Price calculations
   const { prixFinal, reduction, pourcentageReduction } = calculatePriceWithPromotion(product.prix);
   
   // Sort images by rang
   const sortedImages = product.images?.sort((a, b) => a.rang - b.rang) || [];
+  const hasMultipleImages = sortedImages.length > 1;
   
   // Get display image
   const displayImage = sortedImages.length > 0 
@@ -67,17 +89,118 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
 
   const stockStatus = getStockStatus();
 
+  // Clear all timers
+  const clearAllTimers = () => {
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+  };
+
+  // Start image cycling (Desktop only)
+  const startImageCycling = () => {
+    if (!hasMultipleImages || isMobile) return;
+    
+    clearAllTimers();
+    intervalRef.current = setInterval(() => {
+      setCurrentImageIndex((prevIndex) => 
+        prevIndex === sortedImages.length - 1 ? 0 : prevIndex + 1
+      );
+    }, 800);
+  };
+
+  // Stop image cycling (Desktop only)
+  const stopImageCycling = () => {
+    if (!isMobile) {
+      clearAllTimers();
+      setCurrentImageIndex(0);
+    }
+  };
+
+  // Desktop hover handlers
   const handleMouseEnter = () => {
-    if (sortedImages.length > 1) {
-      setCurrentImageIndex(1);
+    if (!isMobile && hasMultipleImages) {
+      setIsHovering(true);
+      startImageCycling();
     }
   };
 
   const handleMouseLeave = () => {
-    setCurrentImageIndex(0);
+    if (!isMobile) {
+      setIsHovering(false);
+      stopImageCycling();
+    }
   };
 
-  const handleAddToCart = async () => {
+  // Mobile touch handlers for manual scroll
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (!isMobile || !hasMultipleImages) return;
+    
+    const touch = e.touches[0];
+    setTouchStart({ x: touch.clientX, y: touch.clientY });
+    setIsDragging(false);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!isMobile || !hasMultipleImages) return;
+    
+    const touch = e.touches[0];
+    const deltaX = Math.abs(touch.clientX - touchStart.x);
+    const deltaY = Math.abs(touch.clientY - touchStart.y);
+    
+    // If horizontal swipe is dominant, prevent scrolling
+    if (deltaX > deltaY && deltaX > 10) {
+      e.preventDefault();
+      setIsDragging(true);
+    }
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (!isMobile || !hasMultipleImages) return;
+    
+    const touch = e.changedTouches[0];
+    const deltaX = touch.clientX - touchStart.x;
+    const deltaY = Math.abs(touch.clientY - touchStart.y);
+    
+    // Only handle horizontal swipes
+    if (Math.abs(deltaX) > 50 && Math.abs(deltaX) > deltaY) {
+      e.preventDefault();
+      e.stopPropagation();
+      
+      if (deltaX > 0) {
+        // Swipe right - previous image
+        setCurrentImageIndex((prevIndex) => 
+          prevIndex === 0 ? sortedImages.length - 1 : prevIndex - 1
+        );
+      } else {
+        // Swipe left - next image
+        setCurrentImageIndex((prevIndex) => 
+          prevIndex === sortedImages.length - 1 ? 0 : prevIndex + 1
+        );
+      }
+    } else if (!isDragging) {
+      // If no swipe detected and not dragging, allow normal navigation
+      // Do nothing - let the Link handle navigation
+    } else {
+      // If was dragging, prevent navigation
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    
+    setIsDragging(false);
+  };
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      clearAllTimers();
+    };
+  }, []);
+
+  const handleAddToCart = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
     if (!stockStatus.available) return;
     
     try {
@@ -89,8 +212,9 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
       setIsAddingToCart(false);
     }
   };
- const handleToggleFavorite = async (e: React.MouseEvent) => {
-    e.preventDefault(); // Prevent navigation if card is wrapped in Link
+
+  const handleToggleFavorite = async (e: React.MouseEvent | React.TouchEvent) => {
+    e.preventDefault();
     e.stopPropagation();
     
     try {
@@ -106,185 +230,174 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
       setIsTogglingFavorite(false);
     }
   };
-    const isProductFavorite = isFavorite(product.idProduit);
+
+  const isProductFavorite = isFavorite(product.idProduit);
 
   return (
-    <div className="group bg-white rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden h-full flex flex-col border border-gray-100 hover:border-purple-200">
-      {/* Image Container */}
-     <figure 
-  className="relative w-full h-48 sm:h-56 md:h-60 overflow-hidden bg-gray-50"
-  onMouseEnter={handleMouseEnter}
-  onMouseLeave={handleMouseLeave}
->
-  <Image
-    src={imageError ? '/images/placeholder.jpg' : `http://localhost:3001${displayImage || '/images/placeholder.jpg'}`}
-    alt={product.nom}
-    fill
-    className="object-cover group-hover:scale-110 transition-transform duration-500"
-    sizes="(max-width: 768px) 50vw, 20vw"
-    onError={() => setImageError(true)}
-  />
-  
-  {/* Promotion Badge - keep at top-left */}
-  <PromotionBadge pourcentageReduction={pourcentageReduction} />
-  
-  {/* Stock Status Badge - keep at top-right */}
-  <div className="absolute top-3 right-3 z-10">
-    <div className={`${stockStatus.class} text-white text-xs px-3 py-1 rounded-full font-medium shadow-md`}>
-      {stockStatus.text}
-    </div>
-  </div>
-
-  {/* Favorite Heart Button - moved to bottom-right */}
-  <div className="absolute bottom-3 right-3 z-10">
-    <button
-      onClick={handleToggleFavorite}
-      disabled={isTogglingFavorite}
-      className={`btn btn-circle btn-sm transition-all duration-300 shadow-lg ${
-        isProductFavorite 
-          ? 'bg-red-500 hover:bg-red-600 text-white border-red-500' 
-          : 'bg-white/90 hover:bg-white text-gray-600 border-white/90'
-      } ${isTogglingFavorite ? 'loading' : ''}`}
-      title={isProductFavorite ? "Retirer des favoris" : "Ajouter aux favoris"}
-    >
-      {isTogglingFavorite ? (
-        <div className="animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full"></div>
-      ) : (
-        <svg 
-          xmlns="http://www.w3.org/2000/svg" 
-          fill={isProductFavorite ? "currentColor" : "none"} 
-          viewBox="0 0 24 24" 
-          strokeWidth="2.5" 
-          stroke="currentColor" 
-          className="w-4 h-4"
+    <Link href={`/site/products/${product.idProduit}`} className="block h-full">
+      <div className="group bg-white rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden h-full flex flex-col border border-gray-100 hover:border-purple-200 cursor-pointer">
+        {/* Image Container */}
+        <figure 
+          className="relative w-full h-48 sm:h-56 md:h-60 overflow-hidden bg-gray-50"
+          onMouseEnter={handleMouseEnter}
+          onMouseLeave={handleMouseLeave}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
         >
-          <path strokeLinecap="round" strokeLinejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z" />
-        </svg>
-      )}
-    </button>
-  </div>
-
-
-
-        {/* Multiple Images Indicator */}
-        {sortedImages.length > 1 && (
-          <div className="absolute bottom-3 left-3 flex space-x-1">
-            {sortedImages.slice(0, 4).map((_, index) => (
-              <div
-                key={index}
-                className={`w-2 h-2 rounded-full transition-all duration-300 ${
-                  index === currentImageIndex ? 'bg-white shadow-md' : 'bg-white/50'
-                }`}
-              />
-            ))}
-            {sortedImages.length > 4 && (
-              <div className="text-white text-xs bg-black/30 px-2 py-0.5 rounded-full">
-                +{sortedImages.length - 3}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Quick View Overlay */}
-        <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
-          <Link href={`/site/products/${product.idProduit}`}>
-            <button className="bg-white/90 text-gray-800 px-4 py-2 rounded-lg font-medium hover:bg-white transition-colors">
-              Vue rapide
-            </button>
-          </Link>
-        </div>
-      </figure>
-      
-      {/* Content */}
-      <div className="p-4 sm:p-5 flex-1 flex flex-col">
-        {/* Product Name */}
-        <h3 className="text-base sm:text-lg font-bold text-gray-900 line-clamp-2 mb-2 min-h-[3rem] group-hover:text-purple-600 transition-colors">
-          {product.nom}
-        </h3>
-        
-        {/* Description */}
-        {product.description && (
-          <p className="text-sm text-gray-600 line-clamp-2 mb-3 leading-relaxed">
-            {product.description}
-          </p>
-        )}
-        
-        {/* Brand and Category */}
-        <div className="flex flex-wrap gap-2 mb-4">
-          {product.marque && (
-            <span className="text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded-full font-medium">
-              {product.marque.nom}
-            </span>
-          )}
-          {product.categorie && (
-            <span className="text-xs bg-purple-50 text-purple-700 px-2 py-1 rounded-full font-medium">
-              {product.categorie.nom}
-            </span>
-          )}
-        </div>
-        
-        {/* Pricing */}
-        <div className="mt-auto">
-          <div className="mb-4">
-            {hasPromotions && reduction > 0 ? (
-              <div className="space-y-1">
-                <div className="flex items-center gap-2">
-                  <span className="text-xl sm:text-2xl font-bold text-red-600">
-                    {prixFinal.toFixed(2)} TND
-                  </span>
-                  <span className="text-sm bg-red-100 text-red-600 px-2 py-1 rounded-full font-medium">
-                    -{pourcentageReduction}%
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-500 line-through">
-                    {product.prix.toFixed(2)} TND
-                  </span>
-                  <span className="text-xs text-green-600 font-medium">
-                    Économie: {reduction.toFixed(2)} TND
-                  </span>
-                </div>
-              </div>
-            ) : (
-              <span className="text-xl sm:text-2xl font-bold text-gray-900">
-                {product.prix.toFixed(2)} TND
-              </span>
-            )}
-          </div>
+          <Image
+            src={imageError ? '/images/placeholder.jpg' : `http://localhost:3001${displayImage || '/images/placeholder.jpg'}`}
+            alt={product.nom}
+            fill
+            className={`object-cover transition-all duration-500 ${
+              (!isMobile && isHovering) 
+                ? 'scale-110' 
+                : 'group-hover:scale-110'
+            }`}
+            sizes="(max-width: 768px) 50vw, 20vw"
+            onError={() => setImageError(true)}
+            draggable={false}
+          />
           
-          {/* Action Buttons */}
-          <div className="flex gap-2">
-            <Link href={`/site/products/${product.idProduit}`} className="flex-1">
-              <button className="w-full py-2.5 px-4 text-sm font-medium border-2 border-purple-500 text-purple-600 rounded-lg hover:bg-purple-50 transition-all duration-200">
-                Détails
-              </button>
-            </Link>
-            
-            <button 
-              onClick={handleAddToCart}
-              disabled={!stockStatus.available || isAddingToCart}
-              className={`px-4 py-2.5 rounded-lg font-medium transition-all duration-200 flex items-center justify-center ${
-                stockStatus.available 
-                  ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-700 hover:to-purple-700 shadow-md hover:shadow-lg'
-                  : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-              }`}
+          {/* Promotion Badge - top-left */}
+          <PromotionBadge pourcentageReduction={pourcentageReduction} />
+          
+          {/* Stock Status Badge - top-right */}
+          <div className="absolute top-3 right-3 z-10">
+            <div className={`${stockStatus.class} text-white text-xs px-3 py-1 rounded-full font-medium shadow-md`}>
+              {stockStatus.text}
+            </div>
+          </div>
+
+          {/* Favorite Heart Button - bottom-right */}
+          <div className="absolute bottom-3 right-3 z-10">
+            <button
+              onClick={handleToggleFavorite}
+              disabled={isTogglingFavorite}
+              className={`btn btn-circle btn-sm transition-all duration-300 shadow-lg ${
+                isProductFavorite 
+                  ? 'bg-red-500 hover:bg-red-600 text-white border-red-500' 
+                  : 'bg-white/90 hover:bg-white text-gray-600 border-white/90'
+              } ${isTogglingFavorite ? 'loading' : ''}`}
+              title={isProductFavorite ? "Retirer des favoris" : "Ajouter aux favoris"}
             >
-              {isAddingToCart ? (
-                <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
-              ) : stockStatus.available ? (
-                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-1.5 6M7 13l-1.5-6m0 0L5.4 5M7 13h10" />
-                </svg>
+              {isTogglingFavorite ? (
+                <div className="animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full"></div>
               ) : (
-                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                <svg 
+                  xmlns="http://www.w3.org/2000/svg" 
+                  fill={isProductFavorite ? "currentColor" : "none"} 
+                  viewBox="0 0 24 24" 
+                  strokeWidth="2.5" 
+                  stroke="currentColor" 
+                  className="w-4 h-4"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z" />
                 </svg>
               )}
             </button>
           </div>
+
+          {/* Multiple Images Indicator */}
+          {hasMultipleImages && (
+            <div className="absolute bottom-3 left-3 flex space-x-1">
+              {sortedImages.slice(0, 4).map((_, index) => (
+                <div
+                  key={index}
+                  className={`w-2 h-2 rounded-full transition-all duration-300 ${
+                    index === currentImageIndex ? 'bg-white shadow-md' : 'bg-white/50'
+                  }`}
+                />
+              ))}
+              {sortedImages.length > 4 && (
+                <div className="text-white text-xs bg-black/30 px-2 py-0.5 rounded-full">
+                  +{sortedImages.length - 3}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Mobile Swipe Instruction (only show once briefly) */}
+          {isMobile && hasMultipleImages && currentImageIndex === 0 && (
+            <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-black/60 text-white text-xs px-3 py-2 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+              Glissez pour voir plus d'images
+            </div>
+          )}
+        </figure>
+        
+        {/* Content */}
+        <div className="p-4 sm:p-5 flex-1 flex flex-col">
+          {/* Product Name */}
+          <h3 className="text-base sm:text-lg font-bold text-gray-900 line-clamp-2 mb-2 min-h-[3rem] group-hover:text-purple-600 transition-colors">
+            {product.nom}
+          </h3>
+          
+          {/* Description */}
+          {product.description && (
+            <p className="text-sm text-gray-600 line-clamp-2 mb-3 leading-relaxed">
+              {product.description}
+            </p>
+          )}
+          
+          {/* Brand and Category */}
+          <div className="flex flex-wrap gap-2 mb-4">
+            {product.marque && (
+              <span className="text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded-full font-medium">
+                {product.marque.nom}
+              </span>
+            )}
+            {product.categorie && (
+              <span className="text-xs bg-purple-50 text-purple-700 px-2 py-1 rounded-full font-medium">
+                {product.categorie.nom}
+              </span>
+            )}
+          </div>
+          
+          {/* Price and Cart Button Row */}
+          <div className="mt-auto">
+            <div className="flex items-center justify-between">
+              {/* Pricing */}
+              <div className="flex-1">
+                {hasPromotions && reduction > 0 ? (
+                  <div className="space-y-1">
+                    {/* New Price */}
+                    <div className="text-base sm:text-lg font-bold text-red-600">
+                      {prixFinal.toFixed(2)} <span className="text-xs text-red-500">TND</span>
+                    </div>
+                    {/* Original Price */}
+                    <div className="text-xs text-gray-500 line-through">
+                      {product.prix.toFixed(2)} <span className="text-xs">TND</span>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-base sm:text-lg font-bold text-gray-900">
+                    {product.prix.toFixed(2)} <span className="text-xs text-gray-600">TND</span>
+                  </div>
+                )}
+              </div>
+              
+              {/* Cart Icon Button */}
+              <button 
+                onClick={handleAddToCart}
+                disabled={!stockStatus.available || isAddingToCart}
+                className={`ml-3 p-2 rounded-lg transition-all duration-200 flex items-center justify-center ${
+                  stockStatus.available 
+                    ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-700 hover:to-purple-700 shadow-md hover:shadow-lg hover:scale-105'
+                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                }`}
+                title={stockStatus.available ? "Ajouter au panier" : "Produit indisponible"}
+              >
+                {isAddingToCart ? (
+                  <div className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full"></div>
+                ) : (
+                  <ShoppingCartIcon className="h-5 w-5" />
+                )}
+              </button>
+            </div>
+          </div>
         </div>
       </div>
-    </div>
+    </Link>
   );
 };
 

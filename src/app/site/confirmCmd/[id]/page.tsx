@@ -5,15 +5,15 @@ import Footer from "@/components/ui/Footer";
 import CountdownTimer from "@/components/ui/CountdownTimer";
 import CommandeItemPromotion from "@/components/ui/CommandeItemPromotion";
 import ConfirmCancelOrderModal from "@/components/layout/ConfirmCancelOrderModal";
-import { useState, useEffect } from "react";
+import { useState, useEffect, use } from "react";
 import { useRouter } from "next/navigation";
 import CommandesService from "@/services/commandes-service";
 import { useCart } from "@/hooks/useCart";
 import { toast } from "react-hot-toast";
 import type { CommandeResponse } from "@/services/commandes-service";
 import KidsCornerLoader from "@/components/ui/KidsCornerLoader";
-
-import { 
+import { CartPromotionProvider, useCartPromotionContext } from '@/contexts/CartPromotionContext'; // Ajout du contexte
+import {
   CheckCircleIcon,
   EnvelopeIcon,
   CreditCardIcon,
@@ -23,42 +23,119 @@ import {
   ExclamationTriangleIcon
 } from '@heroicons/react/24/solid';
 
+// Composant pour afficher le total avec prise en charge des promotions
+const CommandeItemTotalDisplay = ({ idProduit, quantite, prixUnitaire, prixOriginal }: { idProduit: number, quantite: number, prixUnitaire: number, prixOriginal: number }) => {
+  const hasPromotion = prixUnitaire < prixOriginal;
+
+  return (
+    <div className="text-right min-w-[100px]">
+      {hasPromotion ? (
+        <div>
+          <div className="text-lg font-bold text-red-600">
+            {(prixUnitaire * quantite).toFixed(2)} <span className="text-xs">TND</span>
+          </div>
+          <div className="text-xs text-gray-400 line-through">
+            {(prixOriginal * quantite).toFixed(2)} <span className="text-xs">TND</span>
+          </div>
+        </div>
+      ) : (
+        <span className="text-lg font-bold text-gray-900">
+          {(prixUnitaire * quantite).toFixed(2)} <span className="text-xs">TND</span>
+        </span>
+      )}
+    </div>
+  );
+};
+
+// Composant pour un article de commande
+const CommandeItem = ({ ligne, index }: { ligne: any, index: number }) => {
+  const imageUrl = ligne.produit?.images && ligne.produit.images.length > 0
+    ? `http://localhost:3001${ligne.produit.images.sort((a: any, b: any) => a.rang - b.rang)[0].url}`
+    : '/images/placeholder.jpg';
+
+  return (
+    <div className={`flex flex-col sm:flex-row items-start justify-between p-4 gap-4 bg-white rounded-lg border hover:shadow-md transition-shadow ${
+      index !== 0 ? 'border-t-0 rounded-t-none' : ''
+    }`}>
+      <div className="flex items-start gap-4 flex-1">
+        <div className="relative">
+          <Image
+            src={imageUrl}
+            alt={ligne.produit?.nom || 'Produit'}
+            width={80}
+            height={80}
+            className="rounded-lg object-cover border"
+          />
+        </div>
+        <div className="flex-1 min-w-0">
+          <h3 className="font-semibold text-gray-900 text-sm sm:text-base line-clamp-2 mb-2">
+            {ligne.produit?.nom}
+          </h3>
+          
+          <CommandeItemPromotion
+            idProduit={ligne.idProduit}
+            prixOriginal={ligne.produit?.prix || ligne.prixUnitaire}
+            quantite={ligne.quantite}
+            prixFacture={ligne.prixUnitaire}
+          />
+          
+        </div>
+      </div>
+
+      <div className="flex items-center gap-4 flex-shrink-0">
+        <div className="text-center">
+          <p className="text-xs sm:text-sm text-gray-600">Quantité</p>
+          <p className="font-bold text-base sm:text-lg">{ligne.quantite}</p>
+        </div>
+        <CommandeItemTotalDisplay
+          idProduit={ligne.idProduit}
+          quantite={ligne.quantite}
+          prixUnitaire={ligne.prixUnitaire}
+          prixOriginal={ligne.produit?.prix || ligne.prixUnitaire}
+        />
+      </div>
+    </div>
+  );
+};
+
 interface Props {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 }
 
-export default function CommandeConfirmation({ params }: Props) {
+function CommandeConfirmation({ params }: Props) {
+  const resolvedParams = use(params);
   const router = useRouter();
   const { clearCartWithoutToast, cartItems } = useCart(); 
   const [commande, setCommande] = useState<CommandeResponse | null>(null);
   const [loading, setLoading] = useState(true);
+  const [mounted, setMounted] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [cancelling, setCancelling] = useState(false);
   const [canCancel, setCanCancel] = useState(true);
   const [showCancelModal, setShowCancelModal] = useState(false);
 
-  // Calculer le temps limite d'annulation (2 heures après la création)
   const getCancellationDeadline = (dateCommande: string) => {
     const commandeDate = new Date(dateCommande);
-    return new Date(commandeDate.getTime() + 2 * 60 * 60 * 1000); // +2 heures
+    return new Date(commandeDate.getTime() + 2 * 60 * 60 * 1000);
   };
 
-  // Clear cart when the page loads and commande is successfully fetched
   useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!mounted || !resolvedParams?.id) return;
+
     const fetchCommande = async () => {
       try {
         setLoading(true);
-        const commandeData = await CommandesService.getCommandeById(parseInt(params.id));
+        setError(null);
+        
+        const commandeData = await CommandesService.getCommandeById(parseInt(resolvedParams.id));
         setCommande(commandeData);
         
-        // Clear cart only if commande is valid and cart is not already empty
-        if (commandeData && cartItems.length > 0) {
-          await clearCartWithoutToast();
-        }
-
-        // Vérifier si on peut encore annuler
         const deadline = getCancellationDeadline(commandeData.dateCommande);
         const now = new Date();
         setCanCancel(now < deadline && commandeData.statut === 'en attente');
@@ -73,7 +150,35 @@ export default function CommandeConfirmation({ params }: Props) {
     };
 
     fetchCommande();
-  }, [params.id, clearCartWithoutToast, cartItems.length]);
+  }, [mounted, resolvedParams.id]);
+
+  useEffect(() => {
+    if (!mounted || !commande) return;
+
+    const clearCartIfNeeded = async () => {
+      if (cartItems.length > 0) {
+        try {
+          await clearCartWithoutToast();
+        } catch (error) {
+          console.error('Erreur lors de la suppression du panier:', error);
+        }
+      }
+    };
+
+    clearCartIfNeeded();
+  }, [mounted, commande, cartItems.length, clearCartWithoutToast]);
+
+  if (!mounted || loading || !resolvedParams?.id) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-base-200">
+        <KidsCornerLoader 
+          message="Chargement de votre commande..."
+          size="lg"
+          showMessage={true}
+        />
+      </div>
+    );
+  }
 
   const handleOpenCancelModal = () => {
     if (!commande || cancelling || !canCancel) return;
@@ -92,7 +197,6 @@ export default function CommandeConfirmation({ params }: Props) {
     try {
       setCancelling(true);
       
-      // Show loading toast
       toast.loading('Annulation de votre commande en cours...', {
         id: 'cancel-order-toast'
       });
@@ -101,13 +205,11 @@ export default function CommandeConfirmation({ params }: Props) {
         statut: 'annulée'
       });
       
-      // Actualiser les données
       const updatedCommande = await CommandesService.getCommandeById(commande.idCommande);
       setCommande(updatedCommande);
       setCanCancel(false);
       setShowCancelModal(false);
       
-      // Remove loading toast and show success
       toast.dismiss('cancel-order-toast');
       toast.success('Votre commande a été annulée avec succès', {
         duration: 5000,
@@ -128,20 +230,7 @@ export default function CommandeConfirmation({ params }: Props) {
 
   const handleTimerExpired = () => {
     setCanCancel(false);
-    
   };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-base-200">
-        <KidsCornerLoader 
-          message="Chargement de votre commande..."
-          size="lg"
-          showMessage={true}
-        />
-      </div>
-    );
-  }
 
   if (error) {
     return (
@@ -178,7 +267,6 @@ export default function CommandeConfirmation({ params }: Props) {
   const cancellationDeadline = getCancellationDeadline(commande.dateCommande);
   const orderNumber = `CMD-${commande.idCommande.toString().padStart(6, '0')}`;
 
-  // Calculer les frais de livraison
   const fraisLivraison = commande.montantTotal >= 100 ? 0 : 7.9;
   const totalTTC = commande.montantTotal + fraisLivraison;
 
@@ -205,14 +293,8 @@ export default function CommandeConfirmation({ params }: Props) {
   };
 
   return (
-    <div className="min-h-screen bg-white px-2 sm:px-4 py-4 sm:py-6">
-     
-      
-
-      {/* Contenu principal centré */}
+    <div className="min-h-screen bg-gray-50 px-2 sm:px-4 py-4 sm:py-6">
       <div className="max-w-6xl mx-auto space-y-4 sm:space-y-6 pb-8">
-        
-        {/* Card de confirmation */}
         <div className={`bg-white shadow-md rounded-lg p-4 sm:p-6 border-2 ${
           commande.statut === 'annulée' ? 'border-red-400' : 'border-green-400'
         }`}>
@@ -240,8 +322,6 @@ export default function CommandeConfirmation({ params }: Props) {
                 minute: '2-digit'
               })}
             </p>
-            
-            {/* Statut de la commande */}
             <div className="mt-4">
               <span className={`inline-flex items-center px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-medium ${getStatusColor(commande.statut)}`}>
                 {getStatusText(commande.statut)}
@@ -250,7 +330,6 @@ export default function CommandeConfirmation({ params }: Props) {
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-            {/* Colonne gauche */}
             <div className="space-y-3 sm:space-y-4">
               <div className="flex items-start gap-3 p-3 bg-blue-50 rounded-lg">
                 <EnvelopeIcon className="w-5 sm:w-6 h-5 sm:h-6 text-blue-600 flex-shrink-0 mt-1" />
@@ -261,15 +340,10 @@ export default function CommandeConfirmation({ params }: Props) {
                   </p>
                 </div>
               </div>
-
-             
             </div>
 
-            {/* Colonne droite */}
             <div className="space-y-3 sm:space-y-4">
-              
-
-               <div className="flex items-start gap-3 p-3 bg-purple-50 rounded-lg">
+              <div className="flex items-start gap-3 p-3 bg-purple-50 rounded-lg">
                 <CheckCircleIcon className="w-5 sm:w-6 h-5 sm:h-6 text-purple-600 flex-shrink-0 mt-1" />
                 <div>
                   <h4 className="font-semibold text-purple-800 text-sm sm:text-base">Commande enregistrée</h4>
@@ -281,7 +355,6 @@ export default function CommandeConfirmation({ params }: Props) {
             </div>
           </div>
 
-          {/* Timer d'annulation et bouton */}
           {commande.statut !== 'annulée' && (
             <div className="mt-4 sm:mt-6 p-3 sm:p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
               <div className="flex flex-col sm:flex-row sm:items-start gap-3">
@@ -327,92 +400,48 @@ export default function CommandeConfirmation({ params }: Props) {
           )}
         </div>
 
-        {/* Card des produits commandés - RESPONSIVE AVEC SCROLL */}
-        <div className="bg-white shadow-md rounded-lg p-4 sm:p-6 border-2 border-black">
-          <h2 className="text-lg sm:text-xl font-bold mb-4">
-            Produits Commandés ({totalArticles} article{totalArticles > 1 ? "s" : ""})
-          </h2>
+        {/* Card des produits commandés */}
+        <div className="bg-white rounded-2xl shadow-sm border overflow-hidden">
+          <div className="p-6 bg-gray-50 border-b">
+            <h2 className="text-lg sm:text-xl font-bold text-gray-900">
+              Produits Commandés ({totalArticles} article{totalArticles > 1 ? "s" : ""})
+            </h2>
+          </div>
           
-          {/* Container avec scroll si plus de 3 articles */}
-          <div className={`space-y-4 ${
-            (commande.lignesCommandes?.length || 0) > 3 
-              ? 'max-h-[400px] sm:max-h-[500px] overflow-y-auto pr-2 sm:pr-4' 
-              : ''
-          }`}>
-            {commande.lignesCommandes?.map((ligne, index) => {
-              const imageUrl = ligne.produit?.images && ligne.produit.images.length > 0
-                ? `http://localhost:3001${ligne.produit.images.sort((a, b) => a.rang - b.rang)[0].url}`
-                : '/images/placeholder.jpg';
-
-              return (
-                <div
-                  key={ligne.idLigneCommande}
-                  className={`flex flex-col sm:flex-row items-start justify-between py-4 gap-4 ${
-                    index !== (commande.lignesCommandes?.length || 0) - 1 ? 'border-b border-gray-200' : ''
-                  }`}
-                >
-                  <div className="flex items-start gap-3 sm:gap-4 w-full sm:w-auto">
-                    <Image
-                      src={imageUrl}
-                      alt={ligne.produit?.nom || 'Produit'}
-                      width={80}
-                      height={80}
-                      className="w-16 h-16 sm:w-20 sm:h-20 lg:w-24 lg:h-24 rounded flex-shrink-0 object-cover"
-                    />
-                    <div className="min-w-0 flex-1">
-                      <h3 className="font-semibold text-sm sm:text-base lg:text-lg line-clamp-2 sm:line-clamp-none">
-                        {ligne.produit?.nom}
-                      </h3>
-                      
-                      {/* Afficher les promotions */}
-                      <CommandeItemPromotion
-                        idProduit={ligne.idProduit}
-                        prixOriginal={ligne.produit?.prix || ligne.prixUnitaire}
-                        quantite={ligne.quantite}
-                        prixFacture={ligne.prixUnitaire}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between sm:justify-end gap-4 sm:gap-6 w-full sm:w-auto flex-shrink-0">
-                    <div className="text-center">
-                      <p className="text-xs sm:text-sm text-gray-600">Quantité</p>
-                      <p className="font-bold text-base sm:text-lg">{ligne.quantite}</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-xs sm:text-sm text-gray-600">Total</p>
-                      <div className="text-base sm:text-lg font-bold text-purple-600">
-                        {ligne.sousTotal.toFixed(2)} TND
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
+          <div className={`divide-y divide-gray-100 ${totalArticles > 4 ? 'max-h-[400px] overflow-y-auto' : ''}`}>
+            {commande.lignesCommandes?.map((ligne, index) => (
+              <CommandeItem
+                key={ligne.idLigneCommande}
+                ligne={ligne}
+                index={index}
+              />
+            ))}
           </div>
 
-          {/* Récapitulatif des totaux */}
-          <div className="mt-4 sm:mt-6 pt-4 border-t">
+          <div className="p-6 border-t">
             <div className="max-w-full sm:max-w-sm ml-auto space-y-2">
               <div className="flex justify-between text-gray-700 text-sm sm:text-base">
                 <span>Sous-total</span>
-                <span>{commande.montantTotal.toFixed(2)} TND</span>
+                <span>{commande.montantTotal.toFixed(2)} <span className="text-xs">TND</span></span>
               </div>
               <div className="flex justify-between text-gray-700 text-sm sm:text-base">
                 <span>Livraison</span>
                 <span className={fraisLivraison === 0 ? "text-green-600 font-medium" : ""}>
-                  {fraisLivraison === 0 ? "Gratuite" : `${fraisLivraison.toFixed(2)} TND`}
+                  {fraisLivraison === 0 ? "Gratuite" : (
+                    <>
+                      {fraisLivraison.toFixed(2)} <span className="text-xs">TND</span>
+                    </>
+                  )}
                 </span>
               </div>
               <div className="flex justify-between font-bold text-black text-lg sm:text-xl border-t pt-2">
                 <span>Total TTC</span>
-                <span className="text-purple-600">{totalTTC.toFixed(2)} TND</span>
+                <span className="text-purple-600">{totalTTC.toFixed(2)} <span className="text-xs">TND</span></span>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Informations de livraison */}
         <div className="bg-white shadow-md rounded-lg p-4 sm:p-6 border border-gray-200">
           <h2 className="text-lg sm:text-xl font-bold mb-4">Informations de livraison</h2>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
@@ -443,7 +472,6 @@ export default function CommandeConfirmation({ params }: Props) {
           )}
         </div>
 
-        {/* Boutons d'action */}
         <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center">
           <Link 
             href="/site" 
@@ -460,7 +488,6 @@ export default function CommandeConfirmation({ params }: Props) {
         </div>
       </div>
 
-      {/* Confirm Cancel Order Modal */}
       <ConfirmCancelOrderModal
         isOpen={showCancelModal}
         onClose={handleCloseCancelModal}
@@ -471,5 +498,13 @@ export default function CommandeConfirmation({ params }: Props) {
 
       <Footer />
     </div>
+  );
+}
+
+export default function CommandeConfirmationWithProvider({ params }: Props) {
+  return (
+    <CartPromotionProvider>
+      <CommandeConfirmation params={params} />
+    </CartPromotionProvider>
   );
 }

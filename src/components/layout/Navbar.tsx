@@ -119,11 +119,7 @@ export default function Navbar() {
               >
                 <div className="flex items-center space-x-1">
                   <UserIcon className="h-5 w-5 text-gray-600" />
-                  {isAuthenticated && (
-                    <span className="text-sm font-medium text-gray-700">
-                      {user?.prenom}
-                    </span>
-                  )}
+                
                 </div>
               </button>
               {isDropdownOpen && (
@@ -132,14 +128,7 @@ export default function Navbar() {
                     <>
                       <li className="px-4 py-2 border-b border-gray-100">
                         <div className="flex items-center space-x-3">
-                          <div className="avatar placeholder">
-                            <div className="bg-purple-100 text-purple-600 rounded-full w-10 h-10 flex items-center justify-center">
-                              <span className="text-sm font-medium">
-                                {user?.prenom?.[0]}
-                                {user?.nom?.[0]}
-                              </span>
-                            </div>
-                          </div>
+                        
                           <div>
                             <p className="font-semibold text-gray-800">
                               {user?.prenom} {user?.nom}
@@ -231,7 +220,7 @@ export default function Navbar() {
                 <UserIcon className="h-5 w-5 sm:h-6 sm:w-6 text-gray-600" />
                 {isAuthenticated && (
                   <span className="text-sm font-medium text-gray-700 hidden xl:block">
-                    {user?.prenom}
+                    {user?.prenom} 
                   </span>
                 )}
               </div>

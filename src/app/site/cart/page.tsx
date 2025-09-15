@@ -61,7 +61,7 @@ const CartItemWithPromotion = ({ item, index, onIncrement, onDecrement, onQuanti
               {item.produit.quantiteStock > 10 
                 ? 'En stock'
                 : item.produit.quantiteStock > 0
-                  ? `Stock limité (${item.produit.quantiteStock})`
+                  ? `Stock limité`
                   : 'Rupture'
               }
             </span>
@@ -128,15 +128,15 @@ const CartItemTotalDisplay = ({ idProduit, quantite }: { idProduit: number, quan
       {hasPromotion ? (
         <div>
           <div className="text-lg font-bold text-red-600">
-            {(itemData.final * quantite).toFixed(2)} TND
+            {(itemData.final * quantite).toFixed(2)} <span className="text-xs">TND</span>
           </div>
           <div className="text-xs text-gray-400 line-through">
-            {(itemData.original * quantite).toFixed(2)} TND
+            {(itemData.original * quantite).toFixed(2)} <span className="text-xs">TND</span>
           </div>
         </div>
       ) : (
         <span className="text-lg font-bold text-gray-900">
-          {(itemData.original * quantite).toFixed(2)} TND
+          {(itemData.original * quantite).toFixed(2)} <span className="text-xs">TND</span>
         </span>
       )}
     </div>
@@ -244,25 +244,25 @@ if (loading) {
     <div className="min-h-screen bg-gray-50">
       <div className="container mx-auto px-4 py-8 max-w-7xl">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
-              <ShoppingCartIcon className="w-6 h-6 text-purple-600" />
-            </div>
-            <h1 className="text-3xl font-bold text-gray-900">
-              Votre Panier
-            </h1>
-          </div>
-          {cartItems.length > 0 && (
-            <button
-              onClick={handleClearCart}
-              className="flex items-center gap-2 text-red-500 hover:text-red-700 transition-colors px-4 py-2 rounded-lg hover:bg-red-50"
-            >
-              <XMarkIcon className="w-5 h-5" />
-              <span className="font-medium">Vider le panier</span>
-            </button>
-          )}
-        </div>
+        <div className="flex items-center justify-between mb-8 w-full">
+  <div className="flex items-center gap-2 sm:gap-3">
+    <div className="w-8 h-8 sm:w-10 sm:h-10 bg-purple-100 rounded-full flex items-center justify-center flex-shrink-0">
+      <ShoppingCartIcon className="w-5 h-5 sm:w-6 sm:h-6 text-purple-600" />
+    </div>
+    <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 truncate">
+      Votre Panier
+    </h1>
+  </div>
+  {cartItems.length > 0 && (
+    <button
+      onClick={handleClearCart}
+      className="flex items-center gap-1 sm:gap-2 text-red-500 hover:text-red-700 transition-colors px-3 py-1 sm:px-4 sm:py-2 rounded-lg hover:bg-red-50 text-sm sm:text-base font-medium"
+    >
+      <XMarkIcon className="w-4 h-4 sm:w-5 sm:h-5" />
+      <span>Vider</span>
+    </button>
+  )}
+</div>
 
         {cartItems.length === 0 ? (
           <div className="text-center py-20">
@@ -286,10 +286,8 @@ if (loading) {
               <div className="bg-white rounded-2xl shadow-sm border overflow-hidden">
                 <div className="p-6 bg-gray-50 border-b">
                   <div className="flex items-center justify-between">
-                    <h2 className="text-xl font-bold text-gray-900">Articles dans votre panier</h2>
-                    <span className="bg-purple-100 text-purple-700 px-3 py-1 rounded-full text-sm font-medium">
-                      {totalItems} article{totalItems > 1 ? 's' : ''}
-                    </span>
+                    <h3 className="text-l sm:text-xl font-bold text-gray-900">Articles dans votre panier</h3>
+                    
                   </div>
                 </div>
                 
@@ -323,51 +321,50 @@ if (loading) {
               <div className="sticky top-6 space-y-6">
                 {/* Résumé des prix */}
                 <div className="bg-white rounded-2xl shadow-sm border p-6">
-                  <h3 className="text-xl font-bold text-gray-900 mb-6">Résumé de la commande</h3>
+                  <h4 className="text-xl font-bold text-gray-900 mb-6">Résumé</h4>
                   
                   <div className="space-y-4 text-sm">
                     {totalSavings > 0 && (
                       <div className="flex justify-between text-gray-600">
                         <span>Prix original</span>
-                        <span className="line-through">{totalOriginal.toFixed(2)} TND</span>
+                        <span className="line-through">{totalOriginal.toFixed(2)} <span className="text-xs">TND</span></span>
                       </div>
                     )}
 
                     {totalSavings > 0 && (
                       <div className="flex justify-between text-green-600 font-medium">
                         <span>Promotions</span>
-                        <span>-{totalSavings.toFixed(2)} TND</span>
+                        <span>-{totalSavings.toFixed(2)} <span className="text-xs">TND</span></span>
                       </div>
                     )}
 
                     <div className="flex justify-between">
                       <span>Sous-total</span>
-                      <span className="font-medium">{totalFinal.toFixed(2)} TND</span>
+                      <span className="font-medium">{totalFinal.toFixed(2)} <span className="text-xs">TND</span></span>
                     </div>
 
                     <div className="flex justify-between">
                       <span>Livraison</span>
                       <span className={`font-medium ${livraison === 0 ? "text-green-600" : ""}`}>
-                        {livraison === 0 ? "Gratuite" : `${livraison.toFixed(2)} TND`}
-                      </span>
+{livraison === 0 ? "Gratuite" : (
+  <>
+    {livraison.toFixed(2)} <span className="text-xs">TND</span>
+  </>
+)}                      </span>
                     </div>
 
-                    {totalFinal < 100 && totalFinal > 0 && (
-                      <div className="text-xs text-blue-600 bg-blue-50 p-3 rounded-lg">
-                        Plus que {(100 - totalFinal).toFixed(2)} TND pour la livraison gratuite !
-                      </div>
-                    )}
+                    
 
                     <div className="border-t pt-4">
                       <div className="flex justify-between font-bold text-lg">
                         <span>Total TTC</span>
-                        <span className="text-purple-600">{totalTTC.toFixed(2)} TND</span>
+                        <span className="text-purple-600">{totalTTC.toFixed(2)} <span className="text-xs">TND</span></span>
                       </div>
                     </div>
 
                     {totalSavings > 0 && (
                       <div className="text-center text-green-600 font-medium bg-green-50 p-3 rounded-lg">
-                        Vous économisez {totalSavings.toFixed(2)} TND !
+                        Vous économisez {totalSavings.toFixed(2)} <span className="text-xs">TND</span> !
                       </div>
                     )}
                   </div>

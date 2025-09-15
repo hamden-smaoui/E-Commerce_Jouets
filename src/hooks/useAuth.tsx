@@ -21,6 +21,10 @@ interface RegisterUserData {
   email: string;
   telephone: string;
   motDePasse: string;
+   adresseRue?: string;
+  adresseVille?: string;
+  adresseCodePostal?: string;
+  adressePays?: string;
   role?: 'admin' | 'client' | null;
 }
 

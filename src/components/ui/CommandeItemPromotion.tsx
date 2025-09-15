@@ -27,7 +27,7 @@ const CommandeItemPromotion: React.FC<CommandeItemPromotionProps> = ({
   if (!hasPromotion) {
     return (
       <div className="text-orange-500 text-base sm:text-lg font-bold mt-1">
-        {prixFacture.toFixed(2)} TND
+        {prixFacture.toFixed(2)} <span className="text-xs">TND</span>
       </div>
     );
   }
@@ -36,10 +36,10 @@ const CommandeItemPromotion: React.FC<CommandeItemPromotionProps> = ({
     <div className="mt-1 space-y-1">
       <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
         <span className="text-base sm:text-lg font-bold text-red-600">
-          {prixFacture.toFixed(2)} TND
+          {prixFacture.toFixed(2)} <span className="text-xs">TND</span>
         </span>
         <span className="text-xs sm:text-sm text-gray-500 line-through">
-          {prixOriginal.toFixed(2)} TND
+          {prixOriginal.toFixed(2)} <span className="text-xs">TND</span>
         </span>
         {actualPercentage > 0 && (
           <span className="bg-pink-200 text-pink-800 px-1 sm:px-2 py-0.5 text-xs rounded inline-block w-fit">
@@ -50,16 +50,11 @@ const CommandeItemPromotion: React.FC<CommandeItemPromotionProps> = ({
       
       {actualReduction > 0 && (
         <div className="text-xs text-green-600 font-medium">
-          Économie: {actualReduction.toFixed(2)} TND par unité
+          Économie: {actualReduction.toFixed(2)} <span className="text-xs">TND</span> par unité
         </div>
       )}
       
-      {hasPromotions && promotions.length > 0 && (
-        <div className="text-xs text-blue-600 flex items-center gap-1">
-          <span>🏷️</span>
-          <span className="truncate">{promotions[0].nom}</span>
-        </div>
-      )}
+      
     </div>
   );
 };

@@ -46,16 +46,13 @@ const CheckoutItemTotalDisplay = ({ idProduit, quantite }: { idProduit: number, 
     <div className="text-right min-w-[80px]">
       {hasPromotion ? (
         <div>
-          <div className="text-base font-bold text-red-600">
-            {(itemData.final * quantite).toFixed(2)} TND
-          </div>
-          <div className="text-xs text-gray-400 line-through">
-            {(itemData.original * quantite).toFixed(2)} TND
+          <div className="text-base font-bold text-gray-900">
+            {(itemData.final * quantite).toFixed(2)} <span className="text-xs">TND</span>
           </div>
         </div>
       ) : (
         <span className="text-base font-bold text-gray-900">
-          {(itemData.original * quantite).toFixed(2)} TND
+          {(itemData.original * quantite).toFixed(2)} <span className="text-xs">TND</span>
         </span>
       )}
     </div>
@@ -98,6 +95,7 @@ function Checkout() {
         clientAdresseCodePostal: user.adresseCodePostal || '',
         clientAdressePays: user.adressePays || 'Tunisie',
       }));
+      console.log("User data pre-filled in form:", user);
     }
     setMounted(true);
   }, [user, isAuthenticated]);
@@ -243,16 +241,16 @@ function Checkout() {
     <div className="min-h-screen bg-gray-50">
       <div className="container mx-auto px-4 py-8 max-w-7xl">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
-              <ShoppingCartIcon className="w-6 h-6 text-purple-600" />
-            </div>
-            <h1 className="text-3xl font-bold text-gray-900">
-              Finaliser la Commande
-            </h1>
-          </div>
-        </div>
+       <div className="flex items-center justify-between mb-8 w-full">
+  <div className="flex items-center gap-2 sm:gap-3">
+    <div className="w-8 h-8 sm:w-10 sm:h-10 bg-purple-100 rounded-full flex items-center justify-center flex-shrink-0">
+      <ShoppingCartIcon className="w-5 h-5 sm:w-6 sm:h-6 text-purple-600" />
+    </div>
+    <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 truncate">
+      Finaliser la Commande
+    </h1>
+  </div>
+</div>
 
         {/* Grid responsive */}
         <div className="grid grid-cols-1 xl:grid-cols-4 gap-8">
@@ -463,23 +461,23 @@ function Checkout() {
                     {totalSavings > 0 && (
                       <div className="flex justify-between text-gray-600">
                         <span>Prix original</span>
-                        <span className="line-through">{totalOriginal.toFixed(2)} TND</span>
+                        <span className="line-through">{totalOriginal.toFixed(2)} <span className="text-xs">TND</span></span>
                       </div>
                     )}
                     {totalSavings > 0 && (
                       <div className="flex justify-between text-green-600 font-medium">
                         <span>Promotions produits</span>
-                        <span>-{totalSavings.toFixed(2)} TND</span>
+                        <span>-{totalSavings.toFixed(2)} <span className="text-xs">TND</span></span>
                       </div>
                     )}
                     <div className="flex justify-between">
                       <span>Sous-total</span>
-                      <span className="font-medium">{totalFinal.toFixed(2)} TND</span>
+                      <span className="font-medium">{totalFinal.toFixed(2)} <span className="text-xs">TND</span></span>
                     </div>
                     {codePromo && totalEconomiesCodePromo > 0 && (
                       <div className="flex justify-between text-green-600 font-medium">
                         <span>Code promo ({codePromo.code})</span>
-                        <span>-{totalEconomiesCodePromo.toFixed(2)} TND</span>
+                        <span>-{totalEconomiesCodePromo.toFixed(2)} <span className="text-xs">TND</span></span>
                       </div>
                     )}
                     <div className="flex justify-between">
@@ -490,18 +488,18 @@ function Checkout() {
                     </div>
                     {totalPriceWithPromotions < 100 && totalPriceWithPromotions > 0 && (
                       <div className="text-xs text-blue-600 bg-blue-50 p-3 rounded-lg">
-                        Plus que {(100 - totalPriceWithPromotions).toFixed(2)} TND pour la livraison gratuite !
+                        Plus que {(100 - totalPriceWithPromotions).toFixed(2)} <span className="text-xs">TND</span> pour la livraison gratuite !
                       </div>
                     )}
                     <div className="border-t pt-4">
                       <div className="flex justify-between font-bold text-lg">
                         <span>Total TTC</span>
-                        <span className="text-purple-600">{totalTTC.toFixed(2)} TND</span>
+                        <span className="text-purple-600">{totalTTC.toFixed(2)} <span className="text-xs">TND</span></span>
                       </div>
                     </div>
                     {totalEconomiesGlobal > 0 && (
                       <div className="text-center text-green-600 font-medium bg-green-50 p-3 rounded-lg">
-                        Vous économisez {totalEconomiesGlobal.toFixed(2)} TND au total !
+                        Vous économisez {totalEconomiesGlobal.toFixed(2)} <span className="text-xs">TND</span> au total !
                       </div>
                     )}
                   </div>
@@ -525,7 +523,7 @@ function Checkout() {
                         Traitement...
                       </div>
                     ) : (
-                      `Confirmer la commande (${totalTTC.toFixed(2)} TND)`
+                      `Confirmer la commande`
                     )}
                   </button>
                 </div>

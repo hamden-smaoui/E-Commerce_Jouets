@@ -7,6 +7,7 @@ import Footer from "@/components/ui/Footer";
 import ProduitsService, { Produit } from "@/services/produits-service";
 import KidsCornerLoader from '@/components/ui/KidsCornerLoader';
 import { useSearchParams } from 'next/navigation';
+import { CubeIcon } from '@heroicons/react/24/solid'; // Ajout de l'import
 
 interface ProductWithDetails extends Produit {
   image?: string;
@@ -82,6 +83,7 @@ export default function Products() {
       setLoading(false);
     }
   };
+
 useEffect(() => {
     const categoriesParam = searchParams.get('categories');
     const typesParam = searchParams.get('types');
@@ -95,6 +97,7 @@ useEffect(() => {
       age: { min: 0, max: 144 },
     });
   }, [searchParams]);
+
   const getAgeInMonths = (minAge: string | null, maxAge: string | null, typeAge: 'mois' | 'ans' | null): { min: number; max: number } | null => {
     if (!minAge && !maxAge) return null;
     
@@ -163,7 +166,7 @@ useEffect(() => {
           filtered.sort((a, b) => a.nom.localeCompare(b.nom));
           break;
         case 'z-a':
-          filtered.sort((a, b) => b.nom.localeCompare(b.nom));
+          filtered.sort((a, b) => b.nom.localeCompare(a.nom));
           break;
         case 'price-asc':
           filtered.sort((a, b) => a.prix - b.prix);
@@ -219,9 +222,7 @@ useEffect(() => {
     setCurrentFilters(filters);
   }, []);
 
-  const handleSortChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setSortBy(e.target.value);
-  };
+  
 
   const activeFiltersCount = currentFilters.categories.length + 
                            currentFilters.marques.length + 
@@ -257,19 +258,18 @@ useEffect(() => {
   return (
     <div className="min-h-screen bg-gray-50 relative">
       {/* Bouton filtre mobile */}
-      <button
-        onClick={() => setShowFilterModal(true)}
-        className="lg:hidden fixed right-4 top-1/2 transform -translate-y-1/2 bg-purple-600 text-white rounded-lg p-3 shadow-lg z-50 flex flex-col items-center justify-center w-14 h-14 hover:bg-purple-700 transition-all duration-200 hover:scale-105"
-      >
-        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
-        </svg>
-        {activeFiltersCount > 0 && (
-          <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-6 h-6 flex items-center justify-center font-bold animate-pulse">
-            {activeFiltersCount}
-          </span>
-        )}
-      </button>
+     <button
+  onClick={() => setShowFilterModal(true)}
+  className="lg:hidden fixed right-4 top-1/2 transform -translate-y-1/2 bg-purple-600/70 backdrop-blur-sm text-white rounded-lg p-2 shadow-lg z-50 flex flex-col items-center justify-center w-12 h-12 hover:bg-purple-700/90 transition-all duration-200 hover:scale-105">
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+  </svg>
+  {activeFiltersCount > 0 && (
+    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold animate-pulse">
+      {activeFiltersCount}
+    </span>
+  )}
+</button>
 
       <div className="container mx-auto px-4 py-6 max-w-7xl">
         <div className="flex flex-col lg:flex-row gap-8">
@@ -285,55 +285,34 @@ useEffect(() => {
           
           {/* Contenu principal */}
           <div className="flex-1 min-w-0">
-            {/* Header professionnel */}
+            {/* Header professionnel modifié */}
             <div className="bg-white border border-gray-200 rounded-xl shadow-sm mb-8">
               <div className="p-6">
                 <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
                   {/* Résultats et statistiques */}
                   <div className="flex items-center gap-6">
                     <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-blue-600 rounded-lg flex items-center justify-center">
-                        <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-                        </svg>
+                      <div className="w-8 h-8 sm:w-10 sm:h-10 bg-purple-100 rounded-full flex items-center justify-center flex-shrink-0">
+                        <CubeIcon className="w-5 h-5 sm:w-6 sm:h-6 text-purple-600" />
                       </div>
                       <div>
-                        <h1 className="text-2xl font-bold text-gray-900">
-                          {filteredProducts.length} Produits
+                        <h1 className="text-xl sm:text-2xl font-bold text-gray-900 truncate">
+                          Catalogue des produits
                         </h1>
                         <p className="text-sm text-gray-500">
                           {filteredProducts.length !== products.length ? (
-                            <span>sur {products.length} produits au total</span>
+                            <span>{filteredProducts.length} produits sur {products.length} au total</span>
                           ) : (
-                            <span>Catalogue complet</span>
+                            <span>{filteredProducts.length} produits disponibles</span>
                           )}
                         </p>
                       </div>
                     </div>
-                    
-                   
                   </div>
 
-                  {/* Contrôles de tri */}
-                  <div className="flex items-center gap-4">
-                      <span className="text-sm text-gray-700">Trier par :</span>
-                    
-                    
-                    <select
-                      className="select select-bordered select-sm bg-white border-gray-200 focus:border-purple-400 focus:ring-purple-400 min-w-[200px] transition-all duration-200"
-                      value={sortBy}
-                      onChange={handleSortChange}
-                    >
-                      <option value="">Par défaut</option>
-                      <option value="a-z">Nom : A → Z</option>
-                      <option value="z-a">Nom : Z → A</option>
-                      <option value="price-asc">Prix croissant</option>
-                      <option value="price-desc">Prix décroissant</option>
-                    </select>
-                  </div>
+                  
+                  
                 </div>
-                
-                
               </div>
             </div>
             
@@ -376,8 +355,6 @@ useEffect(() => {
                 {totalPages > 1 && (
                   <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                     <div className="flex flex-col items-center gap-6">
-                     
-                      
                       {/* Navigation pagination */}
                       <div className="flex items-center gap-2">
                         {/* Bouton précédent */}

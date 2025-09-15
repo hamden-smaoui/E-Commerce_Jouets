@@ -5,7 +5,7 @@ import Image from "next/image";
 import { useCart } from "@/hooks/useCart";
 import { usePromotions } from "@/hooks/usePromotion";
 import {
-  ShoppingBagIcon,
+  ShoppingCartIcon,
   TrashIcon,
   MinusIcon,
   PlusIcon,
@@ -72,12 +72,7 @@ const CartDropdownItem = ({ item, onIncrement, onDecrement, onRemove }: any) => 
           )}
         </div>
 
-        {/* Badge promotion */}
-        {hasPromotions && reduction > 0 && (
-          <div className="text-xs text-green-600 font-medium">
-            Économie: {reduction.toFixed(2)} TND
-          </div>
-        )}
+        
 
         {/* Contrôles de quantité */}
         <div className="flex items-center justify-between mt-2">
@@ -218,7 +213,7 @@ export default function CartDropdown() {
           className="btn btn-ghost btn-circle btn-sm md:btn-md"
           title="Panier"
         >
-          <ShoppingBagIcon className="h-5 w-5 md:h-6 md:w-6 text-gray-600" />
+          <ShoppingCartIcon className="h-5 w-5 md:h-6 md:w-6 text-gray-600" />
         </button>
       </div>
 
@@ -241,7 +236,7 @@ export default function CartDropdown() {
           {/* Contenu du panier */}
           {cartItems.length === 0 ? (
             <div className="p-6 text-center">
-              <ShoppingBagIcon className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+              <ShoppingCartIcon className="h-12 w-12 text-gray-300 mx-auto mb-3" />
               <p className="text-gray-500 mb-4">Votre panier est vide</p>
               <Link href="/site">
                 <button
