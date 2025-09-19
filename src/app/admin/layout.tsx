@@ -23,7 +23,7 @@ export default function AdminLayout({
         <NavbarAdmin/>
           <div className="flex h-[calc(100vh-64px)]"> 
           <SidebarAdmin>
-          <main className="flex-1 p-6 overflow-y-auto">{children}</main>
+          <main className="flex-1 overflow-y-auto">{children}</main>
 </SidebarAdmin>
           </div>
       </body>

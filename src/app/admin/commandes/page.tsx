@@ -8,11 +8,14 @@ import HeaderCardComponent from '@/components/layout/HeaderCardComponent';
 import FormModal from '@/components/layout/FormModal';
 import Notification from '@/components/layout/Notification';
 import ConfirmDeleteModal from '@/components/layout/ConfirmDeleteModal';
+import CommandeDetailsModal from '@/components/layout/CommandeDetailsModal';
+import CommandeStatsCards from '@/components/layout/CommandeStatsCards';
 import CommandesService, { 
   CommandeResponse, 
   CommandeFormData, 
   CommandeStats 
 } from '@/services/commandes-service';
+import FactureService from '@/services/facture-service';
 
 // Status options for select
 const statutOptions = [
@@ -24,7 +27,6 @@ const statutOptions = [
   { value: 'annulée', label: 'Annulée' },
 ];
 
-// Interface for form handling
 interface FormData {
   idCommande: number | null;
   clientPrenom: string;
@@ -37,6 +39,10 @@ interface FormData {
   clientAdressePays: string;
   statut: 'en attente' | 'en traitement' | 'expédiée' | 'livrée' | 'annulée';
   montantTotal: number;
+  montantOriginal?: number;
+  montantReduction?: number;
+  fraisLivraison?: number;
+  codePromoGlobal?: string;
   notesLivraison: string;
 }
 
@@ -68,6 +74,7 @@ const Commandes: React.FC = () => {
   const [commandes, setCommandes] = useState<CommandeResponse[]>([]);
   const [stats, setStats] = useState<CommandeStats[]>([]);
   const [loading, setLoading] = useState(true);
+  const [statsLoading, setStatsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [statutFilter, setStatutFilter] = useState('');
@@ -113,7 +120,6 @@ const Commandes: React.FC = () => {
 
       const response = await CommandesService.getAllCommandes(params);
       setCommandes(response.data);
-      console.log(response.data);
       setTotalPages(response.pagination.totalPages);
       setLoading(false);
     } catch (error: unknown) {
@@ -125,10 +131,13 @@ const Commandes: React.FC = () => {
 
   const fetchStats = async () => {
     try {
+      setStatsLoading(true);
       const statsData = await CommandesService.getCommandeStats();
       setStats(statsData);
+      setStatsLoading(false);
     } catch (error: unknown) {
       console.error('Error fetching stats:', error);
+      setStatsLoading(false);
     }
   };
 
@@ -178,56 +187,113 @@ const Commandes: React.FC = () => {
         (commande.clientTelephone && commande.clientTelephone.includes(searchTerm)) ||
         (commande.idCommande && commande.idCommande.toString().includes(searchTerm)))
   );
-
+const handleCreateFacture = async (idCommande: number) => {
+  try {
+    const response = await FactureService.createFactureForCommande(idCommande);
+    setNotification({
+      type: 'success',
+      message: 'Facture créée avec succès !'
+    });
+    // Optionnel : refresh les données commande/facture si besoin
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Erreur inconnue';
+    setNotification({
+      type: 'error',
+      message: `Erreur lors de la création de la facture : ${message}`
+    });
+  }
+};
+  // Table columns configuration - Responsive
   const columns = [
     {
       header: 'N° Commande',
       render: (item: CommandeResponse) => (
-        <div className="font-mono text-sm">#{item.idCommande}</div>
+        <div className="font-mono text-sm font-bold">#{item.idCommande}</div>
       ),
+      className: 'w-20 lg:w-auto',
     },
     {
       header: 'Client',
       render: (item: CommandeResponse) => (
-        <div>
-          <div className="font-bold">{`${item.clientPrenom} ${item.clientNom}`}</div>
-          <div className="text-sm opacity-50">{item.clientEmail || 'N/A'}</div>
+        <div className="min-w-0">
+          <div className="font-bold truncate">{`${item.clientPrenom} ${item.clientNom}`}</div>
+          <div className="text-sm opacity-50 truncate hidden sm:block">{item.clientEmail || 'N/A'}</div>
           <div className="text-sm opacity-50">{item.clientTelephone}</div>
         </div>
       ),
+      className: 'min-w-[150px]',
     },
     {
       header: 'Date',
-      render: (item: CommandeResponse) => formatDate(item.dateCommande),
+      render: (item: CommandeResponse) => (
+        <div className="text-xs lg:text-sm">
+          {formatDate(item.dateCommande)}
+        </div>
+      ),
+      className: 'hidden md:table-cell min-w-[100px]',
     },
     {
       header: 'Statut',
       render: (item: CommandeResponse) => (
-        <span className={`badge ${getStatusBadge(item.statut)} badge-sm`}>
+        <span className={`badge ${getStatusBadge(item.statut)} badge-sm text-xs`}>
           {item.statut}
         </span>
       ),
+      className: 'w-24 lg:w-auto',
     },
     {
       header: 'Montant',
       render: (item: CommandeResponse) => (
-        <div className="font-bold text-primary">{formatPrice(item.montantTotal)}</div>
+        <div>
+          <div className="font-bold text-primary text-sm lg:text-base">
+            {formatPrice(item.montantTotal)}
+          </div>
+          {item.montantOriginal && item.montantOriginal !== item.montantTotal && (
+            <div className="text-xs hidden lg:block">
+              <span className="line-through text-gray-500">
+                {formatPrice(item.montantOriginal)}
+              </span>
+            </div>
+          )}
+        </div>
       ),
+      className: 'text-right min-w-[80px]',
     },
     {
       header: 'Articles',
       render: (item: CommandeResponse) => (
-        <div className="text-sm">
-          {item.lignesCommandes?.length || 0} article(s)
+        <div className="text-sm text-center">
+          <span className="badge badge-outline badge-sm">
+            {item.lignesCommandes?.length || 0}
+          </span>
         </div>
       ),
+      className: 'hidden lg:table-cell w-20',
     },
     {
       header: 'Ville',
-      render: (item: CommandeResponse) => item.clientAdresseVille,
+      render: (item: CommandeResponse) => (
+        <div className="text-sm truncate max-w-[100px]">
+          {item.clientAdresseVille}
+        </div>
+      ),
+      className: 'hidden xl:table-cell',
     },
+    {
+  header: 'Facture',
+  render: (item: CommandeResponse) => (
+    <button
+      className="btn btn-sm btn-primary"
+      onClick={() => handleCreateFacture(item.idCommande)}
+    >
+      Créer la facture
+    </button>
+  ),
+  className: 'text-center w-32',
+}
   ];
 
+  // Form fields configuration
   const commandeFields: Field<FormData>[] = [
     {
       name: 'clientPrenom',
@@ -262,7 +328,7 @@ const Commandes: React.FC = () => {
       placeholder: 'email@exemple.com',
       validation: {
         required: false,
-        pattern: '^[^@]+@[^@]+\.[^@]+$',
+        pattern: '^[^@]+@[^@]+\\.[^@]+',
         title: 'Veuillez saisir un email valide',
       },
       hint: 'Email valide (optionnel)',
@@ -307,473 +373,364 @@ const Commandes: React.FC = () => {
       hint: '2-50 caractères',
     },
     {
-     name: 'clientAdresseCodePostal',
-     label: 'Code postal',
-     type: 'text',
-     placeholder: '1000',
-     validation: {
-       required: true,
-       minLength: 4,
-       maxLength: 10,
-       title: 'Le code postal doit contenir entre 4 et 10 caractères',
-     },
-     hint: '4-10 caractères',
-   },
-   {
-     name: 'clientAdressePays',
-     label: 'Pays',
-     type: 'text',
-     placeholder: 'Tunisie',
-     validation: {
-       required: true,
-       minLength: 2,
-       maxLength: 50,
-       title: 'Le pays doit contenir entre 2 et 50 caractères',
-     },
-     hint: '2-50 caractères',
-   },
-  {
-  name: 'statut',
-  label: 'Statut de la commande',
-  type: 'custom',
-  render: ({ value, onChange }) => {
-    console.log('Statut render - Current value:', value);
-    
-    const selectedOption = statutOptions.find(option => option.value === value);
-    console.log('Selected option:', selectedOption);
-    
+      name: 'clientAdresseCodePostal',
+      label: 'Code postal',
+      type: 'text',
+      placeholder: '1000',
+      validation: {
+        required: true,
+        minLength: 4,
+        maxLength: 10,
+        title: 'Le code postal doit contenir entre 4 et 10 caractères',
+      },
+      hint: '4-10 caractères',
+    },
+    {
+      name: 'clientAdressePays',
+      label: 'Pays',
+      type: 'text',
+      placeholder: 'Tunisie',
+      validation: {
+        required: true,
+        minLength: 2,
+        maxLength: 50,
+        title: 'Le pays doit contenir entre 2 et 50 caractères',
+      },
+      hint: '2-50 caractères',
+    },
+    {
+      name: 'statut',
+      label: 'Statut de la commande',
+      type: 'custom',
+      render: ({ value, onChange }) => {
+        const selectedOption = statutOptions.find(option => option.value === value);
+        
+        return (
+          <Select
+            options={statutOptions.filter(option => option.value !== '')}
+            value={selectedOption || null}
+            onChange={(selectedOption) => {
+              const newValue = selectedOption?.value || 'en attente';
+              onChange(newValue);
+            }}
+            placeholder="Sélectionnez un statut"
+            className="w-full"
+            isClearable={false}
+          />
+        );
+      },
+      validation: {
+        required: true,
+        title: 'Sélectionnez un statut',
+      },
+      hint: 'Statut actuel de la commande',
+    },
+    {
+      name: 'montantTotal',
+      label: 'Montant total (TND)',
+      type: 'number',
+      placeholder: '0.00',
+      validation: {
+        required: true,
+        min: 0.01,
+        step: 0.01,
+        title: 'Le montant doit être supérieur à 0',
+      },
+      hint: 'Montant en dinars tunisiens',
+      disabled: true,
+    },
+    {
+      name: 'notesLivraison',
+      label: 'Notes de livraison',
+      type: 'textarea',
+      placeholder: 'Instructions particulières...',
+      validation: {
+        required: false,
+        maxLength: 500,
+        title: 'Maximum 500 caractères',
+      },
+      hint: 'Instructions particulières pour la livraison (optionnel)',
+    },
+  ];
+
+  // Event handlers
+  const handleEditSubmit = async (data: FormData) => {
+    try {
+      if (!data.idCommande) {
+        setNotification({
+          type: 'error',
+          message: 'Aucune commande sélectionnée pour modification.',
+        });
+        return;
+      }
+
+      const updatedCommande = await CommandesService.updateCommande(data.idCommande, data);
+      setCommandes(
+        commandes.map((commande) =>
+          commande.idCommande === data.idCommande ? { ...commande, ...updatedCommande } : commande
+        )
+      );
+      setIsEditModalOpen(false);
+      fetchStats();
+      setNotification({
+        type: 'success',
+        message: 'Commande modifiée avec succès !',
+      });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Erreur inconnue';
+      setNotification({
+        type: 'error',
+        message: `Erreur ! Échec de la modification de la commande: ${message}`,
+      });
+    }
+  };
+
+  const handleDelete = () => {
+    setIsDeleteModalOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    try {
+      for (const id of selectedCommandes) {
+        await CommandesService.deleteCommande(id);
+      }
+      setCommandes(commandes.filter((commande) => !selectedCommandes.includes(commande.idCommande)));
+      setSelectedCommandes([]);
+      setIsDeleteModalOpen(false);
+      fetchStats();
+      setNotification({
+        type: 'success',
+        message: 'Commande(s) supprimée(s) avec succès !',
+      });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Erreur inconnue';
+      setNotification({
+        type: 'error',
+        message: `Erreur ! Échec de la suppression de la commande: ${message}`,
+      });
+    }
+  };
+
+  const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>, id: number) => {
+    if (e.target.checked) {
+      setSelectedCommandes([...selectedCommandes, id]);
+    } else {
+      setSelectedCommandes(selectedCommandes.filter((commandeId) => commandeId !== id));
+    }
+  };
+
+  const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.checked) {
+      setSelectedCommandes(filteredCommandes.map((commande) => commande.idCommande));
+    } else {
+      setSelectedCommandes([]);
+    }
+  };
+
+  const handleEdit = async (commande: CommandeResponse) => {
+    try {
+      const fetchedCommande = await CommandesService.getCommandeById(commande.idCommande);
+      const newFormData = {
+        idCommande: fetchedCommande.idCommande,
+        clientPrenom: fetchedCommande.clientPrenom || '',
+        clientNom: fetchedCommande.clientNom || '',
+        clientEmail: fetchedCommande.clientEmail || '',
+        clientTelephone: fetchedCommande.clientTelephone || '',
+        clientAdresseRue: fetchedCommande.clientAdresseRue || '',
+        clientAdresseVille: fetchedCommande.clientAdresseVille || '',
+        clientAdresseCodePostal: fetchedCommande.clientAdresseCodePostal || '',
+        clientAdressePays: fetchedCommande.clientAdressePays || 'Tunisie',
+        statut: fetchedCommande.statut,
+        montantTotal: fetchedCommande.montantTotal || 0,
+        notesLivraison: fetchedCommande.notesLivraison || '',
+      };
+      setFormData(newFormData);
+      setIsEditModalOpen(true);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Erreur inconnue';
+      setNotification({
+        type: 'error',
+        message: `Erreur lors du chargement des données de la commande: ${message}`,
+      });
+    }
+  };
+
+  const handleViewDetails = async (commande: CommandeResponse) => {
+    try {
+      const fetchedCommande = await CommandesService.getCommandeById(commande.idCommande);
+      setSelectedCommandeDetail(fetchedCommande);
+      setIsDetailModalOpen(true);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Erreur inconnue';
+      setNotification({
+        type: 'error',
+        message: `Erreur lors du chargement des détails de la commande: ${message}`,
+      });
+    }
+  };
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+
+  // Loading state
+  if (loading && commandes.length === 0) {
     return (
-      <Select
-        options={statutOptions.filter(option => option.value !== '')}
-        value={selectedOption || null}
-        onChange={(selectedOption) => {
-          const newValue = selectedOption?.value || 'en attente';
-          console.log('New status selected:', newValue);
-          onChange(newValue);
-        }}
-        placeholder="Sélectionnez un statut"
-        className="w-full"
-        isClearable={false}
-      />
+      <div className="flex justify-center items-center h-screen">
+        <span className="loading loading-spinner loading-lg"></span>
+      </div>
     );
-  },
-  validation: {
-    required: true,
-    title: 'Sélectionnez un statut',
-  },
-  hint: 'Statut actuel de la commande',
-},
-   {
-     name: 'montantTotal',
-     label: 'Montant total (TND)',
-     type: 'number',
-     placeholder: '0.00',
-     validation: {
-       required: true,
-       min: 0.01,
-       step: 0.01,
-       title: 'Le montant doit être supérieur à 0',
-     },
-     hint: 'Montant en dinars tunisiens',
-     disabled: true, // Le montant est calculé automatiquement
-   },
-   {
-     name: 'notesLivraison',
-     label: 'Notes de livraison',
-     type: 'textarea',
-     placeholder: 'Instructions particulières...',
-     validation: {
-       required: false,
-       maxLength: 500,
-       title: 'Maximum 500 caractères',
-     },
-     hint: 'Instructions particulières pour la livraison (optionnel)',
-   },
- ];
+  }
 
- const handleEditSubmit = async (data: FormData) => {
-   try {
-     if (!data.idCommande) {
-       setNotification({
-         type: 'error',
-         message: 'Aucune commande sélectionnée pour modification.',
-       });
-       return;
-     }
+  // Error state
+  if (error) {
+    return (
+      <div className="text-center p-6">
+        <div className="text-error text-lg mb-4">{error}</div>
+        <button 
+          className="btn btn-primary" 
+          onClick={() => {
+            setError(null);
+            fetchData();
+          }}
+        >
+          Réessayer
+        </button>
+      </div>
+    );
+  }
 
-     const updatedCommande = await CommandesService.updateCommande(data.idCommande, data);
-     setCommandes(
-       commandes.map((commande) =>
-         commande.idCommande === data.idCommande ? { ...commande, ...updatedCommande } : commande
-       )
-     );
-     setIsEditModalOpen(false);
-     fetchStats(); // Refresh stats
-     setNotification({
-       type: 'success',
-       message: 'Commande modifiée avec succès !',
-     });
-   } catch (error: unknown) {
-     const message = error instanceof Error ? error.message : 'Erreur inconnue';
-     setNotification({
-       type: 'error',
-       message: `Erreur ! Échec de la modification de la commande: ${message}`,
-     });
-   }
- };
+  return (
+    <div className="p-6 w-full h-screen flex  flex-col relative">
+      <Notification notification={notification} onClose={() => setNotification(null)} />
+      
+      {/* Statistics Cards Component */}
+      <CommandeStatsCards stats={stats} loading={statsLoading} />
 
- const handleDelete = () => {
-   setIsDeleteModalOpen(true);
- };
+      {/* Filters - Responsive */}
+      <div className="flex flex-col sm:flex-row gap-4 mb-6">
+        
+        <div className="w-full sm:w-48">
+          <Select
+            options={statutOptions}
+            value={statutOptions.find(option => option.value === statutFilter)}
+            onChange={handleStatutFilterChange}
+            placeholder="Filtrer par statut"
+            className="w-full z-40"
+            isClearable={false}
+          />
+        </div>
+      </div>
 
- const confirmDelete = async () => {
-   try {
-     for (const id of selectedCommandes) {
-       await CommandesService.deleteCommande(id);
-     }
-     setCommandes(commandes.filter((commande) => !selectedCommandes.includes(commande.idCommande)));
-     setSelectedCommandes([]);
-     setIsDeleteModalOpen(false);
-     fetchStats(); // Refresh stats
-     setNotification({
-       type: 'success',
-       message: 'Commande(s) supprimée(s) avec succès !',
-     });
-   } catch (error: unknown) {
-     const message = error instanceof Error ? error.message : 'Erreur inconnue';
-     setNotification({
-       type: 'error',
-       message: `Erreur ! Échec de la suppression de la commande: ${message}`,
-     });
-   }
- };
-
- const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>, id: number) => {
-   if (e.target.checked) {
-     setSelectedCommandes([...selectedCommandes, id]);
-   } else {
-     setSelectedCommandes(selectedCommandes.filter((commandeId) => commandeId !== id));
-   }
- };
-
- const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
-   if (e.target.checked) {
-     setSelectedCommandes(filteredCommandes.map((commande) => commande.idCommande));
-   } else {
-     setSelectedCommandes([]);
-   }
- };
-
- const handleEdit = async (commande: CommandeResponse) => {
-   try {
-     const fetchedCommande = await CommandesService.getCommandeById(commande.idCommande);
-     console.log(fetchedCommande);
-     const newFormData = {
-       idCommande: fetchedCommande.idCommande,
-       clientPrenom: fetchedCommande.clientPrenom || '',
-       clientNom: fetchedCommande.clientNom || '',
-       clientEmail: fetchedCommande.clientEmail || '',
-       clientTelephone: fetchedCommande.clientTelephone || '',
-       clientAdresseRue: fetchedCommande.clientAdresseRue || '',
-       clientAdresseVille: fetchedCommande.clientAdresseVille || '',
-       clientAdresseCodePostal: fetchedCommande.clientAdresseCodePostal || '',
-       clientAdressePays: fetchedCommande.clientAdressePays || 'Tunisie',
-       statut: fetchedCommande.statut,
-       montantTotal: fetchedCommande.montantTotal || 0,
-       notesLivraison: fetchedCommande.notesLivraison || '',
-     };
-     setFormData(newFormData);
-     setIsEditModalOpen(true);
-   } catch (error: unknown) {
-     const message = error instanceof Error ? error.message : 'Erreur inconnue';
-     setNotification({
-       type: 'error',
-       message: `Erreur lors du chargement des données de la commande: ${message}`,
-     });
-   }
- };
-
- const handleViewDetails = async (commande: CommandeResponse) => {
-   try {
-     const fetchedCommande = await CommandesService.getCommandeById(commande.idCommande);
-     setSelectedCommandeDetail(fetchedCommande);
-     setIsDetailModalOpen(true);
-   } catch (error: unknown) {
-     const message = error instanceof Error ? error.message : 'Erreur inconnue';
-     setNotification({
-       type: 'error',
-       message: `Erreur lors du chargement des détails de la commande: ${message}`,
-     });
-   }
- };
-
- const handlePageChange = (page: number) => {
-   setCurrentPage(page);
- };
-
- if (loading && commandes.length === 0) {
-   return (
-     <div className="flex justify-center items-center h-screen">
-       <span className="loading loading-spinner loading-lg"></span>
-     </div>
-   );
- }
-
- if (error) {
-   return <div className="text-center p-6 text-error">{error}</div>;
- }
-
- return (
-   <div className="p-6 w-full h-screen flex flex-col relative">
-     <Notification notification={notification} onClose={() => setNotification(null)} />
-     
-     {/* Statistics Cards */}
-     <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
-       {stats.map((stat, index) => (
-         <div key={index} className="stat bg-base-100 shadow rounded-lg">
-           <div className={`stat-title text-xs ${getStatusBadge(stat.statut).replace('badge-', 'text-')}`}>
-             {stat.statut.charAt(0).toUpperCase() + stat.statut.slice(1)}
-           </div>
-           <div className="stat-value text-lg">{stat.count}</div>
-           <div className="stat-desc text-xs">{formatPrice(stat.total)}</div>
-         </div>
-       ))}
-     </div>
-
-     {/* Filters */}
-     <div className="flex flex-wrap gap-4 mb-4">
-       <div className="flex-1 min-w-64">
-         <input
-           type="text"
-           placeholder="Rechercher par client, email, téléphone, n° commande..."
-           className="input input-bordered w-full"
-           value={searchTerm}
-           onChange={handleSearch}
-         />
-       </div>
-       <div className="w-48">
-         <Select
-           options={statutOptions}
-           value={statutOptions.find(option => option.value === statutFilter)}
-           onChange={handleStatutFilterChange}
-           placeholder="Filtrer par statut"
-           className="w-full z-40"
-           isClearable={false}
-         />
-       </div>
-     </div>
-
-     <HeaderCardComponent
-       title="Liste des Commandes"
-       searchTerm={searchTerm}
-       onSearchChange={handleSearch}
-       selectedItems={selectedCommandes}
-       onEdit={() => {
-         const commande = commandes.find((c) => c.idCommande === selectedCommandes[0]);
-         if (commande) handleEdit(commande);
-       }}
-       onDelete={handleDelete}
+      {/* Header Card Component */}
+      <HeaderCardComponent
+        title="Liste des Commandes"
+        searchTerm={searchTerm}
+        onSearchChange={handleSearch}
+        selectedItems={selectedCommandes}
+        onEdit={() => {
+          const commande = commandes.find((c) => c.idCommande === selectedCommandes[0]);
+          if (commande) handleEdit(commande);
+        }}
+        onDelete={handleDelete}
         showAddButton={false}
         showViewButton={true}
-       onView={() => {
-         const commande = commandes.find((c) => c.idCommande === selectedCommandes[0]);
-         if (commande) handleViewDetails(commande);
-       }}
-     />
+        onView={() => {
+          const commande = commandes.find((c) => c.idCommande === selectedCommandes[0]);
+          if (commande) handleViewDetails(commande);
+        }}
+      />
 
-     <TableComponent
-       data={filteredCommandes}
-       columns={columns}
-       loading={loading}
-       error={error}
-       selectedItems={selectedCommandes}
-       handleCheckboxChange={handleCheckboxChange}
-       handleSelectAll={handleSelectAll}
-       onEdit={handleEdit}
-       onDelete={(id: number) => {
-         setSelectedCommandes([id]);
-         handleDelete();
-       }}
-       onView={handleViewDetails}
-       idField="idCommande"
-     />
+      
+  <div className="flex-1 min-h-[50vh] sm:min-h-[60vh] overflow-auto">
+  <TableComponent
+    data={filteredCommandes}
+    columns={columns}
+    loading={loading}
+    error={error}
+    selectedItems={selectedCommandes}
+    handleCheckboxChange={handleCheckboxChange}
+    handleSelectAll={handleSelectAll}
+    onEdit={handleEdit}
+    onDelete={(id: number) => {
+      setSelectedCommandes([id]);
+      handleDelete();
+    }}
+    onView={handleViewDetails}
+    idField="idCommande"
+  />
+</div>
+      
 
-     {/* Pagination */}
-     {totalPages > 1 && (
-       <div className="flex justify-center mt-6">
-         <div className="join">
-           <button
-             className="join-item btn"
-             disabled={currentPage === 1}
-             onClick={() => handlePageChange(currentPage - 1)}
-           >
-             «
-           </button>
-           {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-             <button
-               key={page}
-               className={`join-item btn ${currentPage === page ? 'btn-active' : ''}`}
-               onClick={() => handlePageChange(page)}
-             >
-               {page}
-             </button>
-           ))}
-           <button
-             className="join-item btn"
-             disabled={currentPage === totalPages}
-             onClick={() => handlePageChange(currentPage + 1)}
-           >
-             »
-           </button>
-         </div>
-       </div>
-     )}
+      {/* Pagination - Responsive */}
+      {totalPages > 1 && (
+        <div className="flex justify-center mt-6">
+          <div className="join">
+            <button
+              className="join-item btn btn-sm sm:btn-md"
+              disabled={currentPage === 1}
+              onClick={() => handlePageChange(currentPage - 1)}
+            >
+              «
+            </button>
+            {/* Show fewer pages on mobile */}
+            {Array.from({ length: totalPages }, (_, i) => i + 1)
+              .filter(page => {
+                if (window.innerWidth < 640) {
+                  // Mobile: show current, prev, next
+                  return Math.abs(page - currentPage) <= 1;
+                }
+                // Desktop: show all or reasonable range
+                return totalPages <= 7 || Math.abs(page - currentPage) <= 2 || page === 1 || page === totalPages;
+              })
+              .map((page) => (
+                <button
+                  key={page}
+                  className={`join-item btn btn-sm sm:btn-md ${currentPage === page ? 'btn-active' : ''}`}
+                  onClick={() => handlePageChange(page)}
+                >
+                  {page}
+                </button>
+              ))}
+            <button
+              className="join-item btn btn-sm sm:btn-md"
+              disabled={currentPage === totalPages}
+              onClick={() => handlePageChange(currentPage + 1)}
+            >
+              »
+            </button>
+          </div>
+        </div>
+      )}
 
-     {/* Delete Confirmation Modal */}
-     <ConfirmDeleteModal
-       isOpen={isDeleteModalOpen}
-       onClose={() => setIsDeleteModalOpen(false)}
-       onConfirm={confirmDelete}
-       itemCount={selectedCommandes.length}
-       entityName="commande(s)"
-     />
+      {/* Modals */}
+      <ConfirmDeleteModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        onConfirm={confirmDelete}
+        itemCount={selectedCommandes.length}
+        entityName="commande(s)"
+      />
 
-     {/* Edit Modal */}
-     <FormModal
-       isOpen={isEditModalOpen}
-       onClose={() => setIsEditModalOpen(false)}
-       title="Modifier une Commande"
-       fields={commandeFields}
-       formData={formData}
-       setFormData={setFormData}
-       onSubmit={handleEditSubmit}
-       submitButtonText="Modifier"
-     />
+      <FormModal
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        title="Modifier une Commande"
+        fields={commandeFields}
+        formData={formData}
+        setFormData={setFormData}
+        onSubmit={handleEditSubmit}
+        submitButtonText="Modifier"
+      />
 
-     {/* Details Modal */}
-     {selectedCommandeDetail && (
-       <div className={`modal ${isDetailModalOpen ? 'modal-open' : ''}`}>
-         <div className="modal-box w-11/12 max-w-4xl">
-           <div className="flex justify-between items-center mb-4">
-             <h3 className="font-bold text-lg">
-               Détails de la Commande #{selectedCommandeDetail.idCommande}
-             </h3>
-             <button
-               className="btn btn-sm btn-circle btn-ghost"
-               onClick={() => setIsDetailModalOpen(false)}
-             >
-               ✕
-             </button>
-           </div>
-
-           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-             {/* Client Information */}
-             <div className="card bg-base-200">
-               <div className="card-body">
-                 <h4 className="card-title text-base">Informations Client</h4>
-                 <div className="space-y-2 text-sm">
-                   <p><strong>Nom:</strong> {selectedCommandeDetail.clientPrenom} {selectedCommandeDetail.clientNom}</p>
-                   <p><strong>Email:</strong> {selectedCommandeDetail.clientEmail || 'N/A'}</p>
-                   <p><strong>Téléphone:</strong> {selectedCommandeDetail.clientTelephone}</p>
-                   <p><strong>Adresse:</strong></p>
-                   <div className="ml-4 text-xs opacity-70">
-                     {selectedCommandeDetail.clientAdresseRue}<br/>
-                     {selectedCommandeDetail.clientAdresseVille}, {selectedCommandeDetail.clientAdresseCodePostal}<br/>
-                     {selectedCommandeDetail.clientAdressePays}
-                   </div>
-                 </div>
-               </div>
-             </div>
-
-             {/* Order Information */}
-             <div className="card bg-base-200">
-               <div className="card-body">
-                 <h4 className="card-title text-base">Informations Commande</h4>
-                 <div className="space-y-2 text-sm">
-                   <p><strong>Date:</strong> {formatDate(selectedCommandeDetail.dateCommande)}</p>
-                   <p><strong>Statut:</strong> 
-                     <span className={`badge ${getStatusBadge(selectedCommandeDetail.statut)} badge-sm ml-2`}>
-                       {selectedCommandeDetail.statut}
-                     </span>
-                   </p>
-                   <p><strong>Montant Total:</strong> 
-                     <span className="font-bold text-primary ml-2">
-                       {formatPrice(selectedCommandeDetail.montantTotal)}
-                     </span>
-                   </p>
-                   {selectedCommandeDetail.notesLivraison && (
-                     <p><strong>Notes:</strong> {selectedCommandeDetail.notesLivraison}</p>
-                   )}
-                 </div>
-               </div>
-             </div>
-           </div>
-
-           {/* Order Items */}
-           <div className="mt-6">
-             <h4 className="font-bold text-base mb-3">Articles Commandés</h4>
-             <div className="overflow-x-auto">
-               <table className="table table-zebra w-full">
-                 <thead>
-                   <tr>
-                     <th>Produit</th>
-                     <th>Prix Unitaire</th>
-                     <th>Quantité</th>
-                     <th>Sous-total</th>
-                   </tr>
-                 </thead>
-                 <tbody>
-                   {selectedCommandeDetail.lignesCommandes?.map((ligne, index) => (
-                     <tr key={index}>
-                       <td>
-                         <div className="flex items-center gap-3">
-                           {ligne.produit?.images && ligne.produit.images.length > 0 && (
-                             <div className="avatar">
-                               <div className="mask mask-squircle w-10 h-10">
-                                 <img 
-                                   src={`http://localhost:3001${ligne.produit.images[0].url}`} 
-                                   alt={ligne.produit.nom} 
-                                 />
-                               </div>
-                             </div>
-                           )}
-                           <div>
-                             <div className="font-bold text-sm">{ligne.produit?.nom || 'N/A'}</div>
-                           </div>
-                         </div>
-                       </td>
-                       <td>{formatPrice(ligne.prixUnitaire)}</td>
-                       <td>{ligne.quantite}</td>
-                       <td className="font-bold">{formatPrice(ligne.sousTotal)}</td>
-                     </tr>
-                   ))}
-                 </tbody>
-               </table>
-             </div>
-           </div>
-
-           <div className="modal-action">
-             <button
-               className="btn btn-primary"
-               onClick={() => {
-                 handleEdit(selectedCommandeDetail);
-                 setIsDetailModalOpen(false);
-               }}
-             >
-               Modifier
-             </button>
-             <button 
-               className="btn" 
-               onClick={() => setIsDetailModalOpen(false)}
-             >
-               Fermer
-             </button>
-           </div>
-         </div>
-       </div>
-     )}
-   </div>
- );
+      <CommandeDetailsModal
+        isOpen={isDetailModalOpen}
+        onClose={() => setIsDetailModalOpen(false)}
+        commande={selectedCommandeDetail}
+        onEdit={handleEdit}
+      />
+    </div>
+  );
 };
 
 export default Commandes;

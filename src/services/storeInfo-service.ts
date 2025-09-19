@@ -29,6 +29,8 @@ export interface StoreInfo {
   urlYoutube?: string;
   topDescription?: string;
   heroImages?: Image[];
+  tauxTVA?: number;
+  entrepriseSiret?: string;
 }
 
 export interface StoreInfoFormData {
@@ -57,6 +59,8 @@ export interface StoreInfoFormData {
   heroImages?: File[];
   imagesToDelete?: number[];
   imageRangs?: { [imageId: string]: number };
+  tauxTVA?: number;
+  entrepriseSiret?: string;
 }
 
 class StoreInfoService {

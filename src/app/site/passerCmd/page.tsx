@@ -3,6 +3,7 @@ import Image from "next/image";
 import Footer from "@/components/ui/Footer";
 import Link from 'next/link';
 import { useState, useEffect, useMemo } from "react";
+import { toast } from "react-hot-toast";
 import { 
   ShieldCheckIcon, 
   TruckIcon, 
@@ -15,10 +16,12 @@ import { useCart } from "@/hooks/useCart";
 import { useAuth } from "@/hooks/useAuth";
 import { useRouter } from "next/navigation";
 import CommandesService from "@/services/commandes-service";
+import { CommandeFormData } from "@/services/commandes-service";
 import { CartPromotionProvider, useCartPromotionContext } from '@/contexts/CartPromotionContext';
 import CartItemPromotion from '@/components/ui/CartItemPromotion';
 import CodePromoInput from "@/components/layout/CodePromo";
 import KidsCornerLoader from '@/components/ui/KidsCornerLoader';
+
 interface FormData {
   clientPrenom: string;
   clientNom: string;
@@ -29,6 +32,10 @@ interface FormData {
   clientAdresseCodePostal: string;
   clientAdressePays: string;
   notesLivraison: string;
+}
+
+interface FormErrors {
+  [key: string]: boolean;
 }
 
 // Composant pour afficher le total par item
@@ -66,6 +73,7 @@ function Checkout() {
   const [loading, setLoading] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [codePromo, setCodePromo] = useState<{ code: string; promotion: any } | null>(null);
+  const [errors, setErrors] = useState<FormErrors>({});
 
   const { getTotals, clearTotals, itemTotals } = useCartPromotionContext();
 
@@ -149,22 +157,70 @@ function Checkout() {
       ...prev,
       [name]: value
     }));
+
+    // Supprimer l'erreur si le champ est maintenant rempli
+    if (value.trim() && errors[name]) {
+      setErrors(prev => ({
+        ...prev,
+        [name]: false
+      }));
+    }
   };
 
   const validateForm = (): boolean => {
     const requiredFields = [
-      'clientPrenom', 'clientNom', 'clientTelephone',
-      'clientAdresseRue', 'clientAdresseVille', 'clientAdresseCodePostal'
+      { key: 'clientPrenom', label: 'Prénom' },
+      { key: 'clientNom', label: 'Nom' },
+      { key: 'clientTelephone', label: 'Téléphone' },
+      { key: 'clientAdresseRue', label: 'Adresse' },
+      { key: 'clientAdresseVille', label: 'Ville' },
+      { key: 'clientAdresseCodePostal', label: 'Code postal' }
     ];
     
+    const newErrors: FormErrors = {};
+    const missingFields: string[] = [];
+
     for (const field of requiredFields) {
-      if (!formData[field as keyof FormData].trim()) {
-        alert(`Le champ ${field.replace('client', '').replace('Adresse', '')} est requis`);
-        return false;
+      if (!formData[field.key as keyof FormData].trim()) {
+        newErrors[field.key] = true;
+        missingFields.push(field.label);
       }
     }
-    
+
+    // Validation email si rempli
+    if (formData.clientEmail && !isValidEmail(formData.clientEmail)) {
+      newErrors.clientEmail = true;
+      toast.error("L'adresse email n'est pas valide");
+      setErrors(newErrors);
+      return false;
+    }
+
+    // Validation téléphone
+    if (formData.clientTelephone && !isValidPhone(formData.clientTelephone)) {
+      newErrors.clientTelephone = true;
+      toast.error("Le numéro de téléphone n'est pas valide");
+      setErrors(newErrors);
+      return false;
+    }
+
+    if (missingFields.length > 0) {
+      setErrors(newErrors);
+      toast.error(`Veuillez remplir les champs obligatoires: ${missingFields.join(', ')}`);
+      return false;
+    }
+
+    setErrors({});
     return true;
+  };
+
+  const isValidEmail = (email: string): boolean => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
+  const isValidPhone = (phone: string): boolean => {
+    const phoneRegex = /^[0-9\s\-\+\(\)]{8,}$/;
+    return phoneRegex.test(phone.replace(/\s/g, ''));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -173,6 +229,7 @@ function Checkout() {
     if (!validateForm()) return;
     
     setLoading(true);
+    const toastId = toast.loading('Création de votre commande en cours...');
     
     try {
       const lignesCommandes = cartItems.map(item => ({
@@ -184,29 +241,42 @@ function Checkout() {
 
       const montantOriginal = lignesCommandes.reduce((sum, ligne) => sum + ligne.sousTotal, 0);
 
-      const commandeData = {
+      const commandeData: CommandeFormData & { codePromo?: string; fraisLivraison?: number; } = {
         ...formData,
         idClient: isAuthenticated ? user?.idUtilisateur : null,
         montantTotal: montantOriginal,
         statut: 'en attente' as const,
         lignesCommandes,
-        codePromo: codePromo?.code || null,
+        codePromo: codePromo?.code,
         fraisLivraison: livraison
       };
 
       const nouvelleCommande = await CommandesService.createCommande(commandeData);
       
-      router.push(`/site/confirmCmd/${nouvelleCommande.idCommande}`);
+      // Succès
+      toast.success('Commande créée avec succès!', {
+        id: toastId,
+        duration: 4000
+      });
+
+      // Accès correct à l'ID de la commande
+      const commandeId = nouvelleCommande.data.idCommande;
+      router.push(`/site/confirmCmd/${commandeId}`);
       
     } catch (error: any) {
       console.error('Erreur complète:', error);
+      
       let errorMessage = 'Une erreur est survenue lors de la création de votre commande.';
       if (error?.response?.data?.message) {
         errorMessage = error.response.data.message;
       } else if (error?.message) {
         errorMessage = error.message;
       }
-      alert(`Erreur: ${errorMessage}`);
+
+      toast.error(errorMessage, {
+        id: toastId,
+        duration: 6000
+      });
     } finally {
       setLoading(false);
     }
@@ -214,12 +284,22 @@ function Checkout() {
 
   const handleCodeApplique = (promotionData: { code: string; promotion: any }) => {
     setCodePromo(promotionData);
+    toast.success(`Code promo "${promotionData.code}" appliqué avec succès!`);
   };
 
   const handleCodeSupprime = () => {
     setCodePromo(null);
+    toast.success('Code promo supprimé');
   };
 
+  const getInputClassName = (fieldName: string) => {
+    const baseClass = "w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 text-sm transition-colors";
+    const errorClass = errors[fieldName] 
+      ? "border-red-500 focus:ring-red-500 bg-red-50" 
+      : "border-gray-200 focus:ring-purple-500";
+    
+    return `${baseClass} ${errorClass}`;
+  };
 
   if (!mounted || loading) {
     return (
@@ -241,16 +321,16 @@ function Checkout() {
     <div className="min-h-screen bg-gray-50">
       <div className="container mx-auto px-4 py-8 max-w-7xl">
         {/* Header */}
-       <div className="flex items-center justify-between mb-8 w-full">
-  <div className="flex items-center gap-2 sm:gap-3">
-    <div className="w-8 h-8 sm:w-10 sm:h-10 bg-purple-100 rounded-full flex items-center justify-center flex-shrink-0">
-      <ShoppingCartIcon className="w-5 h-5 sm:w-6 sm:h-6 text-purple-600" />
-    </div>
-    <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 truncate">
-      Finaliser la Commande
-    </h1>
-  </div>
-</div>
+        <div className="flex items-center justify-between mb-8 w-full">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-purple-100 rounded-full flex items-center justify-center flex-shrink-0">
+              <ShoppingCartIcon className="w-5 h-5 sm:w-6 sm:h-6 text-purple-600" />
+            </div>
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 truncate">
+              Finaliser la Commande
+            </h1>
+          </div>
+        </div>
 
         {/* Grid responsive */}
         <div className="grid grid-cols-1 xl:grid-cols-4 gap-8">
@@ -259,6 +339,7 @@ function Checkout() {
             <div className="bg-white rounded-2xl shadow-sm border overflow-hidden">
               <div className="p-6 bg-gray-50 border-b">
                 <h2 className="text-xl font-bold text-gray-900">Informations personnelles</h2>
+                <p className="text-sm text-gray-600 mt-1">Les champs marqués d'un * sont obligatoires</p>
               </div>
               <div className="p-6">
                 <form onSubmit={handleSubmit} className="space-y-6">
@@ -266,45 +347,57 @@ function Checkout() {
                   <div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Prénom *</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Prénom *
+                          {errors.clientPrenom && <span className="text-red-500 ml-1">- Requis</span>}
+                        </label>
                         <input
                           type="text"
                           name="clientPrenom"
                           value={formData.clientPrenom}
                           onChange={handleInputChange}
-                          className="w-full border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm"
+                          className={getInputClassName('clientPrenom')}
                           required
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Nom *</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Nom *
+                          {errors.clientNom && <span className="text-red-500 ml-1">- Requis</span>}
+                        </label>
                         <input
                           type="text"
                           name="clientNom"
                           value={formData.clientNom}
                           onChange={handleInputChange}
-                          className="w-full border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm"
+                          className={getInputClassName('clientNom')}
                           required
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Email
+                          {errors.clientEmail && <span className="text-red-500 ml-1">- Format invalide</span>}
+                        </label>
                         <input
                           type="email"
                           name="clientEmail"
                           value={formData.clientEmail}
                           onChange={handleInputChange}
-                          className="w-full border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm"
+                          className={getInputClassName('clientEmail')}
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Téléphone *</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Téléphone *
+                          {errors.clientTelephone && <span className="text-red-500 ml-1">- Requis</span>}
+                        </label>
                         <input
                           type="tel"
                           name="clientTelephone"
                           value={formData.clientTelephone}
                           onChange={handleInputChange}
-                          className="w-full border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm"
+                          className={getInputClassName('clientTelephone')}
                           required
                         />
                       </div>
@@ -316,37 +409,46 @@ function Checkout() {
                     <h3 className="text-lg font-semibold mb-3 text-gray-900">Adresse de livraison</h3>
                     <div className="space-y-4">
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Adresse complète *</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Adresse complète *
+                          {errors.clientAdresseRue && <span className="text-red-500 ml-1">- Requis</span>}
+                        </label>
                         <input
                           type="text"
                           name="clientAdresseRue"
                           value={formData.clientAdresseRue}
                           onChange={handleInputChange}
-                          className="w-full border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm"
+                          className={getInputClassName('clientAdresseRue')}
                           placeholder="Rue, numéro, appartement..."
                           required
                         />
                       </div>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">Ville *</label>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Ville *
+                            {errors.clientAdresseVille && <span className="text-red-500 ml-1">- Requis</span>}
+                          </label>
                           <input
                             type="text"
                             name="clientAdresseVille"
                             value={formData.clientAdresseVille}
                             onChange={handleInputChange}
-                            className="w-full border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm"
+                            className={getInputClassName('clientAdresseVille')}
                             required
                           />
                         </div>
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">Code postal *</label>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Code postal *
+                            {errors.clientAdresseCodePostal && <span className="text-red-500 ml-1">- Requis</span>}
+                          </label>
                           <input
                             type="text"
                             name="clientAdresseCodePostal"
                             value={formData.clientAdresseCodePostal}
                             onChange={handleInputChange}
-                            className="w-full border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm"
+                            className={getInputClassName('clientAdresseCodePostal')}
                             required
                           />
                         </div>
@@ -529,39 +631,7 @@ function Checkout() {
                 </div>
               </div>
 
-              {/* Section des garanties */}
-              <div className="bg-white rounded-2xl shadow-sm border p-6">
-                <h4 className="font-bold text-gray-900 mb-4">Nos garanties</h4>
-                <div className="space-y-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
-                      <ShieldCheckIcon className="w-5 h-5 text-green-600" />
-                    </div>
-                    <div>
-                      <div className="font-medium text-gray-900">Paiement sécurisé</div>
-                      <div className="text-sm text-gray-600">SSL et cryptage des données</div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
-                      <TruckIcon className="w-5 h-5 text-blue-600" />
-                    </div>
-                    <div>
-                      <div className="font-medium text-gray-900">Livraison rapide</div>
-                      <div className="text-sm text-gray-600">24-48h en Tunisie</div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center flex-shrink-0">
-                      <ArrowUturnLeftIcon className="w-5 h-5 text-orange-600" />
-                    </div>
-                    <div>
-                      <div className="font-medium text-gray-900">Retour gratuit</div>
-                      <div className="text-sm text-gray-600">14 jours satisfait ou remboursé</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
+             
             </div>
           </div>
         </div>

@@ -54,7 +54,7 @@ const CommandeItem = ({ ligne, index }: { ligne: any, index: number }) => {
     : '/images/placeholder.jpg';
 
   return (
-    <div className={`flex flex-col sm:flex-row items-start justify-between p-4 gap-4 bg-white rounded-lg border hover:shadow-md transition-shadow ${
+    <div className={`flex flex-col sm:flex-row items-start justify-between p-4 gap-4 bg-white rounded-lg  hover:shadow-md transition-shadow ${
       index !== 0 ? 'border-t-0 rounded-t-none' : ''
     }`}>
       <div className="flex items-start gap-4 flex-1">
@@ -73,11 +73,12 @@ const CommandeItem = ({ ligne, index }: { ligne: any, index: number }) => {
           </h3>
           
           <CommandeItemPromotion
-            idProduit={ligne.idProduit}
-            prixOriginal={ligne.produit?.prix || ligne.prixUnitaire}
-            quantite={ligne.quantite}
-            prixFacture={ligne.prixUnitaire}
-          />
+  idProduit={ligne.idProduit}
+  prixOriginal={ligne.produit?.prix || ligne.prixUnitaire}
+  quantite={ligne.quantite}
+  prixFacture={ligne.prixUnitaire}
+  ligne={ligne} // This will use the stored promotional data when available
+/>
           
         </div>
       </div>
@@ -330,6 +331,7 @@ function CommandeConfirmation({ params }: Props) {
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+             {commande.statut !== 'annulée' && (
             <div className="space-y-3 sm:space-y-4">
               <div className="flex items-start gap-3 p-3 bg-blue-50 rounded-lg">
                 <EnvelopeIcon className="w-5 sm:w-6 h-5 sm:h-6 text-blue-600 flex-shrink-0 mt-1" />
@@ -341,18 +343,20 @@ function CommandeConfirmation({ params }: Props) {
                 </div>
               </div>
             </div>
-
+          )}
+ {commande.statut !== 'annulée' && (
             <div className="space-y-3 sm:space-y-4">
               <div className="flex items-start gap-3 p-3 bg-purple-50 rounded-lg">
                 <CheckCircleIcon className="w-5 sm:w-6 h-5 sm:h-6 text-purple-600 flex-shrink-0 mt-1" />
                 <div>
                   <h4 className="font-semibold text-purple-800 text-sm sm:text-base">Commande enregistrée</h4>
                   <p className="text-xs sm:text-sm text-purple-700">
-                    Votre commande à <strong>Toy Universe</strong> a bien été enregistrée et sera traitée dans les plus brefs délais.
+                    Votre commande a bien été enregistrée et sera traitée dans les plus brefs délais.
                   </p>
                 </div>
               </div>
             </div>
+)}
           </div>
 
           {commande.statut !== 'annulée' && (
@@ -404,7 +408,7 @@ function CommandeConfirmation({ params }: Props) {
         <div className="bg-white rounded-2xl shadow-sm border overflow-hidden">
           <div className="p-6 bg-gray-50 border-b">
             <h2 className="text-lg sm:text-xl font-bold text-gray-900">
-              Produits Commandés ({totalArticles} article{totalArticles > 1 ? "s" : ""})
+              Produits Commandés 
             </h2>
           </div>
           

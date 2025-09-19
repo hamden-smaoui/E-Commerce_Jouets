@@ -1,40 +1,65 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import {
   Menu,
-  ChevronDown,
-  UserCircle,
-  Settings,
-  LogOut,
   Home,
-  CalendarCheck,
-  BookOpen,
-  Tags,
-  CalendarDays
 } from 'lucide-react';
+import {
+  UserIcon,
+  ArrowRightOnRectangleIcon,
+  Cog6ToothIcon,
+  ShoppingCartIcon,
+  UserCircleIcon,
+} from "@heroicons/react/24/solid";
+import { useAuth } from '../../hooks/useAuth';
+import { useStoreInfo } from '@/hooks/useStoreInfo';
+
+interface User {
+  prenom?: string;
+  nom?: string;
+  email?: string;
+  role?: string;
+}
 
 const NavBarCentre: React.FC = () => {
   const router = useRouter();
   const { url } = useParams();
+  const { user, logout, isAuthenticated } = useAuth();
+  const { storeInfo } = useStoreInfo();
+  const [isDropdownOpen, setIsDropdownOpen] = useState<boolean>(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const userInfo = {
-    name: 'John',
-    prenom: 'Doe',
-    role: 'Admin', 
-    image_profile: '/images/image-profile.svg',
-  };
+  // Gestion du click en dehors du dropdown
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
 
-  const centreName = 'Mon Centre Statique';
-
-  const navLinks = [
-    { label: 'Accueil', path: `/${url}/acceuil`, icon: <Home size={18} /> },
-   
-  ];
+  
 
   const pathname = typeof window !== 'undefined' ? window.location.pathname : '';
+
+  const toggleDropdown = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsDropdownOpen((prev) => !prev);
+  };
+
+  const handleLogout = () => {
+    logout();
+    setIsDropdownOpen(false);
+    router.push(`/signIn`);
+  };
 
   return (
     <div className="navbar bg-base-100 shadow-sm px-4 md:px-6">
@@ -43,92 +68,129 @@ const NavBarCentre: React.FC = () => {
           <Menu size={24} />
         </label>
        
-          <div className="navbar-start">
-        <a href="/site" className="flex items-center">
-          <img src="/images/logo.png" alt="Toy Universe Logo" className="h-10 w-auto" />
-        </a>
-      </div>
-      </div>
-      <div className="navbar-center hidden lg:flex">
-        <ul className="menu menu-horizontal px-1 gap-1">
-          {navLinks.map((link) => (
-            <li key={link.path}>
-              <Link
-                href={link.path}
-                className={`btn btn-ghost btn-sm ${pathname === link.path ? 'btn-active' : ''}`}
-              >
-                <span className="mr-1">{link.icon}</span>
-                {link.label}
-              </Link>
-            </li>
-          ))}
-        </ul>
+        <div className="navbar-start">
+          <Link href="/site" className="flex items-center">
+            {storeInfo?.logo1 ? (
+              <div className="relative h-10 w-auto">
+                <Image 
+                  src={`http://localhost:3001${storeInfo.logo1}`}
+                  alt={storeInfo.nom || "Logo"}
+                  height={40}
+                  width={120}
+                  className="h-10 w-auto object-contain"
+                  priority
+                />
+              </div>
+            ) : (
+              <img src="/images/logo.png" alt="Logo" className="h-10 w-auto" />
+            )}
+          </Link>
+        </div>
       </div>
 
+     
+    
+
       <div className="navbar-end flex items-center gap-2 md:gap-4">
-        <div className="dropdown dropdown-end">
-          <div
+        <div className="relative" ref={dropdownRef}>
+          <button
             tabIndex={0}
-            role="button"
-            className="btn btn-ghost online placeholder flex items-center gap-2 pr-2 w-full lg:w-auto"
+            onClick={toggleDropdown}
+            className="btn btn-ghost"
+            title={isAuthenticated ? "Mon compte" : "Se connecter"}
           >
-            <div className="text-sm hidden lg:block text-left leading-tight truncate">
-              <span className="font-semibold block truncate">{`${userInfo.name} ${userInfo.prenom}`}</span>
-              <span className="block text-xs text-gray-500 truncate">{userInfo.role}</span>
+            <div className="flex items-center space-x-1">
+              <UserIcon className="h-5 w-5 sm:h-6 sm:w-6 text-gray-600" />
+              {isAuthenticated && user && (
+                <span className="text-sm font-medium text-gray-700 hidden xl:block">
+                  {user?.prenom} 
+                </span>
+              )}
             </div>
-            <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0">
-              <img
-                alt="Photo de profil"
-                src={userInfo.image_profile}
-                onError={(e) => { e.currentTarget.src = '/default-profile.png'; }}
-                className="w-full h-full object-cover"
-              />
-            </div>
-          </div>
-          <ul
-            tabIndex={0}
-            className="menu menu-sm dropdown-content bg-base-100 rounded-box z-[100] mt-3 w-60 p-2 shadow-lg border border-base-300"
-          >
-            <div className="lg:hidden">
-              <li className="p-2">
-                <span className="font-bold text-base block truncate">{`${userInfo.name} ${userInfo.prenom}`}</span>
-                <span className="text-xs text-gray-500 block truncate">{userInfo.role}</span>
-              </li>
-              <div className="divider my-1"></div>
-              {navLinks.map((link) => (
-                <li key={`dropdown-${link.path}`}>
-                  <Link href={link.path} className={`flex items-center gap-2 ${pathname === link.path ? 'active' : ''}`}>
-                    <span className="mr-1">{link.icon}</span>
-                    {link.label}
-                  </Link>
-                </li>
-              ))}
-              <div className="divider my-1"></div>
-            </div>
-            <li>
-              <Link href={`/${url}/profile`} className="flex items-center gap-2">
-                <UserCircle size={18} /> Profile
-              </Link>
-            </li>
-            {userInfo.role !== 'Etudiant' && (
-              <li>
-                <Link href={`/${url}/dashboard`} className="flex items-center gap-2">
-                  <Settings size={18} /> Paramétrages
-                </Link>
-              </li>
-            )}
-            <div className="divider my-1"></div>
-            <li>
-              <a
-                onClick={() => {
-                  router.push(`/${url}/loginCentre`);
-                }}
-                className="flex items-center gap-2 text-error hover:bg-error hover:text-error-content cursor-pointer"
-              >
-                <LogOut size={18} /> Déconnexion
-              </a>
-            </li>
-          </ul>
+          </button>
+
+          {isDropdownOpen && (
+            <ul className="absolute right-0 mt-2 p-2 shadow-xl bg-white rounded-lg w-56 border border-gray-200 z-[1000]">
+              {isAuthenticated && user ? (
+                <>
+                  <li className="px-4 py-2 border-b border-gray-100">
+                    <div className="flex items-center space-x-3">
+                      <div>
+                        <p className="font-semibold text-gray-800">
+                          {user?.prenom} {user?.nom}
+                        </p>
+                        <p className="text-xs text-gray-500">{user?.email}</p>
+                      </div>
+                    </div>
+                  </li>
+                  <li>
+                    <Link 
+                      href={`/site/profile`} 
+                      className="flex items-center py-2 hover:bg-purple-50"
+                      onClick={() => setIsDropdownOpen(false)}
+                    >
+                      <UserCircleIcon className="h-5 w-5 text-gray-500 mr-3" />
+                      Mon profil
+                    </Link>
+                  </li>
+                  <li>
+                    <Link 
+                      href={`/site/commandes`} 
+                      className="flex items-center py-2 hover:bg-purple-50"
+                      onClick={() => setIsDropdownOpen(false)}
+                    >
+                      <ShoppingCartIcon className="h-5 w-5 text-gray-500 mr-3" />
+                      Mes commandes
+                    </Link>
+                  </li>
+                  {user?.role === "admin" && (
+                    <li>
+                      <Link 
+                        href={`/admin/dashboard`} 
+                        className="flex items-center py-2 hover:bg-purple-50"
+                        onClick={() => setIsDropdownOpen(false)}
+                      >
+                        <Cog6ToothIcon className="h-5 w-5 text-gray-500 mr-3" />
+                        Administration
+                      </Link>
+                    </li>
+                  )}
+                  <li className="border-t border-gray-100 mt-2 pt-2">
+                    <button
+                      onClick={handleLogout}
+                      className="flex items-center py-2 w-full text-red-600 hover:bg-red-50"
+                    >
+                      <ArrowRightOnRectangleIcon className="h-5 w-5 mr-3" />
+                      Se déconnecter
+                    </button>
+                  </li>
+                </>
+              ) : (
+                <>
+                  <li>
+                    <Link 
+                      href={`/signIn`} 
+                      className="flex items-center py-2 hover:bg-purple-50"
+                      onClick={() => setIsDropdownOpen(false)}
+                    >
+                      <ArrowRightOnRectangleIcon className="h-5 w-5 text-gray-500 mr-3" />
+                      Se connecter
+                    </Link>
+                  </li>
+                  <li>
+                    <Link 
+                      href={`/signUp`} 
+                      className="flex items-center py-2 hover:bg-purple-50"
+                      onClick={() => setIsDropdownOpen(false)}
+                    >
+                      <UserIcon className="h-5 w-5 text-gray-500 mr-3" />
+                      S'inscrire
+                    </Link>
+                  </li>
+                </>
+              )}
+            </ul>
+          )}
         </div>
       </div>
     </div>

@@ -1,33 +1,42 @@
 // components/ui/CommandeItemPromotion.tsx
 "use client";
 import React from 'react';
-import { usePromotions } from '@/hooks/usePromotion';
 
 interface CommandeItemPromotionProps {
   idProduit: number;
-  prixOriginal: number;
+  prixOriginal: number; // Prix original du produit
   quantite: number;
   prixFacture: number; // Prix facturé dans la commande
+  // Nouvelles props optionnelles pour supporter la nouvelle structure
+  ligne?: {
+    prixUnitaireOriginal?: number;
+    prixUnitaireFinal?: number;
+    prixUnitaire: number;
+    reductionUnitaire?: number;
+  };
 }
 
 const CommandeItemPromotion: React.FC<CommandeItemPromotionProps> = ({ 
   idProduit, 
   prixOriginal, 
   quantite,
-  prixFacture 
+  prixFacture,
+  ligne 
 }) => {
-  const { calculatePriceWithPromotion, hasPromotions, promotions } = usePromotions(idProduit);
-  const { prixFinal, reduction, pourcentageReduction } = calculatePriceWithPromotion(prixOriginal);
-
-  // Vérifier s'il y a une différence entre le prix original et le prix facturé
-  const hasPromotion = prixFacture < prixOriginal || hasPromotions;
-  const actualReduction = prixOriginal - prixFacture;
-  const actualPercentage = actualReduction > 0 ? (actualReduction / prixOriginal) * 100 : 0;
+  // Si on a les nouvelles données de la base, les utiliser
+  // Sinon, utiliser les anciennes props pour la compatibilité
+  const prixUnitaireOriginal = ligne?.prixUnitaireOriginal || prixOriginal;
+  const prixUnitaireFinal = ligne?.prixUnitaireFinal || prixFacture;
+  const reductionUnitaire = ligne?.reductionUnitaire || (prixUnitaireOriginal - prixUnitaireFinal);
+  
+  // Vérifier s'il y a une promotion
+  const hasPromotion = reductionUnitaire > 0 && prixUnitaireFinal < prixUnitaireOriginal;
+  const pourcentageReduction = hasPromotion ? ((reductionUnitaire / prixUnitaireOriginal) * 100) : 0;
 
   if (!hasPromotion) {
     return (
       <div className="text-orange-500 text-base sm:text-lg font-bold mt-1">
-        {prixFacture.toFixed(2)} <span className="text-xs">TND</span>
+        {prixUnitaireFinal.toFixed(2)} <span className="text-xs">TND</span>
       </div>
     );
   }
@@ -36,25 +45,21 @@ const CommandeItemPromotion: React.FC<CommandeItemPromotionProps> = ({
     <div className="mt-1 space-y-1">
       <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
         <span className="text-base sm:text-lg font-bold text-red-600">
-          {prixFacture.toFixed(2)} <span className="text-xs">TND</span>
+          {prixUnitaireFinal.toFixed(2)} <span className="text-xs">TND</span>
         </span>
         <span className="text-xs sm:text-sm text-gray-500 line-through">
-          {prixOriginal.toFixed(2)} <span className="text-xs">TND</span>
+          {prixUnitaireOriginal.toFixed(2)} <span className="text-xs">TND</span>
         </span>
-        {actualPercentage > 0 && (
+        {pourcentageReduction > 0 && (
           <span className="bg-pink-200 text-pink-800 px-1 sm:px-2 py-0.5 text-xs rounded inline-block w-fit">
-            -{actualPercentage.toFixed(0)}%
+            -{pourcentageReduction.toFixed(0)}%
           </span>
         )}
       </div>
       
-      {actualReduction > 0 && (
-        <div className="text-xs text-green-600 font-medium">
-          Économie: {actualReduction.toFixed(2)} <span className="text-xs">TND</span> par unité
-        </div>
-      )}
-      
-      
+      <div className="text-xs text-green-600 font-medium">
+        Économie: {reductionUnitaire.toFixed(2)} <span className="text-xs">TND</span> par unité
+      </div>
     </div>
   );
 };

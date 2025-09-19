@@ -416,30 +416,8 @@ const Reclamations: React.FC = () => {
     <div className="p-6 w-full h-screen flex flex-col relative">
       <Notification notification={notification} onClose={() => setNotification(null)} />
       
-      {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        {stats.map((stat, index) => (
-          <div key={index} className="stat bg-base-100 shadow rounded-lg">
-            <div className={`stat-title text-xs ${getStatusBadge(stat.statut).replace('badge-', 'text-')}`}>
-              {stat.statut.replace('_', ' ').charAt(0).toUpperCase() + stat.statut.replace('_', ' ').slice(1)}
-            </div>
-            <div className="stat-value text-lg">{stat.count}</div>
-            <div className="stat-desc text-xs">réclamation(s)</div>
-          </div>
-        ))}
-      </div>
-
       {/* Filters */}
       <div className="flex flex-wrap gap-4 mb-4">
-        <div className="flex-1 min-w-64">
-          <input
-            type="text"
-            placeholder="Rechercher par sujet, message, client, n° réclamation..."
-            className="input input-bordered w-full"
-            value={searchTerm}
-            onChange={handleSearch}
-          />
-        </div>
         <div className="w-48">
           <Select
             options={statutOptions}

@@ -1,14 +1,18 @@
 // services/commandes-service.ts
 const API_BASE_URL = 'http://localhost:3001/api/jouets';
 
-// Interfaces
+// Interfaces mises à jour
 export interface LigneCommande {
   idLigneCommande?: number;
   idCommande?: number;
   idProduit: number;
   quantite: number;
-  prixUnitaire: number;
+  prixUnitaire: number; // Prix facturé (compatibilité)
+  prixUnitaireOriginal?: number; // Prix original avant promotion
+  prixUnitaireFinal?: number; // Prix final après promotion
   sousTotal: number;
+  reductionUnitaire?: number; // Montant de réduction par unité
+  idPromotionAppliquee?: number; // ID de la promotion appliquée
   produit?: {
     idProduit: number;
     nom: string;
@@ -17,6 +21,12 @@ export interface LigneCommande {
       url: string;
       rang: number;
     }>;
+  };
+  promotionAppliquee?: {
+    idPromotion: number;
+    nom: string;
+    description: string;
+    typePromotion: string;
   };
 }
 
@@ -34,6 +44,11 @@ export interface Commande {
   dateCommande: string;
   statut: 'en attente' | 'en traitement' | 'expédiée' | 'livrée' | 'annulée';
   montantTotal: number;
+  montantOriginal?: number; // Montant original avant promotions
+  montantReduction?: number; // Montant total des réductions
+  fraisLivraison?: number; // Frais de livraison
+  codePromoGlobal?: string; // Code promo utilisé
+  idPromotionUtilisee?: number; // ID de la promotion globale utilisée
   notesLivraison: string | null;
   createdAt: string;
   updatedAt: string;
@@ -52,6 +67,10 @@ export interface CommandeFormData {
   clientAdressePays: string;
   statut: 'en attente' | 'en traitement' | 'expédiée' | 'livrée' | 'annulée';
   montantTotal: number;
+  montantOriginal?: number;
+  montantReduction?: number;
+  fraisLivraison?: number;
+  codePromoGlobal?: string;
   notesLivraison?: string | null;
   lignesCommandes?: LigneCommande[];
 }
@@ -68,6 +87,21 @@ export interface CommandeResponse extends Commande {
     idFacture: number;
     statut: string;
     dateEmission?: string;
+  };
+  promotionGlobale?: {
+    idPromotion: number;
+    nom: string;
+    description: string;
+    typePromotion: string;
+  };
+  calculDetails?: {
+    montantOriginal: number;
+    montantFinal: number;
+    fraisLivraison: number;
+    montantTotal: number;
+    economiesTotal: number;
+    economiesProduits: number;
+    economiesCodePromo: number;
   };
 }
 
@@ -87,9 +121,68 @@ export interface CommandeStats {
   total: number;
 }
 
+// Interface pour les réponses de création avec détails promotions
+export interface CommandeCreateResponse {
+  message: string;
+  data: CommandeResponse;
+  calculDetails: {
+    montantOriginal: number;
+    montantProduits: number;
+    reductionProduits: number;
+    reductionCodePromo: number;
+    montantFinal: number;
+    fraisLivraison: number;
+    montantTotal: number;
+    economiesTotal: number;
+  };
+  promotions: {
+    promotionsProduits: Array<{
+      idProduit: number;
+      reduction: number;
+    }>;
+    promotionGlobale: {
+      nom: string;
+      reduction: number;
+      codePromo: string;
+    } | null;
+  };
+}
+
+// Interface pour le calcul du panier
+export interface CalculPanierResponse {
+  message: string;
+  data: {
+    montantOriginal: number;
+    fraisLivraison: number;
+    montantReduction: number;
+    montantFinal: number;
+    promotion: {
+      nom: string;
+      description: string;
+      typePromotion: string;
+    } | null;
+    codePromo: string | null;
+    error: string | null;
+  };
+}
+
+// Interface pour la validation de code promo
+export interface ValidationCodePromoResponse {
+  message: string;
+  valide: boolean;
+  reduction?: number;
+  promotion?: {
+    nom: string;
+    description: string;
+  };
+}
+
 class CommandesService {
-  // Create a new commande
-  async createCommande(commandeData: CommandeFormData): Promise<CommandeResponse> {
+  // Create a new commande with promotion details
+  async createCommande(commandeData: CommandeFormData & { 
+    codePromo?: string; 
+    fraisLivraison?: number; 
+  }): Promise<CommandeCreateResponse> {
     try {
       const response = await fetch(`${API_BASE_URL}/commandes`, {
         method: 'POST',
@@ -105,7 +198,7 @@ class CommandesService {
       }
 
       const data = await response.json();
-      return data.data;
+      return data;
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Unknown error occurred';
       throw new Error(`Error creating commande: ${message}`);
@@ -148,7 +241,7 @@ class CommandesService {
     }
   }
 
-  // Get a commande by ID
+  // Get a commande by ID with full promotion details
   async getCommandeById(id: number): Promise<CommandeResponse> {
     try {
       const response = await fetch(`${API_BASE_URL}/commandes/${id}`, {
@@ -260,64 +353,97 @@ class CommandesService {
       throw new Error(`Error fetching commande stats: ${message}`);
     }
   }
-  // Ajoutez ces méthodes à votre fichier commandes-service.ts
 
-// Calculate cart with promotions
-async calculerPanier(panierData: {
-  lignesCommandes: LigneCommande[];
-  codePromo?: string;
-  idClient?: number;
-  fraisLivraison?: number;
-}): Promise<any> {
-  try {
-    const response = await fetch(`${API_BASE_URL}/commandes/calculer-panier`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(panierData),
-    });
+  // Calculate cart with promotions
+  async calculerPanier(panierData: {
+    lignesCommandes: LigneCommande[];
+    codePromo?: string;
+    idClient?: number;
+    fraisLivraison?: number;
+  }): Promise<CalculPanierResponse> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/commandes/calculer-panier`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(panierData),
+      });
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.message || 'Failed to calculate cart');
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to calculate cart');
+      }
+
+      const data = await response.json();
+      return data;
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Unknown error occurred';
+      throw new Error(`Error calculating cart: ${message}`);
     }
-
-    const data = await response.json();
-    return data;
-  } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : 'Unknown error occurred';
-    throw new Error(`Error calculating cart: ${message}`);
   }
-}
 
-// Validate promo code
-async validerCodePromo(codeData: {
-  codePromo: string;
-  lignesCommandes: LigneCommande[];
-  idClient?: number;
-}): Promise<any> {
-  try {
-    const response = await fetch(`${API_BASE_URL}/commandes/valider-code-promo`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(codeData),
-    });
+  // Validate promo code
+  async validerCodePromo(codeData: {
+    codePromo: string;
+    lignesCommandes: LigneCommande[];
+    idClient?: number;
+  }): Promise<ValidationCodePromoResponse> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/commandes/valider-code-promo`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(codeData),
+      });
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.message || 'Failed to validate promo code');
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to validate promo code');
+      }
+
+      const data = await response.json();
+      return data;
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Unknown error occurred';
+      throw new Error(`Error validating promo code: ${message}`);
     }
-
-    const data = await response.json();
-    return data;
-  } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : 'Unknown error occurred';
-    throw new Error(`Error validating promo code: ${message}`);
   }
-}
+
+  // Helper method to check if a commande has promotions
+  hasPromotions(commande: CommandeResponse): boolean {
+    const hasProductPromotions = commande.lignesCommandes?.some(ligne => 
+      ligne.reductionUnitaire && ligne.reductionUnitaire > 0
+    ) || false;
+    
+    const hasGlobalPromotion = commande.promotionGlobale || commande.codePromoGlobal;
+    
+    return hasProductPromotions || !!hasGlobalPromotion;
+  }
+
+  // Helper method to calculate total savings
+  calculateTotalSavings(commande: CommandeResponse): number {
+    if (!commande.montantOriginal || !commande.montantTotal) return 0;
+    
+    const originalWithShipping = commande.montantOriginal + (commande.fraisLivraison || 0);
+    return originalWithShipping - commande.montantTotal;
+  }
+
+  // Helper method to calculate product savings
+  calculateProductSavings(commande: CommandeResponse): number {
+    return commande.lignesCommandes?.reduce((total, ligne) => 
+      total + ((ligne.reductionUnitaire || 0) * ligne.quantite), 0
+    ) || 0;
+  }
+
+  // Helper method to calculate promo code savings
+  calculatePromoCodeSavings(commande: CommandeResponse): number {
+    const totalSavings = this.calculateTotalSavings(commande);
+    const productSavings = this.calculateProductSavings(commande);
+    return totalSavings - productSavings;
+  }
+  
 }
 
 export default new CommandesService();

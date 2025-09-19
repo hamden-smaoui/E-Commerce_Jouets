@@ -3,7 +3,7 @@
 import React from 'react';
 import { useParams, usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { Home, Users, Package, Truck, ShoppingCart, MessageSquare, Tag, Building, Folder, Shield, Percent, Ticket } from 'lucide-react';
+import { Home, Users, Package, Truck, ShoppingCart, MessageSquare, Tag, Building, Folder, Shield, Percent, Ticket,Receipt } from 'lucide-react';
 
 interface SideBarProps {
   children: React.ReactNode;
@@ -19,7 +19,7 @@ const SideBar: React.FC<SideBarProps> = ({ children }) => {
       <div className="drawer-content items-center">
         {children}
       </div>
-      <div className="drawer-side">
+      <div className="drawer-side z-40">
         <label htmlFor="my-drawer-2" aria-label="close sidebar" className="drawer-overlay"></label>
         <ul className="menu bg-base-200 text-base-content min-h-full w-80 p-4">
           <li>
@@ -176,6 +176,19 @@ const SideBar: React.FC<SideBarProps> = ({ children }) => {
             >
               <Ticket size={20} />
               Codes Promo
+            </Link>
+          </li>
+          <li>
+            <Link
+              href={`/admin/factures`}
+              className={`flex items-center gap-3 p-3 rounded-lg transition ${
+                pathname === '/admin/factures'
+                  ? 'text-blue-600 font-bold border-blue-600 border-b-2'
+                  : 'hover:bg-gray-800 hover:text-white'
+              }`}
+            >
+              <Receipt size={20} />
+              Factures
             </Link>
           </li>
         </ul>

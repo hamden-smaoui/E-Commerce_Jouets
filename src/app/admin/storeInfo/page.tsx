@@ -36,6 +36,8 @@ const StoreInfoPage: NextPage = () => {
     heroImages: [],
     imagesToDelete: [],
     imageRangs: {},
+    tauxTVA:19,
+    entrepriseSiret: '',
   });
   const [newImages, setNewImages] = useState<File[]>([]);
   const [imagesToDelete, setImagesToDelete] = useState<number[]>([]);
@@ -75,6 +77,8 @@ const StoreInfoPage: NextPage = () => {
         heroImages: [],
         imagesToDelete: [],
         imageRangs: {},
+        tauxTVA: data.tauxTVA || 19,
+        entrepriseSiret: data.entrepriseSiret || '',
       });
     } catch (err) {
       setNotification({
@@ -238,6 +242,7 @@ if (isLoading && !storeInfo) {
                 </h2>
                 
                 <div className="space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="form-control">
                     <label className="label">
                       <span className="label-text font-semibold">Nom du magasin</span>
@@ -274,7 +279,7 @@ if (isLoading && !storeInfo) {
                         {storeInfo?.adresse || 'Non défini'}
                       </div>
                     )}
-                  </div>
+                  </div></div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="form-control">
@@ -335,7 +340,46 @@ if (isLoading && !storeInfo) {
                     )}
                   </div>
                 </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="form-control">
+                    <label className="label">
+                      <span className="label-text font-semibold">Siret</span>
+                    </label>
+                    {isEditing ? (
+                      <input
+                        type="text"
+                        className="input input-bordered w-full"
+                        value={formData.entrepriseSiret}
+                        onChange={(e) => handleInputChange('entrepriseSiret', e.target.value)}
+                        placeholder="siret de votre magasin"
+                      />
+                    ) : (
+                      <div className="p-3 bg-base-200 rounded-lg">
+                        {storeInfo?.entrepriseSiret || 'Non défini'}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="form-control">
+                    <label className="label">
+                      <span className="label-text font-semibold">Taux TVA</span>
+                    </label>
+                    {isEditing ? (
+                      <input
+                         type="text"
+                        className="input input-bordered w-full"
+                        value={formData.tauxTVA}
+                        onChange={(e) => handleInputChange('tauxTVA', e.target.value)}
+                        placeholder="taux TVA  du magasin"
+                      />
+                    ) : (
+                      <div className="p-3 bg-base-200 rounded-lg">
+                        {storeInfo?.tauxTVA || 'Non défini'}
+                      </div>
+                    )}
+                  </div></div>
               </div>
+              
             </div>
 
             {/* Contact Information */}
