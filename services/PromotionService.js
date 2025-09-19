@@ -673,6 +673,220 @@ static async enregistrerUtilisation(idPromotion, idCommande, idUtilisateur, mont
         }
     }
 
+static async calculerPrixProduit(idProduit, prixOriginal, quantite = 1, idUtilisateur = null, transaction = null) {
+    try {
+        const maintenant = new Date();
+
+        // Récupérer le produit avec ses attributs
+        const produit = await Produit.findByPk(idProduit, {
+            include: [
+                { model: Categorie, as: 'categorie' },
+                { model: Marque, as: 'marque' },
+                { model: Type, as: 'type' }
+            ],
+            transaction
+        });
+
+        if (!produit) {
+            throw new Error('Produit non trouvé');
+        }
+
+        // Récupérer toutes les promotions applicables
+        const promotions = await Promotion.findAll({
+            where: {
+                actif: true,
+                dateDebut: { [Op.lte]: maintenant },
+                dateFin: { [Op.gte]: maintenant }
+            },
+            include: [
+                {
+                    model: Produit,
+                    as: 'produits',
+                    where: { idProduit },
+                    required: false,
+                    through: { attributes: [] }
+                },
+                {
+                    model: Categorie,
+                    as: 'categories',
+                    where: { idCategorie: produit.idCategorie },
+                    required: false,
+                    through: { attributes: [] }
+                },
+                {
+                    model: Marque,
+                    as: 'marques',
+                    where: { idMarque: produit.idMarque },
+                    required: false,
+                    through: { attributes: [] }
+                },
+                {
+                    model: Type,
+                    as: 'types',
+                    where: { idType: produit.idType },
+                    required: false,
+                    through: { attributes: [] }
+                }
+            ],
+            transaction
+        });
+
+        // Si aucune promotion, retourner le prix original
+        if (!promotions || promotions.length === 0) {
+            return {
+                prixFinal: prixOriginal,
+                idPromotion: null,
+                reduction: 0,
+                pourcentageReduction: 0
+            };
+        }
+
+        let meilleurReduction = 0;
+        let meilleurePromotion = null;
+
+        // Vérifier l'éligibilité et calculer la meilleure réduction
+        for (const promotion of promotions) {
+            // Vérifier l'éligibilité de l'utilisateur
+            if (idUtilisateur && promotion.utilisationParClient) {
+                const utilisations = await PromotionUtilisation.count({
+                    where: {
+                        idPromotion: promotion.idPromotion,
+                        idUtilisateur
+                    },
+                    transaction
+                });
+                if (utilisations >= promotion.utilisationParClient) {
+                    continue;
+                }
+            }
+
+            // Vérifier si la promotion est épuisée
+            if (promotion.utilisationMax && promotion.utilisationActuelle >= promotion.utilisationMax) {
+                continue;
+            }
+
+            // Vérifier si le produit est éligible
+            let produitEligible = false;
+            if (promotion.typeApplication === 'produit') {
+                produitEligible = promotion.produits.some(p => p.idProduit === idProduit);
+            } else if (promotion.typeApplication === 'categorie') {
+                produitEligible = promotion.categories.some(c => c.idCategorie === produit.idCategorie);
+            } else if (promotion.typeApplication === 'marque') {
+                produitEligible = promotion.marques.some(m => m.idMarque === produit.idMarque);
+            } else if (promotion.typeApplication === 'type') {
+                produitEligible = promotion.types.some(t => t.idType === produit.idType);
+            }
+
+            if (!produitEligible) {
+                continue;
+            }
+
+            // Calculer la réduction
+            let reduction = 0;
+            if (promotion.typePromotion === 'pourcentage') {
+                reduction = prixOriginal * (promotion.valeurPromotion / 100);
+            } else if (promotion.typePromotion === 'montant_fixe') {
+                reduction = Math.min(promotion.valeurPromotion, prixOriginal);
+            }
+
+            if (reduction > meilleurReduction) {
+                meilleurReduction = reduction;
+                meilleurePromotion = promotion;
+            }
+        }
+
+        const prixFinal = Math.max(0, prixOriginal - meilleurReduction);
+        const pourcentageReduction = prixOriginal > 0 ? (meilleurReduction / prixOriginal) * 100 : 0;
+
+        return {
+            prixFinal,
+            idPromotion: meilleurePromotion ? meilleurePromotion.idPromotion : null,
+            reduction: meilleurReduction,
+            pourcentageReduction
+        };
+
+    } catch (error) {
+        console.error('Erreur calcul prix produit:', error);
+        throw error;
+    }
+}
+
+
+static async appliquerCodePromo(commandeData, codePromo, transaction = null) {
+    try {
+        const maintenant = new Date();
+
+        // 1. Vérifier l'existence et la validité du code promo
+        const codePromoObjet = await CodePromo.findOne({
+            where: {
+                code: codePromo,
+                actif: true
+            },
+            include: [{
+                model: Promotion,
+                as: 'promotion',
+                where: {
+                    actif: true,
+                    dateDebut: { [Op.lte]: maintenant },
+                    dateFin: { [Op.gte]: maintenant }
+                }
+            }],
+            transaction
+        });
+
+        if (!codePromoObjet || !codePromoObjet.promotion) {
+            return {
+                montantReduction: 0,
+                promotion: null,
+                montantFinal: commandeData.montantTotal,
+                codePromo: null,
+                error: 'Code promo invalide ou promotion expirée'
+            };
+        }
+
+        const promotion = codePromoObjet.promotion;
+
+        // 2. Vérifier l'éligibilité de la promotion
+        const eligibilite = await this.verifierEligibiliteComplete(
+            promotion,
+            commandeData,
+            commandeData.idClient,
+            codePromoObjet,
+            transaction
+        );
+
+        if (!eligibilite.eligible) {
+            return {
+                montantReduction: 0,
+                promotion: null,
+                montantFinal: commandeData.montantTotal,
+                codePromo: null,
+                error: eligibilite.message
+            };
+        }
+
+        // 3. Calculer la réduction
+        const montantReduction = await this.calculerReductionComplete(promotion, commandeData, transaction);
+
+        // 4. Retourner le résultat
+        return {
+            montantReduction,
+            promotion,
+            codePromo: codePromoObjet,
+            montantFinal: Math.max(0, commandeData.montantTotal - montantReduction)
+        };
+
+    } catch (error) {
+        console.error('Erreur application code promo:', error);
+        return {
+            montantReduction: 0,
+            promotion: null,
+            montantFinal: commandeData.montantTotal,
+            codePromo: null,
+            error: error.message
+        };
+    }
+}
 }
 
 module.exports = PromotionService;

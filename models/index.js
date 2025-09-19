@@ -155,6 +155,28 @@ Commentaire.belongsTo(Utilisateur, { foreignKey: 'idUtilisateur', as: 'utilisate
 Produit.hasMany(Commentaire, { foreignKey: 'idProduit', as: 'commentaires' });
 Commentaire.belongsTo(Produit, { foreignKey: 'idProduit', as: 'produit' });
 
+// Nouvelles associations pour les promotions
+LigneCommande.belongsTo(Promotion, { 
+    foreignKey: 'idPromotionAppliquee', 
+    as: 'promotionAppliquee',
+    constraints: false // Pour permettre NULL
+});
+Promotion.hasMany(LigneCommande, { 
+    foreignKey: 'idPromotionAppliquee', 
+    as: 'lignesCommandesAppliquees' 
+});
+
+// Renommer l'association existante pour plus de clarté
+Commande.belongsTo(Promotion, { 
+    foreignKey: 'idPromotionGlobale', // Ancien: idPromotionUtilisee
+    as: 'promotionGlobale',
+    constraints: false
+});
+Promotion.hasMany(Commande, { 
+    foreignKey: 'idPromotionGlobale',
+    as: 'commandesGlobales' 
+});
+
 module.exports = {
     sequelize,
     Utilisateur,

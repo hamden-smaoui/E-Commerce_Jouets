@@ -12,6 +12,7 @@ const reclamationRoutes  = require('./routes/reclamation');
 const storeInfoRoutes = require('./routes/storeInfo');
 const avisRoutes = require('./routes/avis');
 const commentaireRoutes = require('./routes/commentaire');
+const factureRoutes = require('./routes/facture');
 
 const app = express();
 const server = http.createServer(app);
@@ -34,6 +35,7 @@ app.use('/api/reclamations', reclamationRoutes);
 app.use('/api/store-info', storeInfoRoutes);
 app.use('/api/avis', avisRoutes);
 app.use('/api/commentaires', commentaireRoutes);
+app.use('/api/factures', factureRoutes);
 
 
 app.get('/', (req, res) => {

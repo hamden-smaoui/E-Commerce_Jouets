@@ -40,6 +40,8 @@ class StoreInfoController {
           urlTiktok,
           urlYoutube,
           topDescription,
+          tauxTVA,
+          entrepriseSiret,
         } = req.body;
 
         // Gérer les uploads des logos
@@ -76,6 +78,8 @@ class StoreInfoController {
           urlTiktok,
           urlYoutube,
           topDescription,
+          tauxTVA: parseFloat(tauxTVA) || 19,
+          entrepriseSiret
         });
 
         // Save hero images to Image model
@@ -152,6 +156,8 @@ class StoreInfoController {
           topDescription,
           imagesToDelete,
           imageRangs,
+          tauxTVA,
+          entrepriseSiret,
         } = req.body;
 
         // CORRECTION : Parser les données JSON si elles existent
@@ -234,6 +240,8 @@ class StoreInfoController {
           urlTiktok,
           urlYoutube,
           topDescription,
+          tauxTVA: parseFloat(tauxTVA) || 19,
+          entrepriseSiret
         });
 
         // CORRECTION : Handle image deletions avec les données parsées

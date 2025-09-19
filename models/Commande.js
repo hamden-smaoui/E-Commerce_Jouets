@@ -61,20 +61,30 @@ const Commande = sequelize.define('Commande', {
     montantTotal: {
         type: DataTypes.DOUBLE,
         allowNull: false,
-    },
-    notesLivraison: {
-        type: DataTypes.TEXT,
-        allowNull: true,
+        comment: 'Montant total final après toutes réductions'
     },
     montantOriginal: {
         type: DataTypes.DOUBLE,
         allowNull: true,
+        comment: 'Montant total original avant réductions'
     },
     montantReduction: {
         type: DataTypes.DOUBLE,
         allowNull: true,
         defaultValue: 0,
+        comment: 'Montant total de réduction (montantOriginal - montantTotal)'
     },
+    fraisLivraison: {
+        type: DataTypes.DOUBLE,
+        allowNull: true,
+        defaultValue: 0,
+        comment: 'Frais de livraison appliqués'
+    },
+    notesLivraison: {
+        type: DataTypes.TEXT,
+        allowNull: true,
+    },
+    // Garder uniquement pour les promotions globales de type "code promo" qui s'appliquent à toute la commande
     idPromotionUtilisee: {
         type: DataTypes.INTEGER,
         allowNull: true,
@@ -82,10 +92,12 @@ const Commande = sequelize.define('Commande', {
             model: 'promotions',
             key: 'idPromotion',
         },
+        comment: 'Promotion globale appliquée à la commande (ex: code promo)'
     },
-    codePromoUtilise: {
+    codePromoGlobal: {
         type: DataTypes.STRING,
         allowNull: true,
+        comment: 'Code promo global appliqué à la commande entière'
     },
 }, {
     timestamps: true,

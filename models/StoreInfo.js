@@ -105,6 +105,15 @@ const StoreInfo = sequelize.define('StoreInfo', {
         type: DataTypes.TEXT,
         allowNull: true,
     },
+    tauxTVA: {
+            type: DataTypes.DOUBLE,
+            allowNull: false,
+            defaultValue: 19,
+        },
+    entrepriseSiret: {
+            type: DataTypes.STRING,
+            allowNull: true,
+        },
 }, {
     timestamps: true,
     tableName: 'store_infos',

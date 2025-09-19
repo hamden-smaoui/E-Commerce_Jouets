@@ -84,7 +84,12 @@ router.get('/factures', FactureController.getAllFactures);
 router.get('/factures/:id', FactureController.getFactureById);
 router.put('/factures/:id', FactureController.updateFacture);
 router.delete('/factures/:id', FactureController.deleteFacture);
+// Générer un PDF pour une facture
+router.get('/factures/:id/pdf', FactureController.generatePDF);
 
+// Récupérer les statistiques des factures
+router.get('/statsfactures', FactureController.getFactureStats);
+router.post('/factures/commandes/:idCommande/facture', FactureController.createFactureFromCommande.bind(FactureController));
 
 // Routes Promotion
 router.post('/promotions', PromotionController.createPromotion);
