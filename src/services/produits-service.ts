@@ -20,6 +20,37 @@ interface Type {
   nom: string;
 }
 
+// Nouveaux interfaces pour les variations
+export interface Couleur {
+  idCouleur: number;
+  nom: string;
+}
+
+export interface Taille {
+  idTaille: number;
+  nom: string;
+}
+
+export interface Age {
+  idAge: number;
+  minAge: number;
+  maxAge: number;
+  typeAge: 'mois' | 'ans';
+  label: string;
+}
+
+export interface ProduitVariation {
+  idProduitVariation: number;
+  idProduit: number;
+  idCouleur: number;
+  idTaille?: number;
+  idAge?: number;
+  quantiteStock: number;
+  couleur?: Couleur;
+  taille?: Taille;
+  age?: Age;
+}
+
 export interface ImageData {
   idImage: number;
   rang: number;
@@ -36,12 +67,10 @@ export interface Produit {
   idMarque: number;
   idFournisseur: number;
   idType: number | null;
-  minAge: string | null;
-  maxAge: string | null;
-  typeAge: 'mois' | 'ans';
   genre: 'fille' | 'garçon' | 'enfant';
 }
 
+// Nouveau format pour les données du formulaire
 export interface ProduitFormData {
   idProduit?: number | null;
   nom: string;
@@ -52,12 +81,15 @@ export interface ProduitFormData {
   idMarque: number;
   idFournisseur: number;
   idType: number | null;
-  minAge: string | null;
-  maxAge: string | null;
-  typeAge: 'mois' | 'ans';
   genre: 'fille' | 'garçon' | 'enfant';
   images?: File[];
   imageRangs?: number[];
+  variants?: {
+    idCouleur: number;
+    idTaille?: number;
+    idAge?: number;
+    quantiteStock: number;
+  }[];
 }
 
 export interface BestSellingProduit extends ProduitResponse {
@@ -82,6 +114,7 @@ export interface ProduitResponse extends Produit {
     nom: string;
   };
   images?: ImageData[];
+  variations?: ProduitVariation[];
 }
 
 class ProduitsService {
@@ -96,17 +129,17 @@ class ProduitsService {
       formData.append('idCategorie', produitData.idCategorie.toString());
       formData.append('idMarque', produitData.idMarque.toString());
       formData.append('idFournisseur', produitData.idFournisseur.toString());
+      
       if (produitData.idType) {
         formData.append('idType', produitData.idType.toString());
       }
-      if (produitData.minAge) {
-        formData.append('minAge', produitData.minAge);
-      }
-      if (produitData.maxAge) {
-        formData.append('maxAge', produitData.maxAge);
-      }
-      formData.append('typeAge', produitData.typeAge);
+      
       formData.append('genre', produitData.genre);
+
+      // Ajout des variations
+      if (produitData.variants && produitData.variants.length > 0) {
+        formData.append('variants', JSON.stringify(produitData.variants));
+      }
 
       if (produitData.images && produitData.images.length > 0) {
         produitData.images.forEach((image) => {
@@ -187,17 +220,17 @@ class ProduitsService {
       formData.append('idCategorie', produitData.idCategorie.toString());
       formData.append('idMarque', produitData.idMarque.toString());
       formData.append('idFournisseur', produitData.idFournisseur.toString());
+      
       if (produitData.idType) {
         formData.append('idType', produitData.idType.toString());
       }
-      if (produitData.minAge) {
-        formData.append('minAge', produitData.minAge);
-      }
-      if (produitData.maxAge) {
-        formData.append('maxAge', produitData.maxAge);
-      }
-      formData.append('typeAge', produitData.typeAge);
+      
       formData.append('genre', produitData.genre);
+
+      // Ajout des variations pour la mise à jour
+      if (produitData.variants && produitData.variants.length > 0) {
+        formData.append('variants', JSON.stringify(produitData.variants));
+      }
 
       if (produitData.images && produitData.images.length > 0) {
         produitData.images.forEach((image) => {
@@ -261,6 +294,25 @@ class ProduitsService {
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Unknown error occurred';
       throw new Error(`Error fetching best selling products: ${message}`);
+    }
+  }
+
+  async deleteImage(imageId: number): Promise<void> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/produits/images/${imageId}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to delete image');
+      }
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Unknown error occurred';
+      throw new Error(`Error deleting image: ${message}`);
     }
   }
 }

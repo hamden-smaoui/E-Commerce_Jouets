@@ -60,6 +60,8 @@ export interface FactureResponse extends Facture {
       email: string;
       telephone: string;
     };
+    codePromoGlobal :string;
+    reductionCodePromo:number;
     lignesCommandes?: Array<{
       idLigneCommande: number;
       quantite: number;
@@ -251,6 +253,7 @@ class FacturesService {
       }
 
       const data = await response.json();
+      console.log("fact",data)
       return data;
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Unknown error occurred';

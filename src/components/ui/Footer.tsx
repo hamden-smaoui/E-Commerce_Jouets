@@ -13,16 +13,16 @@ export default function Footer() {
   const { storeInfo } = useStoreInfo();
 
   return (
-    <footer className="bg-gray-800 text-white">
+    <footer className="bg-gray-800 text-white font-[Comic_Sans_MS,sans-serif] pt-12">
       {/* Main Footer Content */}
-      <div className="max-w-7xl mx-auto px-4 py-16">
+      <div className="max-w-7xl mx-auto px-4 pb-10">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-12 text-center md:text-left">
           
           {/* Company Info */}
           <div className="lg:col-span-1">
             <div className="mb-6 flex justify-center md:justify-start">
               {storeInfo?.logo2 ? (
-                <div className="relative w-48 h-36">
+                <div className="relative w-48 h-36 drop-shadow-2xl">
                   <Image
                     src={`http://localhost:3001${storeInfo.logo2}`}
                     alt={storeInfo.nom || "Logo"}
@@ -32,40 +32,39 @@ export default function Footer() {
                 </div>
               ) : (
                 <img
-                  className="w-48 h-36 object-contain"
+                  className="w-48 h-36 object-contain drop-shadow-2xl"
                   src="/images/logo2.png"
                   alt="Toy Universe Logo"
                   onError={() => console.error("Failed to load logo image")}
                 />
               )}
             </div>
-            
             {/* Contact Info */}
-            <div className="space-y-3">
-              <div className="flex items-center justify-center md:justify-start text-gray-300">
-                <MapPinIcon className="w-5 h-5 mr-3 text-purple-400" />
-                <span className="text-sm">
+            <div className="space-y-3 bg-white/10 rounded-xl p-4 shadow">
+              <div className="flex items-center justify-center md:justify-start text-purple-200">
+                <MapPinIcon className="w-5 h-5 mr-3 text-pink-300" />
+                <span className="text-sm font-semibold">
                   {storeInfo?.adresse ? 
                     `${storeInfo.adresse}, ${storeInfo.ville || ''}` : 
                     '123 Avenue des Jouets, Tunis'
                   }
                 </span>
               </div>
-              <div className="flex items-center justify-center md:justify-start text-gray-300">
-                <PhoneIcon className="w-5 h-5 mr-3 text-purple-400" />
-                <span className="text-sm">
+              <div className="flex items-center justify-center md:justify-start text-purple-200">
+                <PhoneIcon className="w-5 h-5 mr-3 text-yellow-300" />
+                <span className="text-sm font-semibold">
                   {storeInfo?.telephonePrincipal || '+216 XX XXX XXX'}
                 </span>
               </div>
-              <div className="flex items-center justify-center md:justify-start text-gray-300">
-                <EnvelopeIcon className="w-5 h-5 mr-3 text-purple-400" />
-                <span className="text-sm">
+              <div className="flex items-center justify-center md:justify-start text-purple-200">
+                <EnvelopeIcon className="w-5 h-5 mr-3 text-blue-300" />
+                <span className="text-sm font-semibold">
                   {storeInfo?.emailPrincipal || 'contact@toyuniverse.tn'}
                 </span>
               </div>
-              <div className="flex items-center justify-center md:justify-start text-gray-300">
-                <ClockIcon className="w-5 h-5 mr-3 text-purple-400" />
-                <span className="text-sm">
+              <div className="flex items-center justify-center md:justify-start text-purple-200">
+                <ClockIcon className="w-5 h-5 mr-3 text-purple-300" />
+                <span className="text-sm font-semibold">
                   {storeInfo?.heuresOuverture || 'Lun-Sam: 9h-19h'}
                 </span>
               </div>
@@ -74,95 +73,97 @@ export default function Footer() {
 
           {/* Quick Links */}
           <div>
-            <h3 className="text-lg font-semibold mb-6 text-white">Liens Rapides</h3>
+            <h3 className="text-xl font-extrabold mb-6 text-pink-400 drop-shadow-lg">
+              Liens Rapides
+            </h3>
             <ul className="space-y-3">
-              <li><a href="/about" className="text-gray-300 hover:text-purple-400 transition-colors duration-300">À Propos</a></li>
-              <li><a href="/products" className="text-gray-300 hover:text-purple-400 transition-colors duration-300">Nos Produits</a></li>
-              <li><a href="/categories" className="text-gray-300 hover:text-purple-400 transition-colors duration-300">Catégories</a></li>
-              <li><a href="/promotions" className="text-gray-300 hover:text-purple-400 transition-colors duration-300">Promotions</a></li>
-              <li><a href="/contact" className="text-gray-300 hover:text-purple-400 transition-colors duration-300">Contact</a></li>
-              <li><a href="/blog" className="text-gray-300 hover:text-purple-400 transition-colors duration-300">Blog</a></li>
+              <li><a href="/about" className="text-purple-100 hover:text-pink-400 font-semibold transition-colors duration-300">À Propos</a></li>
+              <li><a href="/products" className="text-purple-100 hover:text-pink-400 font-semibold transition-colors duration-300">Nos Produits</a></li>
+              <li><a href="/categories" className="text-purple-100 hover:text-pink-400 font-semibold transition-colors duration-300">Catégories</a></li>
+              <li><a href="/promotions" className="text-purple-100 hover:text-pink-400 font-semibold transition-colors duration-300">Promotions</a></li>
+              <li><a href="/contact" className="text-purple-100 hover:text-pink-400 font-semibold transition-colors duration-300">Contact</a></li>
+              <li><a href="/blog" className="text-purple-100 hover:text-pink-400 font-semibold transition-colors duration-300">Blog</a></li>
             </ul>
           </div>
 
           {/* Categories */}
           <div>
-            <h3 className="text-lg font-semibold mb-6 text-white">Catégories</h3>
+            <h3 className="text-xl font-extrabold mb-6 text-yellow-300 drop-shadow-lg">
+              Catégories
+            </h3>
             <ul className="space-y-3">
-              <li><a href="/category/puericulture" className="text-gray-300 hover:text-purple-400 transition-colors duration-300">Puériculture</a></li>
-              <li><a href="/category/0-2" className="text-gray-300 hover:text-purple-400 transition-colors duration-300">Jouets 0-2 ans</a></li>
-              <li><a href="/category/2-4" className="text-gray-300 hover:text-purple-400 transition-colors duration-300">Jouets 2-4 ans</a></li>
-              <li><a href="/category/5-7" className="text-gray-300 hover:text-purple-400 transition-colors duration-300">Jouets 5-7 ans</a></li>
-              <li><a href="/category/8-11" className="text-gray-300 hover:text-purple-400 transition-colors duration-300">Jouets 8-11 ans</a></li>
-              <li><a href="/category/12+" className="text-gray-300 hover:text-purple-400 transition-colors duration-300">Jouets +12 ans</a></li>
+              <li><a href="/category/puericulture" className="text-purple-100 hover:text-yellow-300 font-semibold transition-colors duration-300">Puériculture</a></li>
+              <li><a href="/category/0-2" className="text-purple-100 hover:text-yellow-300 font-semibold transition-colors duration-300">Jouets 0-2 ans</a></li>
+              <li><a href="/category/2-4" className="text-purple-100 hover:text-yellow-300 font-semibold transition-colors duration-300">Jouets 2-4 ans</a></li>
+              <li><a href="/category/5-7" className="text-purple-100 hover:text-yellow-300 font-semibold transition-colors duration-300">Jouets 5-7 ans</a></li>
+              <li><a href="/category/8-11" className="text-purple-100 hover:text-yellow-300 font-semibold transition-colors duration-300">Jouets 8-11 ans</a></li>
+              <li><a href="/category/12+" className="text-purple-100 hover:text-yellow-300 font-semibold transition-colors duration-300">Jouets +12 ans</a></li>
             </ul>
           </div>
 
           {/* Newsletter & Social */}
           <div>
-            <h3 className="text-lg font-semibold mb-6 text-white">Newsletter</h3>
-            <p className="text-gray-300 mb-4 text-sm">
+            <h3 className="text-xl font-extrabold mb-6 text-blue-300 drop-shadow-lg">
+              Newsletter
+            </h3>
+            <p className="text-purple-100 mb-4 text-base">
               Inscrivez-vous pour recevoir nos dernières offres et nouveautés.
             </p>
-            
             <form className="mb-8">
               <div className="flex flex-col sm:flex-row gap-2">
                 <input
                   type="email"
                   placeholder="Votre email"
-                  className="flex-1 px-4 py-2 rounded-lg bg-gray-700 border border-gray-600 text-white placeholder-gray-400 focus:outline-none focus:border-purple-400 focus:ring-1 focus:ring-purple-400"
+                  className="flex-1 px-4 py-2 rounded-lg bg-white/10 border-2 border-blue-300 text-white placeholder-blue-200 focus:outline-none focus:border-pink-400 focus:ring-1 focus:ring-pink-300 shadow-inner"
                   required
                 />
                 <button
                   type="submit"
-                  className="px-6 py-2 bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-lg transition-colors duration-300 whitespace-nowrap"
+                  className="px-6 py-2 bg-gradient-to-r from-pink-400 to-blue-400 text-white font-bold rounded-lg hover:from-pink-500 hover:to-blue-500 transition-all duration-300 whitespace-nowrap shadow"
                 >
                   S'inscrire
                 </button>
               </div>
             </form>
-
             {/* Social Media */}
             <div>
-              <h4 className="text-md font-medium mb-4 text-white">Suivez-nous</h4>
+              <h4 className="text-md font-bold mb-4 text-purple-300 drop-shadow-lg">Suivez-nous</h4>
               <div className="flex space-x-4 justify-center md:justify-start">
                 {storeInfo?.urlFacebook && (
                   <a 
                     href={storeInfo.urlFacebook} 
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="w-10 h-10 bg-gray-700 hover:bg-purple-600 rounded-full flex items-center justify-center transition-all duration-300 group"
+                    className="w-10 h-10 bg-pink-400 hover:bg-pink-500 rounded-full flex items-center justify-center transition-all duration-300 group shadow"
                     aria-label="Facebook"
                   >
-                    <svg className="w-5 h-5 text-gray-300 group-hover:text-white" fill="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-5 h-5 text-white group-hover:text-white" fill="currentColor" viewBox="0 0 24 24">
                       <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
                     </svg>
                   </a>
                 )}
-                
                 {storeInfo?.urlInstagram && (
                   <a 
                     href={storeInfo.urlInstagram}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="w-10 h-10 bg-gray-700 hover:bg-purple-600 rounded-full flex items-center justify-center transition-all duration-300 group"
+                    className="w-10 h-10 bg-yellow-300 hover:bg-yellow-400 rounded-full flex items-center justify-center transition-all duration-300 group shadow"
                     aria-label="Instagram"
                   >
-                    <svg className="w-5 h-5 text-gray-300 group-hover:text-white" fill="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-5 h-5 text-pink-700 group-hover:text-white" fill="currentColor" viewBox="0 0 24 24">
                       <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
                     </svg>
                   </a>
                 )}
-
                 {storeInfo?.urlYoutube && (
                   <a 
                     href={storeInfo.urlYoutube}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="w-10 h-10 bg-gray-700 hover:bg-purple-600 rounded-full flex items-center justify-center transition-all duration-300 group"
+                    className="w-10 h-10 bg-blue-400 hover:bg-blue-500 rounded-full flex items-center justify-center transition-all duration-300 group shadow"
                     aria-label="YouTube"
                   >
-                    <svg className="w-5 h-5 text-gray-300 group-hover:text-white" fill="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-5 h-5 text-white group-hover:text-white" fill="currentColor" viewBox="0 0 24 24">
                       <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
                     </svg>
                   </a>
@@ -174,23 +175,23 @@ export default function Footer() {
       </div>
 
       {/* Bottom Footer */}
-      <div className="border-t border-gray-700">
+      <div className="border-t border-gray-700 bg-gray-800/80">
         <div className="max-w-7xl mx-auto px-4 py-6">
           <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0 text-center md:text-left">
-            <div className="text-gray-400 text-sm">
+            <div className="text-purple-200 text-sm font-semibold">
               © 2024 {storeInfo?.nom || 'Toy Universe'}. Tous droits réservés.
             </div>
             <div className="flex flex-wrap justify-center md:justify-end gap-6 text-sm">
-              <a href="/privacy" className="text-gray-400 hover:text-purple-400 transition-colors duration-300">
+              <a href="/privacy" className="text-purple-200 hover:text-pink-400 transition-colors duration-300 font-semibold">
                 Politique de Confidentialité
               </a>
-              <a href="/terms" className="text-gray-400 hover:text-purple-400 transition-colors duration-300">
+              <a href="/terms" className="text-purple-200 hover:text-pink-400 transition-colors duration-300 font-semibold">
                 Conditions d'Utilisation
               </a>
-              <a href="/cookies" className="text-gray-400 hover:text-purple-400 transition-colors duration-300">
+              <a href="/cookies" className="text-purple-200 hover:text-pink-400 transition-colors duration-300 font-semibold">
                 Politique des Cookies
               </a>
-              <a href="/sitemap" className="text-gray-400 hover:text-purple-400 transition-colors duration-300">
+              <a href="/sitemap" className="text-purple-200 hover:text-pink-400 transition-colors duration-300 font-semibold">
                 Plan du Site
               </a>
             </div>

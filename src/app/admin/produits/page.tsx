@@ -7,11 +7,16 @@ import HeaderCardComponent from '@/components/layout/HeaderCardComponent';
 import FormModal from '@/components/layout/FormModal';
 import Notification from '@/components/layout/Notification';
 import ConfirmDeleteModal from '@/components/layout/ConfirmDeleteModal';
-import ProduitsService, { Produit, ProduitFormData, ImageData } from '@/services/produits-service';
+import ProduitsService, { ProduitFormData, ImageData, ProduitVariation, Couleur, Taille, Age ,Produit } from '@/services/produits-service';
 import CategoriesService from '@/services/categories-service';
 import MarquesService from '@/services/marques-service';
 import FournisseursService from '@/services/fournisseurs-service';
+import CouleursService from '@/services/couleurs-service';
+import TaillesService from '@/services/tailles-service';
+import AgesService from '@/services/ages-service';
 import ImageManager from '@/components/layout/ImageManager';
+import VariationsManager from '@/components/layout/VariationsManager'; // Nouveau composant
+
 interface Type {
   idType: number;
   nom: string;
@@ -43,11 +48,14 @@ interface FormData {
   idMarque: number;
   idFournisseur: number;
   idType: number | null;
-  minAge: string | null;
-  maxAge: string | null;
-  typeAge: 'mois' | 'ans';
   genre: 'fille' | 'garçon' | 'enfant';
   images: File[];
+  variants: {
+    idCouleur: number;
+    idTaille?: number;
+    idAge?: number;
+    quantiteStock: number;
+  }[];
 }
 
 interface ProduitResponse extends Produit {
@@ -56,8 +64,8 @@ interface ProduitResponse extends Produit {
   fournisseur?: Fournisseur;
   type?: Type;
   images?: ImageData[];
+  variations?: ProduitVariation[];
 }
-
 interface Field<T> {
   name: keyof T;
   label: string;
@@ -80,12 +88,14 @@ interface Field<T> {
   hidden?: boolean;
   disabled?: boolean;
 }
-
 const Produits: React.FC = () => {
   const [produits, setProduits] = useState<ProduitResponse[]>([]);
   const [categories, setCategories] = useState<Categorie[]>([]);
   const [marques, setMarques] = useState<Marque[]>([]);
   const [fournisseurs, setFournisseurs] = useState<Fournisseur[]>([]);
+  const [couleurs, setCouleurs] = useState<Couleur[]>([]);
+  const [tailles, setTailles] = useState<Taille[]>([]);
+  const [ages, setAges] = useState<Age[]>([]);
   const [types, setTypes] = useState<Type[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -105,11 +115,9 @@ const Produits: React.FC = () => {
     idMarque: 0,
     idFournisseur: 0,
     idType: null,
-    minAge: '',
-    maxAge: '',
-    typeAge: 'mois',
     genre: 'enfant',
     images: [],
+    variants: [],
   });
   const [selectedProduits, setSelectedProduits] = useState<number[]>([]);
   const [notification, setNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
@@ -117,21 +125,32 @@ const Produits: React.FC = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [fetchedProduits, fetchedCategories, fetchedMarques, fetchedFournisseurs] = await Promise.all([
+        const [
+          fetchedProduits,
+          fetchedCategories,
+          fetchedMarques,
+          fetchedFournisseurs,
+          fetchedCouleurs,
+          fetchedTailles,
+          fetchedAges,
+        ] = await Promise.all([
           ProduitsService.getAllProduits(),
           CategoriesService.getAllCategories(),
           MarquesService.getAllMarques(),
           FournisseursService.getAllFournisseurs(),
+          CouleursService.getAllCouleurs(),
+          TaillesService.getAllTailles(),
+          AgesService.getAllAges(),
         ]);
+        
         setProduits(fetchedProduits);
         setCategories(fetchedCategories);
         setMarques(fetchedMarques);
         setFournisseurs(fetchedFournisseurs);
+        setCouleurs(fetchedCouleurs);
+        setTailles(fetchedTailles);
+        setAges(fetchedAges);
         setLoading(false);
-        console.log('Produits fetched:', fetchedProduits);
-        console.log('Categories fetched:', fetchedCategories);
-        console.log('Marques fetched:', fetchedMarques);
-        console.log('Fournisseurs fetched:', fetchedFournisseurs);
       } catch (error: unknown) {
         const message = error instanceof Error ? error.message : 'Unknown error occurred';
         setError(message);
@@ -140,8 +159,7 @@ const Produits: React.FC = () => {
     };
     fetchData();
   }, []);
-
-  useEffect(() => {
+useEffect(() => {
     console.log('useEffect: formData.idCategorie:', formData.idCategorie, 'categories:', categories);
     if (formData.idCategorie > 0) {
       const selectedCategory = categories.find((cat) => cat.idCategorie === formData.idCategorie);
@@ -159,6 +177,28 @@ const Produits: React.FC = () => {
       setFormData((prev) => ({ ...prev, idType: null }));
     }
   }, [formData.idCategorie, categories]);
+  // Calcul du stock total basé sur les variations
+  const calculateTotalStock = (variations: ProduitVariation[] | undefined): number => {
+    if (!variations || variations.length === 0) return 0;
+    return variations.reduce((total, variation) => total + (variation.quantiteStock || 0), 0);
+  };
+
+  // Formatage des variations pour l'affichage
+  const formatVariations = (variations: ProduitVariation[] | undefined): string => {
+    if (!variations || variations.length === 0) return 'Aucune variation';
+    
+    const variationTexts = variations.map(variation => {
+      const parts = [];
+      if (variation.couleur) parts.push(variation.couleur.nom);
+      if (variation.taille) parts.push(variation.taille.nom);
+      if (variation.age) parts.push(variation.age.label);
+      return `${parts.join(' / ')} (${variation.quantiteStock})`;
+    });
+    
+    return variationTexts.join(', ');
+  };
+
+  
 
   const formatPrice = (prix: any): string => {
     if (prix === null || prix === undefined || prix === '' || isNaN(Number(prix))) {
@@ -174,12 +214,7 @@ const Produits: React.FC = () => {
     return Number(stock);
   };
 
-  const formatAgeRange = (produit: ProduitResponse): string => {
-    if (!produit.minAge && !produit.maxAge) return 'N/A';
-    if (produit.minAge && !produit.maxAge) return `${produit.minAge} ${produit.typeAge}`;
-    if (!produit.minAge && produit.maxAge) return `Jusqu'à ${produit.maxAge} ${produit.typeAge}`;
-    return `${produit.minAge} - ${produit.maxAge} ${produit.typeAge}`;
-  };
+ 
 
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(e.target.value);
@@ -194,12 +229,10 @@ const Produits: React.FC = () => {
         (produit.marque && produit.marque.nom.toLowerCase().includes(searchTerm.toLowerCase())) ||
         (produit.fournisseur && produit.fournisseur.nom.toLowerCase().includes(searchTerm.toLowerCase())) ||
         (produit.type && produit.type.nom.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (produit.minAge && produit.minAge.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (produit.maxAge && produit.maxAge.toLowerCase().includes(searchTerm.toLowerCase())) ||
         (produit.genre && produit.genre.toLowerCase().includes(searchTerm.toLowerCase())))
   );
 
-  const columns = [
+ const columns = [
     {
       header: 'Produit',
       render: (item: ProduitResponse) => (
@@ -216,18 +249,28 @@ const Produits: React.FC = () => {
           )}
           <div>
             <div className="font-bold">{item.nom || 'N/A'}</div>
-            <div className="text-sm opacity-50">{item.description || 'N/A'}</div>
+            <div className="text-sm opacity-50">{item.description?.substring(0, 50) || 'N/A'}...</div>
           </div>
         </div>
       ),
     },
     {
       header: 'Prix',
-      render: (item: ProduitResponse) => formatPrice(item.prix),
+      render: (item: ProduitResponse) => `${item.prix?.toFixed(2) || '0.00'} TND`,
     },
     {
-      header: 'Stock',
-      render: (item: ProduitResponse) => formatStock(item.quantiteStock),
+      header: 'Stock Total',
+      render: (item: ProduitResponse) => calculateTotalStock(item.variations),
+    },
+    {
+      header: 'Variations',
+      render: (item: ProduitResponse) => (
+        <div className="max-w-xs">
+          <div className="text-sm" title={formatVariations(item.variations)}>
+            {formatVariations(item.variations)}
+          </div>
+        </div>
+      ),
     },
     {
       header: 'Catégorie',
@@ -238,22 +281,11 @@ const Produits: React.FC = () => {
       render: (item: ProduitResponse) => (item.marque ? item.marque.nom : 'N/A'),
     },
     {
-      header: 'Fournisseur',
-      render: (item: ProduitResponse) => (item.fournisseur ? item.fournisseur.nom : 'N/A'),
-    },
-    {
-      header: 'Type',
-      render: (item: ProduitResponse) => (item.type ? item.type.nom : 'N/A'),
-    },
-    {
-      header: 'Âge',
-      render: (item: ProduitResponse) => formatAgeRange(item),
-    },
-    {
       header: 'Genre',
       render: (item: ProduitResponse) => item.genre || 'N/A',
     },
   ];
+
 
   const customSelectStyles = {
     menu: (provided: any) => ({
@@ -545,64 +577,28 @@ const Produits: React.FC = () => {
       },
       hint: 'Choisissez un fournisseur associé',
     },
-    {
-      name: 'minAge',
-      label: 'Âge minimum',
-      type: 'text',
-      placeholder: 'Ex: 3',
-      validation: {
-        required: false,
-        maxLength: 10,
-        pattern: '^[0-9]*$',
-        title: 'Entrez un nombre pour l\'âge minimum (optionnel)',
-      },
-      hint: 'Âge minimum recommandé (optionnel)',
-    },
-    {
-      name: 'maxAge',
-      label: 'Âge maximum',
-      type: 'text',
-      placeholder: 'Ex: 6',
-      validation: {
-        required: false,
-        maxLength: 10,
-        pattern: '^[0-9]*$',
-        title: 'Entrez un nombre pour l\'âge maximum (optionnel)',
-      },
-      hint: 'Âge maximum recommandé (optionnel)',
-    },
-    {
-      name: 'typeAge',
-      label: 'Type d\'âge',
+   {
+      name: 'variants',
+      label: 'Variations du produit',
       type: 'custom',
       render: ({ value, onChange }) => (
-        <Select
-          options={[
-            { value: 'mois', label: 'Mois' },
-            { value: 'ans', label: 'Ans' },
-          ]}
-          value={{ value: value, label: value === 'mois' ? 'Mois' : 'Ans' }}
-          onChange={(selectedOption) => {
-            const newValue = selectedOption ? selectedOption.value : 'mois';
-            setFormData((prev) => ({
-              ...prev,
-              typeAge: newValue as 'mois' | 'ans',
-            }));
-            onChange(newValue);
-          }}
-          className="w-full"
-          isClearable={false}
-          styles={customSelectStyles}
-          menuPortalTarget={document.body}
-          menuPosition="absolute"
-          menuShouldScrollIntoView={true}
+        <VariationsManager
+          variants={value || []}
+          onVariantsChange={onChange}
+          couleurs={couleurs}
+          tailles={tailles}
+          ages={ages}
         />
       ),
       validation: {
         required: true,
-        title: 'Sélectionnez le type d\'âge',
+        validate: (value: any) => {
+          const variants = value || [];
+          return variants.length > 0 ? '' : 'Au moins une variation est requise';
+        },
+        title: 'Ajoutez au moins une variation',
       },
-      hint: 'Choisissez entre mois ou ans',
+      hint: 'Définissez les variations de couleur, taille et âge avec leurs stocks',
     },
     {
       name: 'genre',
@@ -669,24 +665,19 @@ const Produits: React.FC = () => {
         });
         return;
       }
-      if (data.idMarque === 0) {
+
+      if (!data.variants || data.variants.length === 0) {
         setNotification({
           type: 'error',
-          message: 'Veuillez sélectionner une marque valide.',
-        });
-        return;
-      }
-      if (data.idFournisseur === 0) {
-        setNotification({
-          type: 'error',
-          message: 'Veuillez sélectionner un fournisseur valide.',
+          message: 'Veuillez ajouter au moins une variation du produit.',
         });
         return;
       }
 
-      const produitData = {
+      const produitData: ProduitFormData = {
         ...data,
         images: selectedImages,
+        variants: data.variants,
       };
 
       const response = await ProduitsService.createProduit(produitData);
@@ -805,7 +796,18 @@ const Produits: React.FC = () => {
       });
     }
   };
-
+const formatAgeRanges = (variations: ProduitVariation[] | undefined): string => {
+  if (!variations || variations.length === 0) return 'N/A';
+  // On récupère tous les labels de tranche d'âge uniques
+  const uniqueLabels = Array.from(
+    new Set(
+      variations
+        .filter((v) => v.age && v.age.label)
+        .map((v) => v.age!.label)
+    )
+  );
+  return uniqueLabels.length > 0 ? uniqueLabels.join(', ') : 'N/A';
+};
   const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>, id: number) => {
     if (e.target.checked) {
       setSelectedProduits([...selectedProduits, id]);
@@ -833,11 +835,9 @@ const Produits: React.FC = () => {
       idMarque: 0,
       idFournisseur: 0,
       idType: null,
-      minAge: '',
-      maxAge: '',
-      typeAge: 'mois',
       genre: 'enfant',
       images: [],
+      variants: [],
     };
     setFormData(newFormData);
     setTypes([]);
@@ -862,11 +862,9 @@ const Produits: React.FC = () => {
         idMarque: fetchedProduit.idMarque || 0,
         idFournisseur: fetchedProduit.idFournisseur || 0,
         idType: fetchedProduit.idType || null,
-        minAge: fetchedProduit.minAge || '',
-        maxAge: fetchedProduit.maxAge || '',
-        typeAge: fetchedProduit.typeAge || 'mois',
         genre: fetchedProduit.genre || 'enfant',
         images: [],
+variants: fetchedProduit.variations || [],
       };
 
       setFormData(newFormData);
@@ -925,7 +923,7 @@ const Produits: React.FC = () => {
         onDelete={handleDelete}
         onAdd={handleAdd}
       />
-      <TableComponent
+    <TableComponent
         data={filteredProduits}
         columns={columns}
         loading={loading}

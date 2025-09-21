@@ -4,56 +4,54 @@ import codesPromoService from '@/services/codes-promo-service';
 interface CodePromoInputProps {
   montantPanier: number;
   idUtilisateur?: number;
-  onCodeApplique: (promotion: any) => void;
+  onCodeApplique: (data: { code: string; valeurPourcentage: number }) => void;
   onCodeSupprime: () => void;
   codeActuel?: string;
 }
 
-const CodePromoInput: React.FC<CodePromoInputProps> = ({ 
-  montantPanier, 
-  idUtilisateur, 
-  onCodeApplique, 
+const CodePromoInput: React.FC<CodePromoInputProps> = ({
+  montantPanier,
+  idUtilisateur,
+  onCodeApplique,
   onCodeSupprime,
-  codeActuel 
+  codeActuel,
 }) => {
   const [code, setCode] = useState('');
   const [loading, setLoading] = useState(false);
-const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string; montantMinimum?: number } | null>(null);
- const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
-  if (!code.trim()) return;
+  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string; montantMinimum?: number } | null>(null);
 
-  try {
-    setLoading(true);
-    setMessage(null);
-    
-    const resultat = await codesPromoService.validerCodePromo(
-      code.trim().toUpperCase(), 
-      montantPanier, 
-      idUtilisateur
-    );
-    console.log('res',resultat);
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!code.trim()) return;
 
-    if (resultat.valide) {
-      onCodeApplique({
-        code: code.trim().toUpperCase(),
-        promotion: resultat.promotion
-      });
-      setMessage({ type: 'success', text: resultat.message });
-      setCode('');
-    } else {
-      setMessage({ 
-        type: 'error', 
-        text: resultat.message,
-        montantMinimum: resultat.montantMinimum 
-      });
+    try {
+      setLoading(true);
+      setMessage(null);
+
+      // Nouvelle API: ne retourne plus promotion, juste le pourcentage
+      const resultat = await codesPromoService.validerCodePromo(
+        code.trim().toUpperCase()
+      );
+
+      if (resultat.valide && resultat.valeurPourcentage) {
+        onCodeApplique({
+          code: code.trim().toUpperCase(),
+          valeurPourcentage: resultat.valeurPourcentage
+        });
+        setMessage({ type: 'success', text: resultat.message });
+        setCode('');
+      } else {
+        setMessage({
+  type: 'error',
+  text: resultat.message
+});
+      }
+    } catch (error) {
+      setMessage({ type: 'error', text: 'Erreur lors de la validation du code' });
+    } finally {
+      setLoading(false);
     }
-  } catch (error) {
-    setMessage({ type: 'error', text: 'Erreur lors de la validation du code' });
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
   const handleSupprimer = () => {
     onCodeSupprime();
@@ -62,7 +60,6 @@ const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string
 
   return (
     <div className="space-y-3 w-full">
-      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
         <h3 className="font-medium text-gray-900 text-sm sm:text-base">Code promo</h3>
         {codeActuel && (
@@ -75,7 +72,6 @@ const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string
         )}
       </div>
 
-      {/* Code appliqué */}
       {codeActuel ? (
         <div className="p-3 bg-green-50 border border-green-200 rounded-lg w-full">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
@@ -84,7 +80,7 @@ const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string
                 Code appliqué: {codeActuel}
               </div>
               <div className="text-xs sm:text-sm text-green-600">
-                Promotion active sur votre commande
+                Réduction code promo appliquée
               </div>
             </div>
             <svg className="w-5 h-5 text-green-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -93,7 +89,6 @@ const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string
           </div>
         </div>
       ) : (
-        /* Formulaire */
         <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-2 w-full">
           <input
             type="text"
@@ -117,11 +112,10 @@ const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string
         </form>
       )}
 
-      {/* Message de succès ou d'erreur */}
       {message && (
         <div className={`p-3 rounded-lg w-full ${
-          message.type === 'success' 
-            ? 'bg-green-50 border border-green-200 text-green-800' 
+          message.type === 'success'
+            ? 'bg-green-50 border border-green-200 text-green-800'
             : 'bg-red-50 border border-red-200 text-red-800'
         }`}>
           <div className="flex items-center">

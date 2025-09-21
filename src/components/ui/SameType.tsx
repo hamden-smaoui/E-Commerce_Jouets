@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useRef } from "react";
 import ProductCard from "./ProductCard";
 
 interface Product {
@@ -11,6 +11,7 @@ interface Product {
   marque?: { idMarque: number; nom: string };
   categorie?: { idCategorie: number; nom: string };
   image?: string;
+  images?: Array<{ idImage: number; url: string; rang: number }>;
 }
 
 interface SameTypeProps {
@@ -18,109 +19,143 @@ interface SameTypeProps {
 }
 
 export default function SameType({ offers }: SameTypeProps) {
-  const [currentIndex, setCurrentIndex] = useState(0);
+  const containerRef = useRef<HTMLDivElement>(null);
 
-  const itemsPerPageByScreen = {
-    sm: 2, // Mobile (<640px): 2 products
-    md: 3, // Medium (≥768px): 3 products
-    lg: 4, // Large (≥1024px): 4 products
-  };
-
-  const getItemsPerPage = () => {
-    if (typeof window === "undefined") return itemsPerPageByScreen.lg;
-    if (window.innerWidth < 640) return itemsPerPageByScreen.sm;
-    if (window.innerWidth < 1024) return itemsPerPageByScreen.md;
-    return itemsPerPageByScreen.lg;
-  };
-
-  const [itemsPerPage, setItemsPerPage] = useState(getItemsPerPage());
-
-  // Update itemsPerPage on window resize
-  React.useEffect(() => {
-    const handleResize = () => {
-      setItemsPerPage(getItemsPerPage());
-      setCurrentIndex(0); // Reset to first page on resize
-    };
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
-
-  const totalPages = Math.ceil(offers.length / itemsPerPage);
-  const maxIndex = Math.max(0, offers.length - itemsPerPage);
-
-  const handlePrev = () => {
-    setCurrentIndex((prev) => {
-      const newIndex = prev - itemsPerPage;
-      return newIndex >= 0 ? newIndex : 0;
+  const scrollBy = (dir: "prev" | "next") => {
+    const el = containerRef.current;
+    if (!el) return;
+    const card = el.querySelector("div[data-card]") as HTMLElement;
+    if (!card) return;
+    const scrollAmount = card.offsetWidth * (window.innerWidth < 640 ? 1.2 : 3);
+    el.scrollBy({
+      left: dir === "next" ? scrollAmount : -scrollAmount,
+      behavior: "smooth",
     });
   };
-
-  const handleNext = () => {
-    setCurrentIndex((prev) => {
-      const newIndex = prev + itemsPerPage;
-      return newIndex <= maxIndex ? newIndex : maxIndex;
-    });
-  };
-
-  const showButtons = offers.length > itemsPerPage && itemsPerPage !== itemsPerPageByScreen.sm;
-  const showPrev = showButtons && currentIndex > 0;
-  const showNext = showButtons && currentIndex < maxIndex;
 
   return (
-    <section className="py-8 sm:py-12 bg-white">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6">
-        <h2 className="text-2xl sm:text-3xl font-serif text-center italic mb-8 sm:mb-12 text-purple-500 border-b-2 border-purple-500 pb-4">
-          Produits de même type
-        </h2>
-        <div className="relative">
-          <div className="flex overflow-x-auto sm:overflow-hidden snap-x snap-mandatory scrollbar-hide">
-            <div
-              className="flex transition-transform duration-500 ease-in-out sm:transition-transform"
-              style={{
-                transform: itemsPerPage !== itemsPerPageByScreen.sm ? `translateX(-${(currentIndex / itemsPerPage) * 100}%)` : 'none',
-                width: itemsPerPage !== itemsPerPageByScreen.sm ? `${(offers.length / itemsPerPage) * 100}%` : 'auto',
-              }}
-            >
-              {offers.map((product) => (
-                <div
-                  key={product.idProduit}
-                  className="flex-shrink-0 snap-start px-2 w-1/2 sm:w-1/2 md:w-1/3 lg:w-1/4 max-w-[150px] sm:max-w-none"
-                >
-                  <ProductCard product={product} />
-                </div>
-              ))}
-            </div>
-          </div>
-          {showPrev && (
-            <button
-              onClick={handlePrev}
-              className="hidden sm:flex absolute left-2 sm:left-4 top-1/2 transform -translate-y-1/2 w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-r from-blue-500 to-yellow-500 text-white rounded-full flex items-center justify-center shadow-md hover:from-blue-600 hover:to-yellow-600 transition-all"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-            </button>
-          )}
-          {showNext && (
-            <button
-              onClick={handleNext}
-              className="hidden sm:flex absolute right-2 sm:right-4 top-1/2 transform -translate-y-1/2 w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-r from-blue-500 to-yellow-500 text-white rounded-full flex items-center justify-center shadow-md hover:from-blue-600 hover:to-yellow-600 transition-all"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
-            </button>
-          )}
-        </div>
-        <div className="text-center mt-8 sm:mt-12">
-          <a
-            href="/site/products"
-            className="btn btn-outline bg-gradient-to-r from-purple-400 to-purple-700 text-white border-purple-500 hover:from-purple-600 hover:to-purple-800"
+    <section className="py-8 w-full bg-white">
+      <div className="mx-auto px-2 sm:px-6 max-w-7xl">
+        {/* HEADER */}
+        <div className="text-center mb-10">
+          <h2
+            className="text-xl sm:text-4xl font-black tracking-wide text-purple-500 drop-shadow-lg flex items-center justify-center gap-2"
+            style={{ fontFamily: "'Comic Neue', 'Comic Sans MS', cursive, sans-serif" }}
           >
-            Voir tous →
+            <span role="img" aria-label="toy">🧸</span>
+            Produits de même type
+            <span role="img" aria-label="puzzle">🧩</span>
+          </h2>
+          <div className="flex justify-center mt-2">
+            {/* playful divider with dots */}
+            <svg width="140" height="16" viewBox="0 0 140 16" fill="none">
+              <ellipse cx="8" cy="8" rx="8" ry="8" fill="#a855f7" />
+              <rect x="16" y="7" width="108" height="2" rx="1" fill="url(#gradient)" />
+              <ellipse cx="132" cy="8" rx="8" ry="8" fill="#ec4899" />
+              <defs>
+                <linearGradient id="gradient" x1="16" y1="8" x2="124" y2="8" gradientUnits="userSpaceOnUse">
+                  <stop stopColor="#a855f7" />
+                  <stop offset="1" stopColor="#ec4899" />
+                </linearGradient>
+              </defs>
+            </svg>
+          </div>
+        </div>
+
+        {/* CAROUSEL */}
+        <div className="relative">
+          {/* Scrollable Product List */}
+          <div
+            ref={containerRef}
+            className="
+              flex gap-4 overflow-x-auto
+              scroll-smooth snap-x snap-mandatory
+              px-1 sm:px-12
+              pb-3
+              custom-scrollbar
+            "
+            tabIndex={0}
+            style={{
+              overscrollBehaviorX: "contain",
+              WebkitOverflowScrolling: "touch",
+            }}
+          >
+            {offers.map((product) => (
+              <div
+                key={product.idProduit}
+                data-card
+                className="snap-start shrink-0 px-2"
+                style={{
+                  width: "80vw",
+                  maxWidth: 280,
+                  minWidth: 170,
+                }}
+              >
+                <ProductCard product={product} />
+              </div>
+            ))}
+          </div>
+
+          {/* Navigation Buttons BELOW the carousel */}
+          <div className="flex justify-center gap-8 mt-4">
+            <button
+              onClick={() => scrollBy("prev")}
+              className="w-14 h-14 bg-purple-300/90 hover:bg-purple-400/90 border-4 border-white shadow-2xl text-white rounded-full flex items-center justify-center transition-all hover:scale-110 active:scale-95"
+              style={{
+                filter: "drop-shadow(0 2px 12px #a855f7aa)",
+                outline: "none",
+              }}
+              aria-label="Précédent"
+            >
+              <span className="text-3xl" role="img" aria-label="left arrow">🡸</span>
+            </button>
+            <button
+              onClick={() => scrollBy("next")}
+              className="w-14 h-14 bg-pink-300/90 hover:bg-pink-400/90 border-4 border-white shadow-2xl text-white rounded-full flex items-center justify-center transition-all hover:scale-110 active:scale-95"
+              style={{
+                filter: "drop-shadow(0 2px 12px #ec4899aa)",
+                outline: "none",
+              }}
+              aria-label="Suivant"
+            >
+              <span className="text-3xl" role="img" aria-label="right arrow">🡺</span>
+            </button>
+          </div>
+        </div>
+
+        {/* SEE ALL BUTTON */}
+        <div className="text-center mt-8 sm:mt-12">
+          
+           <a href="/site/products"
+            className="inline-flex items-center gap-2 px-8 py-3 bg-gradient-to-r from-purple-400 to-pink-400 text-white font-bold rounded-xl shadow-lg hover:from-purple-500 hover:to-pink-500 transition-all transform hover:scale-105"
+          >
+            Voir tous les produits
+            <span className="text-lg">→</span>
           </a>
         </div>
       </div>
+      
+      {/* Custom scrollbar style */}
+      <style>
+        {`
+        .custom-scrollbar {
+          scrollbar-width: thin;
+          scrollbar-color: #a855f7 #faf5ff;
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+          height: 12px;
+          border-radius: 8px;
+          background: #faf5ff;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: linear-gradient(90deg, #a855f7 30%, #ec4899 70%);
+          border-radius: 8px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: linear-gradient(90deg, #a855f7 10%, #ec4899 90%);
+        }
+        `}
+      </style>
     </section>
   );
 }

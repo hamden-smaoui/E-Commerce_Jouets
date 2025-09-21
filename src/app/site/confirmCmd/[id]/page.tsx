@@ -438,6 +438,12 @@ function CommandeConfirmation({ params }: Props) {
                   )}
                 </span>
               </div>
+              {(commande.reductionCodePromo || 0) > 0 && commande.codePromoGlobal && (
+  <div className="flex justify-between text-success text-sm sm:text-base">
+    <span>Code promo <span className="font-mono bg-success/20 px-2 rounded ml-2">{commande.codePromoGlobal}</span></span>
+    <span>-{commande.reductionCodePromo?.toFixed(2)} <span className="text-xs">TND</span></span>
+  </div>
+)}
               <div className="flex justify-between font-bold text-black text-lg sm:text-xl border-t pt-2">
                 <span>Total TTC</span>
                 <span className="text-purple-600">{totalTTC.toFixed(2)} <span className="text-xs">TND</span></span>

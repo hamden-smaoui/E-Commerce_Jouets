@@ -12,12 +12,13 @@ import {
   XMarkIcon,
 } from "@heroicons/react/24/solid";
 
+// Context for subtotal management
 const TotalContext = createContext({
   addSubtotal: (id: number, subtotal: number, subOriginal: number) => {},
   removeSubtotal: (id: number) => {},
 });
 
-// Composant pour afficher un item avec promotion
+// Affiche un item avec promotion
 const CartDropdownItem = ({ item, onIncrement, onDecrement, onRemove }: any) => {
   const { addSubtotal, removeSubtotal } = useContext(TotalContext);
   const { calculatePriceWithPromotion, hasPromotions } = usePromotions(item.idProduit);
@@ -71,8 +72,6 @@ const CartDropdownItem = ({ item, onIncrement, onDecrement, onRemove }: any) => 
             </span>
           )}
         </div>
-
-        
 
         {/* Contrôles de quantité */}
         <div className="flex items-center justify-between mt-2">
@@ -161,9 +160,7 @@ export default function CartDropdown() {
     if (currentQuantity < stock) {
       try {
         await updateQuantity(idProduit, currentQuantity + 1);
-      } catch (error) {
-        // L'erreur est gérée dans useCart
-      }
+      } catch (error) {}
     }
   };
 
@@ -171,18 +168,14 @@ export default function CartDropdown() {
     if (currentQuantity > 1) {
       try {
         await updateQuantity(idProduit, currentQuantity - 1);
-      } catch (error) {
-        // L'erreur est gérée dans useCart
-      }
+      } catch (error) {}
     }
   };
 
   const handleRemove = async (idProduit: number) => {
     try {
       await removeFromCart(idProduit);
-    } catch (error) {
-      // L'erreur est gérée dans useCart
-    }
+    } catch (error) {}
   };
 
   const handleCartClick = () => {
@@ -210,10 +203,10 @@ export default function CartDropdown() {
         )}
         <button
           onClick={handleCartClick}
-          className="btn btn-ghost btn-circle btn-sm md:btn-md"
+          className="btn btn-ghost btn-circle btn-sm md:btn-md bg-purple-100 hover:bg-purple-200 shadow-md hover:scale-105 transition-all"
           title="Panier"
         >
-          <ShoppingCartIcon className="h-5 w-5 md:h-6 md:w-6 text-gray-600" />
+          <ShoppingCartIcon className="h-5 w-5 md:h-6 md:w-6 text-purple-500 drop-shadow-lg" />
         </button>
       </div>
 
@@ -222,7 +215,7 @@ export default function CartDropdown() {
         <div className="absolute right-0 mt-2 w-80 md:w-96 bg-white border border-gray-200 rounded-lg shadow-xl z-[1000] max-h-[80vh] flex flex-col">
           {/* Header du dropdown */}
           <div className="flex items-center justify-between p-4 border-b border-gray-100">
-            <h3 className="text-lg font-semibold text-gray-800">
+            <h3 className="text-lg font-extrabold font-[Comic_Sans_MS,sans-serif] text-pink-600 drop-shadow-lg">
               Mon Panier ({totalItems})
             </h3>
             <button

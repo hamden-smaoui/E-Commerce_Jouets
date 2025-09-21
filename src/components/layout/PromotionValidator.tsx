@@ -1,4 +1,3 @@
-// components/PromotionValidator.tsx
 'use client';
 
 import React, { useState } from 'react';
@@ -19,10 +18,10 @@ const PromotionValidator: React.FC<PromotionValidatorProps> = ({ onValidationRes
 
     setLoading(true);
     try {
-      const validationResult = await CodesPromoService.validerCode(code, {
-        montantPanier: montantPanier > 0 ? montantPanier : undefined
-      });
-      
+      // Nouvelle API: attends { valide, message, valeurPourcentage }
+      const validationResult = await CodesPromoService.validerCodePromo(
+        code.trim().toUpperCase()
+      );
       setResult(validationResult);
       if (onValidationResult) {
         onValidationResult(validationResult);
@@ -57,76 +56,65 @@ const PromotionValidator: React.FC<PromotionValidatorProps> = ({ onValidationRes
             className="input input-bordered"
             placeholder="Saisir le code promo"
             value={code}
-                onChange={(e) => setCode(e.target.value.toUpperCase())}
-           onKeyPress={(e) => e.key === 'Enter' && handleValidation()}
-         />
-       </div>
+            onChange={(e) => setCode(e.target.value.toUpperCase())}
+            onKeyPress={(e) => e.key === 'Enter' && handleValidation()}
+          />
+        </div>
 
-       <div className="form-control">
-         <label className="label">
-           <span className="label-text">Montant du panier (TND)</span>
-         </label>
-         <input
-           type="number"
-           className="input input-bordered"
-           placeholder="0.00"
-           min="0"
-           step="0.01"
-           value={montantPanier || ''}
-           onChange={(e) => setMontantPanier(parseFloat(e.target.value) || 0)}
-         />
-       </div>
+        <div className="form-control">
+          <label className="label">
+            <span className="label-text">Montant du panier (TND)</span>
+          </label>
+          <input
+            type="number"
+            className="input input-bordered"
+            placeholder="0.00"
+            min="0"
+            step="0.01"
+            value={montantPanier || ''}
+            onChange={(e) => setMontantPanier(parseFloat(e.target.value) || 0)}
+          />
+        </div>
 
-       <div className="card-actions justify-end gap-2">
-         <button 
-           className="btn btn-ghost" 
-           onClick={handleReset}
-           disabled={loading}
-         >
-           Reset
-         </button>
-         <button 
-           className="btn btn-primary" 
-           onClick={handleValidation}
-           disabled={!code.trim() || loading}
-         >
-           {loading ? <span className="loading loading-spinner loading-sm"></span> : 'Valider'}
-         </button>
-       </div>
+        <div className="card-actions justify-end gap-2">
+          <button 
+            className="btn btn-ghost" 
+            onClick={handleReset}
+            disabled={loading}
+          >
+            Reset
+          </button>
+          <button 
+            className="btn btn-primary" 
+            onClick={handleValidation}
+            disabled={!code.trim() || loading}
+          >
+            {loading ? <span className="loading loading-spinner loading-sm"></span> : 'Valider'}
+          </button>
+        </div>
 
-       {result && (
-         <div className={`alert ${result.valide ? 'alert-success' : 'alert-error'} mt-4`}>
-           <div>
-             <h3 className="font-bold">
-               {result.valide ? '✅ Code valide' : '❌ Code invalide'}
-             </h3>
-             <p>{result.message}</p>
-             
-             {result.valide && result.data && (
-               <div className="mt-2 text-sm">
-                 <div><strong>Promotion:</strong> {result.data.promotion.nom}</div>
-                 <div><strong>Type:</strong> {result.data.promotion.typePromotion}</div>
-                 <div><strong>Valeur:</strong> {result.data.promotion.valeurPromotion}
-                   {result.data.promotion.typePromotion === 'pourcentage' ? '%' : 
-                    result.data.promotion.typePromotion === 'montant_fixe' ? ' TND' : ''}
-                 </div>
-                 {result.data.promotion.description && (
-                   <div><strong>Description:</strong> {result.data.promotion.description}</div>
-                 )}
-               </div>
-             )}
-
-             {!result.valide && result.montantMinimum && (
-               <div className="mt-2 text-sm">
-                 <strong>Montant minimum requis:</strong> {result.montantMinimum} TND
-               </div>
-             )}
-           </div>
-         </div>
-       )}
-     </div>
-   </div>
- );
+        {result && (
+          <div className={`alert ${result.valide ? 'alert-success' : 'alert-error'} mt-4`}>
+            <div>
+              <h3 className="font-bold">
+                {result.valide ? '✅ Code valide' : '❌ Code invalide'}
+              </h3>
+              <p>{result.message}</p>
+              
+              {result.valide && result.valeurPourcentage && (
+                <div className="mt-2 text-sm">
+                  <div>
+                    <strong>Réduction :</strong> {result.valeurPourcentage}%
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
 };
 
 export default PromotionValidator;
+

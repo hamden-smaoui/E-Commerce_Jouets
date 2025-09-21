@@ -22,15 +22,8 @@ interface Type {
   nom: string;
 }
 
-interface CodePromo {
-  idCodePromo: number;
-  code: string;
-  actif: boolean;
-  utilisationMax: number | null;
-  utilisationActuelle: number;
-}
 
-// Interface principale pour Promotion
+
 export interface Promotion {
   idPromotion: number;
   nom: string;
@@ -74,14 +67,11 @@ export interface PromotionFormData {
   categories?: number[];
   marques?: number[];
   types?: number[];
-  codesPromo?: Array<{
-    code: string;
-    utilisationMax: number | null;
-  }>;
+  // codesPromo?: Array<{ code: string; utilisationMax: number | null; }>; // REMOVE THIS
 }
 
 interface PromotionResponse extends Promotion {
-  codesPromo?: CodePromo[];
+  // codesPromo?: CodePromo[]; // REMOVE
   produits?: Produit[];
   categories?: Categorie[];
   marques?: Marque[];
@@ -229,7 +219,7 @@ class PromotionsService {
 
   // Appliquer une promotion
   async appliquerPromotion(data: {
-    codePromo?: string;
+    
     panierData: any;
     idUtilisateur?: number;
   }): Promise<{

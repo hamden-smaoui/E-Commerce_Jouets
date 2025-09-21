@@ -72,7 +72,7 @@ function Checkout() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [mounted, setMounted] = useState(false);
-  const [codePromo, setCodePromo] = useState<{ code: string; promotion: any } | null>(null);
+const [codePromo, setCodePromo] = useState<{ code: string; valeurPourcentage: number } | null>(null);
   const [errors, setErrors] = useState<FormErrors>({});
 
   const { getTotals, clearTotals, itemTotals } = useCartPromotionContext();
@@ -121,24 +121,14 @@ function Checkout() {
   const { totalOriginal, totalFinal, totalSavings } = getTotals();
 
   // Appliquer le code promo sur le total final des produits
-  const totalPriceWithPromotions = useMemo(() => {
-    if (!mounted) return 0;
-    
-    let total = totalFinal;
-
-    if (codePromo?.promotion) {
-      const { typePromotion, valeurPromotion } = codePromo.promotion;
-      const valeur = typeof valeurPromotion === 'string' ? parseFloat(valeurPromotion) : valeurPromotion;
-      
-      if (typePromotion === 'pourcentage' || typePromotion === 'POURCENTAGE') {
-        total *= (1 - valeur / 100);
-      } else if (typePromotion === 'montant_fixe' || typePromotion === 'FIXE') {
-        total = Math.max(0, total - valeur);
-      }
-    }
-
-    return total;
-  }, [mounted, totalFinal, codePromo]);
+const totalPriceWithPromotions = useMemo(() => {
+  if (!mounted) return 0;
+  let total = totalFinal;
+  if (codePromo?.valeurPourcentage) {
+    total *= (1 - codePromo.valeurPourcentage / 100);
+  }
+  return total;
+}, [mounted, totalFinal, codePromo]);
 
   const livraison = useMemo(() => {
     return totalPriceWithPromotions >= 100 ? 0 : 7.9;
@@ -250,7 +240,7 @@ function Checkout() {
         codePromo: codePromo?.code,
         fraisLivraison: livraison
       };
-
+      console.log("Données de la commande envoyées:", commandeData);
       const nouvelleCommande = await CommandesService.createCommande(commandeData);
       
       // Succès
@@ -281,11 +271,10 @@ function Checkout() {
       setLoading(false);
     }
   };
-
-  const handleCodeApplique = (promotionData: { code: string; promotion: any }) => {
-    setCodePromo(promotionData);
-    toast.success(`Code promo "${promotionData.code}" appliqué avec succès!`);
-  };
+const handleCodeApplique = (data: { code: string; valeurPourcentage: number }) => {
+  setCodePromo(data); // data is correct shape
+  toast.success(`Code promo "${data.code}" appliqué avec succès!`);
+};
 
   const handleCodeSupprime = () => {
     setCodePromo(null);
@@ -607,12 +596,18 @@ function Checkout() {
                   </div>
                   <div className="mt-6">
                     <CodePromoInput
-                      montantPanier={totalFinal}
-                      idUtilisateur={isAuthenticated ? user?.idUtilisateur : undefined}
-                      onCodeApplique={handleCodeApplique}
-                      onCodeSupprime={handleCodeSupprime}
-                      codeActuel={codePromo?.code}
-                    />
+  montantPanier={totalFinal}
+  idUtilisateur={isAuthenticated ? user?.idUtilisateur : undefined}
+  onCodeApplique={({ code, valeurPourcentage }) => {
+    setCodePromo({ code, valeurPourcentage });
+    toast.success(`Code promo "${code}" appliqué avec succès!`);
+  }}
+  onCodeSupprime={() => {
+    setCodePromo(null);
+    toast.success('Code promo supprimé');
+  }}
+  codeActuel={codePromo?.code}
+/>
                   </div>
                   <button 
                     onClick={handleSubmit}

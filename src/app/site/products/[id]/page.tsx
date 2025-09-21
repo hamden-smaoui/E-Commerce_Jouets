@@ -59,7 +59,7 @@ export default function ProduitDetails() {
   const [showMagnifier, setShowMagnifier] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isAddingToCart, setIsAddingToCart] = useState(false);
-  const [activeTab, setActiveTab] = useState< 'avis' | 'commentaires'>('avis');
+  const [activeTab, setActiveTab] = useState<'avis' | 'commentaires'>('avis');
   const [isLoggedIn, setIsLoggedIn] = useState(false); // À adapter selon votre système d'auth
   const imageRef = useRef<HTMLDivElement>(null);
 
@@ -77,7 +77,6 @@ export default function ProduitDetails() {
   };
 
   useEffect(() => {
-    // Vérifier le statut de connexion
     const token = localStorage.getItem('authToken');
     setIsLoggedIn(!!token);
   }, []);
@@ -87,7 +86,6 @@ export default function ProduitDetails() {
       try {
         setLoading(true);
         const productData = await ProduitsService.getProduitById(parseInt(id as string));
-        
         const updatedProduct: Product = {
           ...productData,
           images: productData.images || [],
@@ -195,7 +193,6 @@ export default function ProduitDetails() {
     const rect = imageRef.current.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
-
     if (x >= 0 && x <= rect.width && y >= 0 && y <= rect.height) {
       setMagnifierPos({ x, y });
       setShowMagnifier(true);
@@ -222,7 +219,6 @@ export default function ProduitDetails() {
 
   const handleAddToCart = async () => {
     if (!stockStatus.available) return;
-    
     try {
       setIsAddingToCart(true);
       await addToCart(produit.idProduit, quantity);
@@ -235,7 +231,6 @@ export default function ProduitDetails() {
 
   const handleToggleFavorite = async () => {
     if (!produit) return;
-    
     try {
       setIsTogglingFavorite(true);
       if (isFavorite(produit.idProduit)) {
@@ -252,33 +247,34 @@ export default function ProduitDetails() {
 
   const isProductFavorite = produit ? isFavorite(produit.idProduit) : false;
 
-const tabs = [
-  { 
-    id: 'avis', 
-    label: 'Avis', 
-    icon: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
-      </svg>
-    )
-  },
-  { 
-    id: 'commentaires', 
-    label: 'Commentaires', 
-    icon: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-      </svg>
-    )
-  },
-] as const;
+  const tabs = [
+    { 
+      id: 'avis', 
+      label: 'Avis', 
+      icon: (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+        </svg>
+      )
+    },
+    { 
+      id: 'commentaires', 
+      label: 'Commentaires', 
+      icon: (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+        </svg>
+      )
+    },
+  ] as const;
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-white font-[Comic_Sans_MS,sans-serif]">
       <div className="container mx-auto px-4 py-6 max-w-7xl">
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 lg:gap-10">
+          {/* Images */}
           <div className="order-1">
-            <div className="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-200">
+            <div className="bg-white rounded-2xl shadow-xl overflow-hidden border-2 border-pink-200">
               <div className="p-4 lg:p-6">
                 <div className="flex flex-col lg:flex-row gap-4">
                   {sortedImages.length > 1 && (
@@ -289,8 +285,8 @@ const tabs = [
                           onClick={() => handleImageSelect(image.url)}
                           className={`flex-shrink-0 w-16 h-16 lg:w-20 lg:h-20 rounded-lg overflow-hidden border-2 transition-all duration-200 ${
                             selectedImage === image.url 
-                              ? "border-blue-500 shadow-md" 
-                              : "border-gray-200 hover:border-gray-300"
+                              ? "border-pink-400 shadow-md" 
+                              : "border-gray-200 hover:border-pink-200"
                           }`}
                         >
                           <Image
@@ -308,7 +304,7 @@ const tabs = [
                   <div className="flex-1 order-1 lg:order-2">
                     <div
                       ref={imageRef}
-                      className="relative w-full bg-white rounded-xl overflow-hidden border border-gray-200"
+                      className="relative w-full bg-white rounded-xl overflow-hidden border-2 border-pink-200"
                       style={{ aspectRatio: "1/1" }}
                       onMouseMove={handleMouseMove}
                       onMouseLeave={handleMouseLeave}
@@ -319,30 +315,27 @@ const tabs = [
                         fill
                         className="object-cover"
                       />
-
                       {priceData && <PromotionBadge pourcentageReduction={priceData.pourcentageReduction} />}
-
                       <div className="absolute top-3 right-3 z-10">
-                        <div className={`${stockStatus.class} text-xs px-3 py-1 rounded-full font-medium shadow-md`}>
+                        <div className={`${stockStatus.class} text-xs px-3 py-1 rounded-full font-extrabold shadow-md font-[Comic_Sans_MS,sans-serif]`}>
                           {stockStatus.text}
                         </div>
                       </div>
-                      
                       {sortedImages.length > 1 && (
                         <>
                           <button
                             onClick={handlePrevImage}
-                            className="absolute left-2 top-1/2 transform -translate-y-1/2 w-10 h-10 lg:w-12 lg:h-12 bg-white/90 hover:bg-white rounded-full flex items-center justify-center shadow-lg transition-all duration-200"
+                            className="absolute left-2 top-1/2 transform -translate-y-1/2 w-10 h-10 lg:w-12 lg:h-12 bg-white/90 hover:bg-pink-50 rounded-full flex items-center justify-center shadow-lg transition-all duration-200"
                           >
-                            <svg className="w-5 h-5 lg:w-6 lg:h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg className="w-5 h-5 lg:w-6 lg:h-6 text-pink-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                             </svg>
                           </button>
                           <button
                             onClick={handleNextImage}
-                            className="absolute right-2 top-1/2 transform -translate-y-1/2 w-10 h-10 lg:w-12 lg:h-12 bg-white/90 hover:bg-white rounded-full flex items-center justify-center shadow-lg transition-all duration-200"
+                            className="absolute right-2 top-1/2 transform -translate-y-1/2 w-10 h-10 lg:w-12 lg:h-12 bg-white/90 hover:bg-pink-50 rounded-full flex items-center justify-center shadow-lg transition-all duration-200"
                           >
-                            <svg className="w-5 h-5 lg:w-6 lg:h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg className="w-5 h-5 lg:w-6 lg:h-6 text-pink-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                             </svg>
                           </button>
@@ -355,7 +348,7 @@ const tabs = [
                             <div
                               key={index}
                               className={`w-2 h-2 rounded-full transition-colors ${
-                                index === currentImageIndex ? 'bg-white' : 'bg-white/50'
+                                index === currentImageIndex ? 'bg-pink-500' : 'bg-pink-200'
                               }`}
                             />
                           ))}
@@ -381,11 +374,12 @@ const tabs = [
             </div>
           </div>
 
-         <div className="order-2">
-            <div className="bg-white rounded-2xl shadow-lg p-4 lg:p-8 h-fit sticky top-6 border border-gray-200">
+          {/* Infos produit */}
+          <div className="order-2">
+            <div className="bg-white rounded-2xl shadow-lg p-4 lg:p-8 h-fit sticky top-6 border-2 border-pink-200">
               <div className="space-y-6">
                 <div className="flex items-start justify-between gap-4 mb-4">
-                  <h1 className="text-2xl lg:text-3xl xl:text-4xl font-bold text-gray-900 leading-tight flex-1">
+                  <h1 className="text-2xl lg:text-3xl xl:text-4xl font-extrabold text-pink-600 drop-shadow-lg leading-tight flex-1 font-[Comic_Sans_MS,sans-serif]">
                     {produit.nom}
                   </h1>
                   
@@ -423,26 +417,26 @@ const tabs = [
 
                 <div className="flex flex-wrap gap-3 py-4 border-t border-b border-gray-200">
                   {produit.marque && (
-                    <span className="text-sm bg-blue-50 text-blue-700 px-3 py-2 rounded-full font-medium">
+                    <span className="text-sm bg-blue-50 text-blue-700 px-3 py-2 rounded-full font-bold">
                       {produit.marque.nom}
                     </span>
                   )}
                   {produit.categorie && (
-                    <span className="text-sm bg-purple-50 text-purple-700 px-3 py-2 rounded-full font-medium">
+                    <span className="text-sm bg-purple-50 text-purple-700 px-3 py-2 rounded-full font-bold">
                       {produit.categorie.nom}
                     </span>
                   )}
                   {produit.genre && (
-                    <span className="text-sm bg-indigo-50 text-indigo-700 px-3 py-2 rounded-full font-medium">
+                    <span className="text-sm bg-indigo-50 text-indigo-700 px-3 py-2 rounded-full font-bold">
                       {produit.genre}
                     </span>
                   )}
                   {(produit.minAge || produit.maxAge) && (
-                    <span className="text-sm bg-pink-50 text-pink-700 px-3 py-2 rounded-full font-medium">
+                    <span className="text-sm bg-pink-50 text-pink-700 px-3 py-2 rounded-full font-bold">
                       {formatAgeRange(produit.minAge, produit.maxAge, produit.typeAge)}
                     </span>
                   )}
-                  <span className={`text-sm px-3 py-2 rounded-full font-medium ${stockStatus.class}`}>
+                  <span className={`text-sm px-3 py-2 rounded-full font-bold ${stockStatus.class}`}>
                     {stockStatus.text}
                   </span>
                 </div>
@@ -454,7 +448,7 @@ const tabs = [
                         <button
                           onClick={handleDecrement}
                           disabled={quantity === 1}
-                          className="w-10 h-10 rounded-lg border border-gray-300 flex items-center justify-center hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                          className="w-10 h-10 rounded-lg border-2 border-pink-200 flex items-center justify-center hover:bg-pink-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                         >
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
@@ -465,7 +459,7 @@ const tabs = [
                           type="number"
                           value={quantity}
                           onChange={handleQuantityChange}
-                          className="w-20 h-10 text-center border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          className="w-20 h-10 text-center border-2 border-pink-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-400"
                           min="1"
                           max={produit.quantiteStock}
                         />
@@ -473,7 +467,7 @@ const tabs = [
                         <button
                           onClick={handleIncrement}
                           disabled={quantity >= produit.quantiteStock}
-                          className="w-10 h-10 rounded-lg border border-gray-300 flex items-center justify-center hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                          className="w-10 h-10 rounded-lg border-2 border-pink-200 flex items-center justify-center hover:bg-pink-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                         >
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
@@ -486,7 +480,7 @@ const tabs = [
                       <button 
                         onClick={handleAddToCart}
                         disabled={isAddingToCart}
-                        className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-200 flex items-center justify-center space-x-2 shadow-md hover:shadow-lg disabled:opacity-70"
+                        className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-extrabold py-3 px-6 rounded-lg transition-all duration-200 flex items-center justify-center space-x-2 shadow-md hover:shadow-lg disabled:opacity-70"
                       >
                         {isAddingToCart ? (
                           <div className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full"></div>
@@ -504,10 +498,10 @@ const tabs = [
                         <button 
                           onClick={handleToggleFavorite}
                           disabled={isTogglingFavorite}
-                          className={`flex-1 font-medium py-3 px-6 rounded-lg transition-all duration-200 flex items-center justify-center space-x-2 ${
+                          className={`flex-1 font-extrabold py-3 px-6 rounded-lg transition-all duration-200 flex items-center justify-center space-x-2 ${
                             isProductFavorite 
-                              ? 'bg-red-100 hover:bg-red-200 text-red-700 border border-red-200' 
-                              : 'bg-gray-100 hover:bg-gray-200 text-gray-700 border border-gray-200'
+                              ? 'bg-pink-100 hover:bg-pink-200 text-pink-700 border-2 border-pink-200' 
+                              : 'bg-gray-100 hover:bg-gray-200 text-gray-700 border-2 border-gray-200'
                           } ${isTogglingFavorite ? 'opacity-70' : ''}`}
                         >
                           {isTogglingFavorite ? (
@@ -523,13 +517,12 @@ const tabs = [
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
                               </svg>
                               <span className="hidden sm:inline">
-                                {isProductFavorite ? 'Favoris' : 'Favoris'}
+                                Favoris
                               </span>
                             </>
                           )}
                         </button>
-                        
-                        <button className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-3 px-6 rounded-lg transition-colors duration-200 flex items-center justify-center space-x-2 border border-gray-200">
+                        <button className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-extrabold py-3 px-6 rounded-lg transition-colors duration-200 flex items-center justify-center space-x-2 border-2 border-gray-200">
                           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z" />
                           </svg>
@@ -542,20 +535,20 @@ const tabs = [
 
                 {!stockStatus.available && (
                   <div className="space-y-3">
-                    <button className="w-full bg-gray-300 text-gray-500 font-semibold py-3 px-6 rounded-lg cursor-not-allowed" disabled>
+                    <button className="w-full bg-gray-300 text-gray-500 font-extrabold py-3 px-6 rounded-lg cursor-not-allowed" disabled>
                       Produit indisponible
                     </button>
                     <div className="flex space-x-3">
-                      <button className="flex-1 border border-blue-600 text-blue-600 hover:bg-blue-50 font-medium py-3 px-6 rounded-lg transition-colors duration-200">
+                      <button className="flex-1 border-2 border-blue-600 text-blue-600 hover:bg-blue-50 font-extrabold py-3 px-6 rounded-lg transition-colors duration-200">
                         Me notifier
                       </button>
                       <button 
                         onClick={handleToggleFavorite}
                         disabled={isTogglingFavorite}
-                        className={`flex-1 font-medium py-3 px-6 rounded-lg transition-all duration-200 flex items-center justify-center space-x-2 ${
+                        className={`flex-1 font-extrabold py-3 px-6 rounded-lg transition-all duration-200 flex items-center justify-center space-x-2 ${
                           isProductFavorite 
-                            ? 'bg-red-100 hover:bg-red-200 text-red-700 border border-red-200' 
-                            : 'bg-gray-100 hover:bg-gray-200 text-gray-700 border border-gray-200'
+                            ? 'bg-pink-100 hover:bg-pink-200 text-pink-700 border-2 border-pink-200' 
+                            : 'bg-gray-100 hover:bg-gray-200 text-gray-700 border-2 border-gray-200'
                         }`}
                       >
                         <svg 
@@ -574,38 +567,32 @@ const tabs = [
               </div>
             </div>
           </div>
-       
-        
         </div>
 
         {/* Section avec onglets pour Description, Avis et Commentaires */}
         <div className="mt-12">
-          {/* Onglets */}
-          <div className="border-b border-gray-200 mb-6">
+          <div className="border-b-2 border-pink-200 mb-6">
             <nav className="flex space-x-8 overflow-x-auto">
-  {tabs.map((tab) => (
-    <button
-      key={tab.id}
-      onClick={() => setActiveTab(tab.id)}
-      className={`py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap transition-colors ${
-        activeTab === tab.id
-          ? 'border-blue-500 text-blue-600'
-          : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-      }`}
-    >
-      <span className="flex items-center space-x-2">
-        {tab.icon}
-        <span>{tab.label}</span>
-      </span>
-    </button>
-  ))}
-</nav>
+              {tabs.map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`py-4 px-1 border-b-2 font-extrabold text-base whitespace-nowrap transition-colors font-[Comic_Sans_MS,sans-serif] ${
+                    activeTab === tab.id
+                      ? 'border-pink-500 text-pink-600'
+                      : 'border-transparent text-gray-500 hover:text-pink-600 hover:border-pink-300'
+                  }`}
+                >
+                  <span className="flex items-center space-x-2">
+                    {tab.icon}
+                    <span>{tab.label}</span>
+                  </span>
+                </button>
+              ))}
+            </nav>
           </div>
 
-          {/* Contenu des onglets */}
           <div className="space-y-6">
-            
-
             {activeTab === 'avis' && (
               <AvisComponent 
                 idProduit={produit.idProduit}
@@ -620,11 +607,10 @@ const tabs = [
           </div>
         </div>
 
-        <div className="mt-12 bg-white">
+        
           <SameType offers={sameTypeProducts} />
-        </div>
+        
       </div>
-      
       <Footer />
     </div>
   );

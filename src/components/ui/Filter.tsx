@@ -4,12 +4,7 @@ import CategoriesService, { Categorie } from "@/services/categories-service";
 import MarquesService, { Marque } from "@/services/marques-service";
 import TypesService, { Type, TypeResponse } from "@/services/types-service";
 import DualRangeSlider from './DualRangeSlider';
-interface FilterProps {
-  onFiltersChange?: (filters: FilterState) => void;
-  initialFilters?: Partial<FilterState>; // Nouveau prop
-}
 
-// Dans Filter.tsx
 export interface FilterState {
   categories: number[];
   marques: number[];
@@ -19,12 +14,17 @@ export interface FilterState {
   age: { min: number; max: number };
 }
 
-const Filter: React.FC<FilterProps> = ({ onFiltersChange, initialFilters }) => {
-const [categories, setCategories] = useState<number[]>(initialFilters?.categories || []);
+interface FilterProps {
+  onFiltersChange?: (filters: FilterState) => void;
+  initialFilters?: Partial<FilterState>;
+  hideTitle?: boolean; 
+}
+
+const Filter: React.FC<FilterProps> = ({ onFiltersChange, initialFilters, hideTitle }) => {
+  const [categories, setCategories] = useState<number[]>(initialFilters?.categories || []);
   const [marques, setMarques] = useState<number[]>(initialFilters?.marques || []);
   const [types, setTypes] = useState<number[]>(initialFilters?.types || []);
   const [genres, setGenres] = useState<("fille" | "garçon" | "enfant")[]>(initialFilters?.genres || []);
-
   const [prixMin, setPrixMin] = useState<number>(0);
   const [prixMax, setPrixMax] = useState<number>(1500);
   const [ageMin, setAgeMin] = useState<number>(0);
@@ -48,7 +48,7 @@ const [categories, setCategories] = useState<number[]>(initialFilters?.categorie
   const marqueRef = useRef<HTMLDivElement>(null);
   const typeRef = useRef<HTMLDivElement>(null);
   const genreRef = useRef<HTMLDivElement>(null);
-  const [isInitialized, setIsInitialized] = useState(false); // AJOUTE CETTE LIGNE
+  const [isInitialized, setIsInitialized] = useState(false);
 
   const onFiltersChangeRef = useRef(onFiltersChange);
   useEffect(() => {
@@ -56,22 +56,23 @@ const [categories, setCategories] = useState<number[]>(initialFilters?.categorie
   }, [onFiltersChange]);
 
   const genresList: ("fille" | "garçon" | "enfant")[] = ["enfant", "fille", "garçon"];
-useEffect(() => {
+
+  useEffect(() => {
     if (initialFilters) {
       setCategories(initialFilters.categories || []);
       setMarques(initialFilters.marques || []);
       setTypes(initialFilters.types || []);
       setGenres(initialFilters.genres || []);
-      
     }
   }, [initialFilters]);
+
   useEffect(() => {
     loadCategories();
     loadMarques();
     loadTypes();
   }, []);
 
- useEffect(() => {
+  useEffect(() => {
     if (categories.length === 0) {
       setAvailableTypes(typesList);
     } else {
@@ -79,8 +80,6 @@ useEffect(() => {
         type?.categories?.some(cat => categories.includes(cat.idCategorie))
       );
       setAvailableTypes(filteredTypes);
-      
-      // NE SUPPRIMER LES TYPES QUE SI CE N'EST PAS L'INITIALISATION
       if (isInitialized) {
         setTypes(prevTypes => 
           prevTypes.filter(typeId => 
@@ -89,25 +88,24 @@ useEffect(() => {
         );
       }
     }
-  }, [categories, typesList, isInitialized]); // AJOUTER isInitialized
+  }, [categories, typesList, isInitialized]);
 
   const notifyFiltersChange = useCallback(() => {
-  const filters: FilterState = {
-    categories,
-    marques,
-    types,
-    genres,
-    prix: { min: prixMin, max: prixMax },
-    age: { min: ageMin, max: ageMax },
-  };
-  onFiltersChangeRef.current?.(filters);
-}, [categories, marques, types, genres, prixMin, prixMax, ageMin, ageMax]);
+    const filters: FilterState = {
+      categories,
+      marques,
+      types,
+      genres,
+      prix: { min: prixMin, max: prixMax },
+      age: { min: ageMin, max: ageMax },
+    };
+    onFiltersChangeRef.current?.(filters);
+  }, [categories, marques, types, genres, prixMin, prixMax, ageMin, ageMax]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
       notifyFiltersChange();
     }, 300);
-
     return () => clearTimeout(timer);
   }, [notifyFiltersChange]);
 
@@ -117,7 +115,7 @@ useEffect(() => {
       const data = await CategoriesService.getAllCategories();
       setCategoriesList(data);
     } catch (error) {
-      console.error('Erreur lors du chargement des catégories:', error);
+      // silent
     } finally {
       setLoadingCategories(false);
     }
@@ -129,7 +127,7 @@ useEffect(() => {
       const data = await MarquesService.getAllMarques();
       setMarquesList(data);
     } catch (error) {
-      console.error('Erreur lors du chargement des marques:', error);
+      // silent
     } finally {
       setLoadingMarques(false);
     }
@@ -140,8 +138,9 @@ useEffect(() => {
       setLoadingTypes(true);
       const data = await TypesService.getAllTypes();
       setTypesList(data);
+      setIsInitialized(true);
     } catch (error) {
-      console.error('Erreur lors du chargement des types:', error);
+      // silent
     } finally {
       setLoadingTypes(false);
     }
@@ -176,15 +175,15 @@ useEffect(() => {
   };
 
   const resetAllFilters = useCallback(() => {
-  setCategories([]);
-  setMarques([]);
-  setTypes([]);
-  setGenres([]);
-  setPrixMin(0);
-  setPrixMax(1500);
-  setAgeMin(0);
-  setAgeMax(144);
-}, []);
+    setCategories([]);
+    setMarques([]);
+    setTypes([]);
+    setGenres([]);
+    setPrixMin(0);
+    setPrixMax(1500);
+    setAgeMin(0);
+    setAgeMax(144);
+  }, []);
   const getSelectedNames = (selectedIds: number[], itemsList: any[], nameKey: string) => {
     return selectedIds.map(id => {
       const item = itemsList.find(item => item[`id${nameKey}`] === id);
@@ -208,12 +207,12 @@ useEffect(() => {
     isString = false
   }: any) => (
     <div className="mb-6 relative" ref={refEl}>
-      <h3 className={`text-sm font-semibold mb-2 text-${color}-600`}>{label}</h3>
+      <h3 className={`text-xs font-bold mb-2 text-${color}-600 font-[Comic_Sans_MS,sans-serif]`}>{label}</h3>
       <div
-        className="relative flex items-center cursor-pointer"
+        className={`relative flex items-center cursor-pointer rounded-lg border-2 border-gray-200 hover:border-${color}-400 transition-all`}
         onClick={() => !loading && setShow(!show)}
       >
-        <div className={`input input-bordered input-sm w-full truncate pr-8 ${loading ? 'opacity-50' : ''}`}>
+        <div className={`input input-bordered input-sm w-full truncate pr-8 bg-white/80 ${loading ? 'opacity-50' : ''} font-[Comic_Sans_MS,sans-serif]`}>
           {loading ? (
             'Chargement...'
           ) : selected.length > 0 ? (
@@ -239,14 +238,14 @@ useEffect(() => {
             const itemId = isString ? item : item[idKey];
             const itemName = isString ? item : item.nom;
             return (
-              <label key={itemId} className="flex items-center space-x-2 cursor-pointer hover:bg-gray-50 p-2 border-b border-gray-100 last:border-b-0">
+              <label key={itemId} className="flex items-center space-x-2 cursor-pointer hover:bg-pink-50 p-2 border-b border-gray-100 last:border-b-0">
                 <input
                   type="checkbox"
                   checked={selected.includes(itemId)}
                   onChange={() => handleMultiSelect(itemId, setter)}
                   className={`checkbox checkbox-${color} checkbox-sm`}
                 />
-                <span className="text-sm flex-1">{itemName}</span>
+                <span className="text-sm flex-1 font-[Comic_Sans_MS,sans-serif]">{itemName}</span>
               </label>
             );
           })}
@@ -255,28 +254,29 @@ useEffect(() => {
     </div>
   );
 
-  
-
   return (
-    <div className="w-full p-4 bg-white shadow-lg rounded-lg border">
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-bold flex items-center">
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mr-2 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
-          </svg>
-          Filtres
-        </h2>
-        {totalSelections > 0 && (
-          <button onClick={resetAllFilters} className="text-xs text-red-500 hover:text-red-700 underline">
-            Effacer tout
-          </button>
-        )}
-      </div>
+    <div className="w-full p-4 bg-white/80 shadow-xl rounded-2xl border-2 border-pink-200 font-[Comic_Sans_MS,sans-serif]">
+      {/* Titre n'est PAS affiché si hideTitle=true (mobile modal) */}
+      {!hideTitle && (
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-extrabold text-pink-600 drop-shadow-lg flex items-center font-[Comic_Sans_MS,sans-serif]">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mr-2 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+            </svg>
+            Filtres
+          </h2>
+          {totalSelections > 0 && (
+            <button onClick={resetAllFilters} className="text-xs text-red-500 hover:text-red-700 underline font-bold">
+              Effacer tout
+            </button>
+          )}
+        </div>
+      )}
 
       <div>
         <Dropdown 
           label="Catégories" 
-          color="purple" 
+          color="pink" 
           items={categoriesList} 
           selected={categories} 
           setter={setCategories} 
@@ -302,7 +302,7 @@ useEffect(() => {
         
         <Dropdown 
           label="Type de jeu" 
-          color="green" 
+          color="purple" 
           items={availableTypes} 
           selected={types} 
           setter={setTypes} 
@@ -313,35 +313,35 @@ useEffect(() => {
           idKey="idType"
         />
 
-       <DualRangeSlider
-  min={0}
-  max={1500}
-  step={1}
-  minValue={prixMin}
-  maxValue={prixMax}
-  onChange={(min, max) => {
-    setPrixMin(min);
-    setPrixMax(max);
-  }}
-  label="Prix (TND)"
-  color="orange"
-  valueFormatter={(v: number) => `${v} TND`}
-/>
+        <DualRangeSlider
+          min={0}
+          max={1500}
+          step={1}
+          minValue={prixMin}
+          maxValue={prixMax}
+          onChange={(min, max) => {
+            setPrixMin(min);
+            setPrixMax(max);
+          }}
+          label="Prix (TND)"
+          color="orange"
+          valueFormatter={(v: number) => `${v} TND`}
+        />
 
-<DualRangeSlider
-  min={0}
-  max={144}
-  step={1}
-  minValue={ageMin}
-  maxValue={ageMax}
-  onChange={(min, max) => {
-    setAgeMin(min);
-    setAgeMax(max);
-  }}
-  label="Âge"
-  color="pink"
-  valueFormatter={convertAgeToText}
-/>
+        <DualRangeSlider
+          min={0}
+          max={144}
+          step={1}
+          minValue={ageMin}
+          maxValue={ageMax}
+          onChange={(min, max) => {
+            setAgeMin(min);
+            setAgeMax(max);
+          }}
+          label="Âge"
+          color="yellow"
+          valueFormatter={convertAgeToText}
+        />
         
         <Dropdown 
           label="Genre" 
@@ -360,7 +360,7 @@ useEffect(() => {
 
       {totalSelections > 0 && (
         <div className="mt-4">
-          <h3 className="text-sm font-medium mb-2">Filtres actifs :</h3>
+          <h3 className="text-xs font-bold mb-2 text-pink-600 font-[Comic_Sans_MS,sans-serif]">Filtres actifs :</h3>
           <div className="flex flex-wrap gap-1">
             {getSelectedNames(categories, categoriesList, 'Categorie').map((name) => (
               <div key={name} className="badge badge-primary gap-1 text-xs">
@@ -418,29 +418,6 @@ useEffect(() => {
           </div>
         </div>
       )}
-
-      <style jsx>{`
-        .slider-thumb::-webkit-slider-thumb {
-          appearance: none;
-          width: 20px;
-          height: 20px;
-          border-radius: 50%;
-          background: #3b82f6;
-          cursor: pointer;
-          border: 2px solid white;
-          box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-        }
-        
-        .slider-thumb::-moz-range-thumb {
-          width: 20px;
-          height: 20px;
-          border-radius: 50%;
-          background: #3b82f6;
-          cursor: pointer;
-          border: 2px solid white;
-          box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-        }
-      `}</style>
     </div>
   );
 };

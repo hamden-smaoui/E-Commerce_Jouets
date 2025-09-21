@@ -4,10 +4,10 @@ import React from 'react';
 
 interface CommandeItemPromotionProps {
   idProduit: number;
-  prixOriginal: number; // Prix original du produit
+  prixOriginal: number; 
   quantite: number;
-  prixFacture: number; // Prix facturé dans la commande
-  // Nouvelles props optionnelles pour supporter la nouvelle structure
+  prixFacture: number;
+  
   ligne?: {
     prixUnitaireOriginal?: number;
     prixUnitaireFinal?: number;

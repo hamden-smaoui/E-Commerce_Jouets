@@ -43,35 +43,26 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const [isMobile, setIsMobile] = useState(false);
   const [touchStart, setTouchStart] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
-  
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
-  
+
   const { addToCart } = useCart();
   const { addToFavorites, removeFromFavorites, isFavorite } = useFavorites();
-  const { promotions, calculatePriceWithPromotion, hasPromotions } = usePromotions(product.idProduit);
+  const { calculatePriceWithPromotion, hasPromotions } = usePromotions(product.idProduit);
 
   // Detect mobile device
   useEffect(() => {
     const checkIfMobile = () => {
       setIsMobile(window.innerWidth < 768 || 'ontouchstart' in window);
     };
-    
     checkIfMobile();
     window.addEventListener('resize', checkIfMobile);
-    
-    return () => {
-      window.removeEventListener('resize', checkIfMobile);
-    };
+    return () => window.removeEventListener('resize', checkIfMobile);
   }, []);
 
-  // Price calculations
   const { prixFinal, reduction, pourcentageReduction } = calculatePriceWithPromotion(product.prix);
-  
-  // Sort images by rang
+
   const sortedImages = product.images?.sort((a, b) => a.rang - b.rang) || [];
   const hasMultipleImages = sortedImages.length > 1;
-  
-  // Get display image
   const displayImage = sortedImages.length > 0 
     ? sortedImages[currentImageIndex].url 
     : product.image;
@@ -82,7 +73,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
       return { text: "Rupture de stock", class: "bg-red-500", available: false };
     } else if (product.quantiteStock <= 5) {
       return { text: `Stock limité (${product.quantiteStock})`, class: "bg-orange-500", available: true };
-     } else {
+    } else {
       return { text: "En stock", class: "bg-green-500 text-white", available: true };
     }
   };
@@ -100,7 +91,6 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   // Start image cycling (Desktop only)
   const startImageCycling = () => {
     if (!hasMultipleImages || isMobile) return;
-    
     clearAllTimers();
     intervalRef.current = setInterval(() => {
       setCurrentImageIndex((prevIndex) => 
@@ -135,7 +125,6 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   // Mobile touch handlers for manual scroll
   const handleTouchStart = (e: React.TouchEvent) => {
     if (!isMobile || !hasMultipleImages) return;
-    
     const touch = e.touches[0];
     setTouchStart({ x: touch.clientX, y: touch.clientY });
     setIsDragging(false);
@@ -143,12 +132,9 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
 
   const handleTouchMove = (e: React.TouchEvent) => {
     if (!isMobile || !hasMultipleImages) return;
-    
     const touch = e.touches[0];
     const deltaX = Math.abs(touch.clientX - touchStart.x);
     const deltaY = Math.abs(touch.clientY - touchStart.y);
-    
-    // If horizontal swipe is dominant, prevent scrolling
     if (deltaX > deltaY && deltaX > 10) {
       e.preventDefault();
       setIsDragging(true);
@@ -157,40 +143,30 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
 
   const handleTouchEnd = (e: React.TouchEvent) => {
     if (!isMobile || !hasMultipleImages) return;
-    
     const touch = e.changedTouches[0];
     const deltaX = touch.clientX - touchStart.x;
     const deltaY = Math.abs(touch.clientY - touchStart.y);
-    
-    // Only handle horizontal swipes
     if (Math.abs(deltaX) > 50 && Math.abs(deltaX) > deltaY) {
       e.preventDefault();
       e.stopPropagation();
-      
       if (deltaX > 0) {
-        // Swipe right - previous image
         setCurrentImageIndex((prevIndex) => 
           prevIndex === 0 ? sortedImages.length - 1 : prevIndex - 1
         );
       } else {
-        // Swipe left - next image
         setCurrentImageIndex((prevIndex) => 
           prevIndex === sortedImages.length - 1 ? 0 : prevIndex + 1
         );
       }
     } else if (!isDragging) {
-      // If no swipe detected and not dragging, allow normal navigation
-      // Do nothing - let the Link handle navigation
+      // allow normal navigation
     } else {
-      // If was dragging, prevent navigation
       e.preventDefault();
       e.stopPropagation();
     }
-    
     setIsDragging(false);
   };
 
-  // Cleanup on unmount
   useEffect(() => {
     return () => {
       clearAllTimers();
@@ -200,9 +176,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const handleAddToCart = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    
     if (!stockStatus.available) return;
-    
     try {
       setIsAddingToCart(true);
       await addToCart(product.idProduit, 1);
@@ -216,7 +190,6 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const handleToggleFavorite = async (e: React.MouseEvent | React.TouchEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    
     try {
       setIsTogglingFavorite(true);
       if (isFavorite(product.idProduit)) {
@@ -235,7 +208,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
 
   return (
     <Link href={`/site/products/${product.idProduit}`} className="block h-full">
-      <div className="group bg-white rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden h-full flex flex-col border border-gray-100 hover:border-purple-200 cursor-pointer">
+      <div className="group bg-white rounded-2xl shadow-xl hover:shadow-2xl transition-all duration-300 overflow-hidden h-full flex flex-col border-2 border-white/40 hover:border-pink-300 cursor-pointer font-[Comic_Sans_MS,sans-serif]">
         {/* Image Container */}
         <figure 
           className="relative w-full h-48 sm:h-56 md:h-60 overflow-hidden bg-gray-50"
@@ -264,7 +237,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
           
           {/* Stock Status Badge - top-right */}
           <div className="absolute top-3 right-3 z-10">
-            <div className={`${stockStatus.class} text-white text-xs px-3 py-1 rounded-full font-medium shadow-md`}>
+            <div className={`${stockStatus.class} text-white text-xs px-3 py-1 rounded-full font-extrabold shadow-md font-[Comic_Sans_MS,sans-serif]`}>
               {stockStatus.text}
             </div>
           </div>
@@ -276,8 +249,8 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
               disabled={isTogglingFavorite}
               className={`btn btn-circle btn-sm transition-all duration-300 shadow-lg ${
                 isProductFavorite 
-                  ? 'bg-red-500 hover:bg-red-600 text-white border-red-500' 
-                  : 'bg-white/90 hover:bg-white text-gray-600 border-white/90'
+                  ? 'bg-pink-500 hover:bg-pink-600 text-white border-pink-500'
+                  : 'bg-white/90 hover:bg-white text-pink-500 border-white/90'
               } ${isTogglingFavorite ? 'loading' : ''}`}
               title={isProductFavorite ? "Retirer des favoris" : "Ajouter aux favoris"}
             >
@@ -317,7 +290,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
             </div>
           )}
 
-          {/* Mobile Swipe Instruction (only show once briefly) */}
+          {/* Mobile Swipe Instruction */}
           {isMobile && hasMultipleImages && currentImageIndex === 0 && (
             <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-black/60 text-white text-xs px-3 py-2 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
               Glissez pour voir plus d'images
@@ -328,7 +301,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
         {/* Content */}
         <div className="p-4 sm:p-5 flex-1 flex flex-col">
           {/* Product Name */}
-          <h3 className="text-base sm:text-lg font-bold text-gray-900 line-clamp-2 mb-2 min-h-[3rem] group-hover:text-purple-600 transition-colors">
+          <h3 className="text-lg sm:text-xl font-extrabold text-pink-600 drop-shadow-lg mb-2 min-h-[3rem] group-hover:text-purple-600 transition-colors font-[Comic_Sans_MS,sans-serif]">
             {product.nom}
           </h3>
           
@@ -342,12 +315,12 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
           {/* Brand and Category */}
           <div className="flex flex-wrap gap-2 mb-4">
             {product.marque && (
-              <span className="text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded-full font-medium">
+              <span className="text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded-full font-bold font-[Comic_Sans_MS,sans-serif]">
                 {product.marque.nom}
               </span>
             )}
             {product.categorie && (
-              <span className="text-xs bg-purple-50 text-purple-700 px-2 py-1 rounded-full font-medium">
+              <span className="text-xs bg-pink-50 text-pink-600 px-2 py-1 rounded-full font-bold font-[Comic_Sans_MS,sans-serif]">
                 {product.categorie.nom}
               </span>
             )}
@@ -361,8 +334,8 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
                 {hasPromotions && reduction > 0 ? (
                   <div className="space-y-1">
                     {/* New Price */}
-                    <div className="text-base sm:text-lg font-bold text-red-600">
-                      {prixFinal.toFixed(2)} <span className="text-xs text-red-500">TND</span>
+                    <div className="text-base sm:text-lg font-extrabold text-pink-600 font-[Comic_Sans_MS,sans-serif] drop-shadow-lg">
+                      {prixFinal.toFixed(2)} <span className="text-xs text-pink-500">TND</span>
                     </div>
                     {/* Original Price */}
                     <div className="text-xs text-gray-500 line-through">
@@ -370,7 +343,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
                     </div>
                   </div>
                 ) : (
-                  <div className="text-base sm:text-lg font-bold text-gray-900">
+                  <div className="text-base sm:text-lg font-extrabold text-gray-900 font-[Comic_Sans_MS,sans-serif]">
                     {product.prix.toFixed(2)} <span className="text-xs text-gray-600">TND</span>
                   </div>
                 )}
@@ -380,15 +353,15 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
               <button 
                 onClick={handleAddToCart}
                 disabled={!stockStatus.available || isAddingToCart}
-                className={`ml-3 p-2 rounded-lg transition-all duration-200 flex items-center justify-center ${
+                className={`ml-3 btn btn-circle btn-sm bg-purple-100 hover:bg-purple-200 shadow-md hover:scale-105 transition-all flex items-center justify-center ${
                   stockStatus.available 
-                    ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-700 hover:to-purple-700 shadow-md hover:shadow-lg hover:scale-105'
+                    ? 'text-purple-600'
                     : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                 }`}
                 title={stockStatus.available ? "Ajouter au panier" : "Produit indisponible"}
               >
                 {isAddingToCart ? (
-                  <div className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full"></div>
+                  <div className="animate-spin h-5 w-5 border-2 border-purple-600 border-t-transparent rounded-full"></div>
                 ) : (
                   <ShoppingCartIcon className="h-5 w-5" />
                 )}

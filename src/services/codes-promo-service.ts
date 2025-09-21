@@ -1,20 +1,9 @@
-// services/codes-promo-service.ts
 const API_BASE_URL = 'http://localhost:3001/api/jouets';
-
-interface Promotion {
-  idPromotion: number;
-  nom: string;
-  typePromotion: string;
-  valeurPromotion: number;
-  dateDebut: string;
-  dateFin: string;
-  actif: boolean;
-}
 
 export interface CodePromo {
   idCodePromo: number;
   code: string;
-  idPromotion: number;
+  valeurPourcentage: number; // Discount percentage, e.g. 20 for 20%
   actif: boolean;
   utilisationMax: number | null;
   utilisationActuelle: number;
@@ -25,14 +14,12 @@ export interface CodePromo {
 export interface CodePromoFormData {
   idCodePromo?: number | null;
   code: string;
-  idPromotion: number;
+  valeurPourcentage: number;
   utilisationMax: number | null;
   actif?: boolean;
 }
 
-interface CodePromoResponse extends CodePromo {
-  promotion?: Promotion;
-}
+interface CodePromoResponse extends CodePromo {}
 
 interface CodePromoListResponse {
   data: CodePromoResponse[];
@@ -51,13 +38,6 @@ interface StatsCodePromo {
   utilisationMoyenne: number;
 }
 
-interface TopCode extends CodePromo {
-  promotion: {
-    nom: string;
-    typePromotion: string;
-  };
-}
-
 interface UtilisationParPeriode {
   date: string;
   utilisations: number;
@@ -66,40 +46,26 @@ interface UtilisationParPeriode {
 
 class CodesPromoService {
   // Valider un code promo
-  async validerCodePromo(code: string, montantPanier?: number, idUtilisateur?: number): Promise<{
+  async validerCodePromo(code: string): Promise<{
     valide: boolean;
     message: string;
-    promotion?: any;
-    montantMinimum?: number;
+    valeurPourcentage?: number;
   }> {
     try {
-      const params = new URLSearchParams();
-      if (montantPanier) params.append('montantPanier', montantPanier.toString());
-      if (idUtilisateur) params.append('idUtilisateur', idUtilisateur.toString());
-
-      // Corrected URL to match backend route
-      const response = await fetch(`${API_BASE_URL}/codes-promo/valider/${code}?${params}`, {
+      const response = await fetch(`${API_BASE_URL}/codes-promo/valider/${code}`, {
         method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
       });
-
       const data = await response.json();
-      
+
       if (!response.ok) {
-        return {
-          valide: false,
-          message: data.message || 'Code promo invalide',
-          montantMinimum: data.montantMinimum
-        };
+        return { valide: false, message: data.message || 'Code promo invalide' };
       }
 
       return {
         valide: data.valide,
         message: data.message,
-        promotion: data.data?.promotion,
-        montantMinimum: data.montantMinimum
+        valeurPourcentage: data.data?.valeurPourcentage
       };
     } catch (error) {
       return {
@@ -109,7 +75,7 @@ class CodesPromoService {
     }
   }
 
-  // Other methods remain unchanged
+  // Créer un code promo
   async createCodePromo(codePromoData: CodePromoFormData): Promise<CodePromoResponse> {
     try {
       const response = await fetch(`${API_BASE_URL}/codes-promo`, {
@@ -133,11 +99,11 @@ class CodesPromoService {
     }
   }
 
+  // Lister tous les codes promo
   async getAllCodesPromo(params?: {
     page?: number;
     limit?: number;
     actif?: boolean;
-    idPromotion?: number;
     search?: string;
   }): Promise<CodePromoListResponse> {
     try {
@@ -145,7 +111,6 @@ class CodesPromoService {
       if (params?.page) searchParams.append('page', params.page.toString());
       if (params?.limit) searchParams.append('limit', params.limit.toString());
       if (params?.actif !== undefined) searchParams.append('actif', params.actif.toString());
-      if (params?.idPromotion) searchParams.append('idPromotion', params.idPromotion.toString());
       if (params?.search) searchParams.append('search', params.search);
 
       const response = await fetch(`${API_BASE_URL}/codes-promo?${searchParams}`, {
@@ -168,6 +133,7 @@ class CodesPromoService {
     }
   }
 
+  // Récupérer un code promo par ID
   async getCodePromoById(id: number): Promise<CodePromoResponse> {
     try {
       const response = await fetch(`${API_BASE_URL}/codes-promo/${id}`, {
@@ -190,6 +156,7 @@ class CodesPromoService {
     }
   }
 
+  // Mettre à jour un code promo
   async updateCodePromo(id: number, codePromoData: Partial<CodePromoFormData>): Promise<CodePromoResponse> {
     try {
       const response = await fetch(`${API_BASE_URL}/codes-promo/${id}`, {
@@ -213,6 +180,7 @@ class CodesPromoService {
     }
   }
 
+  // Supprimer un code promo
   async deleteCodePromo(id: number): Promise<void> {
     try {
       const response = await fetch(`${API_BASE_URL}/codes-promo/${id}`, {
@@ -232,11 +200,12 @@ class CodesPromoService {
     }
   }
 
+  // Générer des codes promo en masse
   async genererCodesPromo(data: {
-    idPromotion: number;
     nombreCodes: number;
     prefixe?: string;
     longueur?: number;
+    valeurPourcentage: number;
     utilisationMax?: number;
   }): Promise<CodePromoResponse[]> {
     try {
@@ -261,18 +230,17 @@ class CodesPromoService {
     }
   }
 
+  // Statistiques d'utilisation des codes promo
   async getStatsCodesPromo(params?: {
-    idPromotion?: number;
     dateDebut?: string;
     dateFin?: string;
   }): Promise<{
     generales: StatsCodePromo;
-    topCodes: TopCode[];
+    topCodes: CodePromoResponse[];
     utilisationParPeriode: UtilisationParPeriode[];
   }> {
     try {
       const searchParams = new URLSearchParams();
-      if (params?.idPromotion) searchParams.append('idPromotion', params.idPromotion.toString());
       if (params?.dateDebut) searchParams.append('dateDebut', params.dateDebut);
       if (params?.dateFin) searchParams.append('dateFin', params.dateFin);
 
@@ -296,13 +264,12 @@ class CodesPromoService {
     }
   }
 
+  // Exporter codes promo
   async exporterCodesPromo(params?: {
-    idPromotion?: number;
     format?: 'json' | 'csv';
   }): Promise<CodePromoResponse[] | string> {
     try {
       const searchParams = new URLSearchParams();
-      if (params?.idPromotion) searchParams.append('idPromotion', params.idPromotion.toString());
       if (params?.format) searchParams.append('format', params.format);
 
       const response = await fetch(`${API_BASE_URL}/codes-promo/export?${searchParams}`, {
@@ -329,6 +296,7 @@ class CodesPromoService {
     }
   }
 
+  // Activer/Désactiver un code promo
   async toggleCodePromo(id: number): Promise<CodePromoResponse> {
     try {
       const response = await fetch(`${API_BASE_URL}/codes-promo/${id}/toggle`, {
@@ -348,33 +316,6 @@ class CodesPromoService {
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Unknown error occurred';
       throw new Error(`Error toggling code promo: ${message}`);
-    }
-  }
-
-  async dupliquerCodesPromo(data: {
-    idPromotionSource: number;
-    idPromotionCible: number;
-    codesIds: number[];
-  }): Promise<CodePromoResponse[]> {
-    try {
-      const response = await fetch(`${API_BASE_URL}/codes-promo/dupliquer`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to duplicate codes promo');
-      }
-
-      const result = await response.json();
-      return result.data;
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Unknown error occurred';
-      throw new Error(`Error duplicating codes promo: ${message}`);
     }
   }
 }

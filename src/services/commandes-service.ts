@@ -49,6 +49,7 @@ export interface Commande {
   fraisLivraison?: number; // Frais de livraison
   codePromoGlobal?: string; // Code promo utilisé
   idPromotionUtilisee?: number; // ID de la promotion globale utilisée
+  reductionCodePromo?: number; // Montant de la réduction du code promo
   notesLivraison: string | null;
   createdAt: string;
   updatedAt: string;
@@ -71,6 +72,7 @@ export interface CommandeFormData {
   montantReduction?: number;
   fraisLivraison?: number;
   codePromoGlobal?: string;
+  reductionCodePromo?: number;
   notesLivraison?: string | null;
   lignesCommandes?: LigneCommande[];
 }

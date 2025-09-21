@@ -5,7 +5,6 @@ import { FactureResponse } from '@/services/facture-service';
 import FacturesService from '@/services/facture-service';
 import { useStoreInfo } from "@/hooks/useStoreInfo";
 
-
 interface FactureViewModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -21,7 +20,7 @@ const FactureViewModal: React.FC<FactureViewModalProps> = ({
   onEdit,
   onDownloadPDF,
 }) => {
-    const { storeInfo } = useStoreInfo();
+  const { storeInfo } = useStoreInfo();
 
   if (!facture) return null;
 
@@ -108,13 +107,12 @@ const FactureViewModal: React.FC<FactureViewModalProps> = ({
                 />
               )}
               <div>
-                
                 <div className="text-gray-600">
                   <p className="font-semibold">{facture.entrepriseNom}</p>
                   <p>{facture.entrepriseAdresse}</p>
                   <p>Tél: {facture.entrepriseTelephone}</p>
                   <p>Email: {facture.entrepriseEmail}</p>
-             </div>
+                </div>
               </div>
             </div>
             <div className="text-right">
@@ -185,6 +183,31 @@ const FactureViewModal: React.FC<FactureViewModalProps> = ({
             </div>
           )}
 
+          {/* SECTION CODE PROMO */}
+          {facture.commande && (facture.commande.codePromoGlobal || (facture.commande.reductionCodePromo && facture.commande.reductionCodePromo > 0)) && (
+            <div className="mb-8">
+              <div className="bg-green-50 border border-green-200 p-4 rounded-lg">
+                <h3 className="text-lg font-semibold text-green-700 mb-2">Code Promo Appliqué</h3>
+                {facture.commande.codePromoGlobal && (
+                  <p className="text-sm text-green-600 mb-1">
+                    <span className="font-medium">Code utilisé:</span> 
+                    <span className="ml-2 px-2 py-1 bg-green-200 text-green-800 rounded font-mono text-xs">
+                      {facture.commande.codePromoGlobal}
+                    </span>
+                  </p>
+                )}
+                {facture.commande.reductionCodePromo && facture.commande.reductionCodePromo > 0 && (
+                  <p className="text-sm text-green-600">
+                    <span className="font-medium">Réduction obtenue:</span> 
+                    <span className="ml-2 font-bold">
+                      -{FacturesService.formatAmount(facture.commande.reductionCodePromo)}
+                    </span>
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Totaux */}
           <div className="flex justify-end">
             <div className="w-64">
@@ -192,6 +215,13 @@ const FactureViewModal: React.FC<FactureViewModalProps> = ({
                 <span>Sous-total HT:</span>
                 <span>{FacturesService.formatAmount(facture.montantHT)}</span>
               </div>
+              {/* Affichage de la réduction du code promo dans les totaux */}
+              {facture.commande?.reductionCodePromo && facture.commande.reductionCodePromo > 0 && (
+                <div className="flex justify-between py-2 text-green-600">
+                  <span>Réduction code promo:</span>
+                  <span>-{FacturesService.formatAmount(facture.commande.reductionCodePromo)}</span>
+                </div>
+              )}
               <div className="flex justify-between py-2">
                 <span>TVA ({facture.tauxTVA}%):</span>
                 <span>{FacturesService.formatAmount(facture.montantTVA)}</span>

@@ -53,14 +53,10 @@ interface FormData {
   categories: number[];
   marques: number[];
   types: number[];
-  codesPromo: Array<{
-    code: string;
-    utilisationMax: number | null;
-  }>;
+ 
 }
 
 interface PromotionResponse extends Promotion {
-  codesPromo?: Array<{ code: string; actif: boolean }>;
   produits?: Produit[];
   categories?: Categorie[];
   marques?: Marque[];
@@ -120,7 +116,6 @@ const Promotions: React.FC = () => {
     categories: [],
     marques: [],
     types: [],
-    codesPromo: [],
   });
 
   useEffect(() => {
@@ -241,27 +236,7 @@ const Promotions: React.FC = () => {
        </div>
      ),
    },
-   {
-     header: 'Codes promo',
-     render: (item: PromotionResponse) => (
-       <div className="text-sm">
-         {item.codesPromo && item.codesPromo.length > 0 ? (
-           <div>
-             {item.codesPromo.slice(0, 2).map((code, index) => (
-               <div key={index} className="badge badge-sm badge-ghost mr-1">
-                 {code.code}
-               </div>
-             ))}
-             {item.codesPromo.length > 2 && (
-               <div className="text-xs">+{item.codesPromo.length - 2} autres</div>
-             )}
-           </div>
-         ) : (
-           <span className="text-gray-400">Aucun</span>
-         )}
-       </div>
-     ),
-   },
+ 
    {
      header: 'Statut',
      render: (item: PromotionResponse) => getStatusBadge(item.actif),
@@ -591,72 +566,7 @@ const Promotions: React.FC = () => {
      hidden: formData.typeApplication !== 'type',
      hint: 'Sélectionnez les types concernés par la promotion',
    },
-   // Codes promo
-   {
-     name: 'codesPromo',
-     label: 'Codes promo',
-     type: 'custom',
-     render: ({ value, onChange }) => (
-       <div className="space-y-2">
-         {value.map((code: any, index: number) => (
-           <div key={index} className="flex gap-2">
-             <input
-               type="text"
-               className="input input-bordered flex-1"
-               placeholder="Code promo"
-               value={code.code}
-               onChange={(e) => {
-                 const newCodes = [...value];
-                 newCodes[index] = { ...newCodes[index], code: e.target.value.toUpperCase() };
-                 setFormData((prev) => ({ ...prev, codesPromo: newCodes }));
-                 onChange(newCodes);
-               }}
-             />
-             <input
-               type="number"
-               className="input input-bordered w-32"
-               placeholder="Max usage"
-               value={code.utilisationMax || ''}
-               onChange={(e) => {
-                 const newCodes = [...value];
-                 newCodes[index] = { 
-                   ...newCodes[index], 
-                   utilisationMax: e.target.value ? parseInt(e.target.value) : null 
-                 };
-                 setFormData((prev) => ({ ...prev, codesPromo: newCodes }));
-                 onChange(newCodes);
-               }}
-             />
-             <button
-               type="button"
-               className="btn btn-error btn-sm"
-               onClick={() => {
-                 const newCodes = value.filter((_: any, i: number) => i !== index);
-                 setFormData((prev) => ({ ...prev, codesPromo: newCodes }));
-                 onChange(newCodes);
-               }}
-             >
-               ✕
-             </button>
-           </div>
-         ))}
-         <button
-           type="button"
-           className="btn btn-outline btn-sm"
-           onClick={() => {
-             const newCodes = [...value, { code: '', utilisationMax: null }];
-             setFormData((prev) => ({ ...prev, codesPromo: newCodes }));
-             onChange(newCodes);
-           }}
-         >
-           + Ajouter un code
-         </button>
-       </div>
-     ),
-     validation: { required: false },
-     hint: 'Codes promo pour accéder à cette promotion (optionnel)',
-   },
- ];
+  ];
 
  const handleAddSubmit = async (data: FormData) => {
    try {
@@ -676,7 +586,6 @@ const Promotions: React.FC = () => {
        categories: data.categories,
        marques: data.marques,
        types: data.types,
-       codesPromo: data.codesPromo.filter(code => code.code.trim() !== ''),
      };
 
      const newPromotion = await PromotionsService.createPromotion(promotionData);
@@ -722,7 +631,6 @@ const Promotions: React.FC = () => {
        categories: data.categories,
        marques: data.marques,
        types: data.types,
-       codesPromo: data.codesPromo.filter(code => code.code.trim() !== ''),
      };
 
      const updatedPromotion = await PromotionsService.updatePromotion(data.idPromotion, promotionData);
@@ -821,7 +729,6 @@ const Promotions: React.FC = () => {
      categories: [],
      marques: [],
      types: [],
-     codesPromo: [],
    });
  };
 
@@ -850,11 +757,7 @@ const Promotions: React.FC = () => {
        produits: fetchedPromotion.produits?.map(p => p.idProduit) || [],
        categories: fetchedPromotion.categories?.map(c => c.idCategorie) || [],
        marques: fetchedPromotion.marques?.map(m => m.idMarque) || [],
-       types: fetchedPromotion.types?.map(t => t.idType) || [],
-       codesPromo: fetchedPromotion.codesPromo?.map(c => ({ 
-         code: c.code, 
-         utilisationMax: c.utilisationMax 
-       })) || [],
+       types: fetchedPromotion.types?.map(t => t.idType) || []
      });
      
      setIsEditModalOpen(true);
