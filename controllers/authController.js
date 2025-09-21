@@ -73,64 +73,82 @@ class AuthController {
     }
 
     // Connexion
-    async login(req, res) {
-        try {
-            const { email, motDePasse } = req.body;
+async login(req, res) {
+    console.log('Données reçues pour la connexion:', req.body);
+    try {
+        const { email, motDePasse } = req.body;
 
-            // Vérification si l'utilisateur existe
-            const user = await Utilisateur.findOne({ where: { email } });
-            if (!user) {
-                return res.status(400).json({
-                    message: 'Email ou mot de passe incorrect'
-                });
-            }
-
-            // Vérification du mot de passe
-            const isValidPassword = await bcrypt.compare(motDePasse, user.motDePasse);
-            if (!isValidPassword) {
-                return res.status(400).json({
-                    message: 'Email ou mot de passe incorrect'
-                });
-            }
-
-            // Génération du token JWT
-            const token = jwt.sign(
-                {
-                    userId: user.idUtilisateur,
-                    email: user.email,
-                    role: user.role
-                },
-                process.env.JWT_SECRET,
-                { expiresIn: process.env.JWT_EXPIRES_IN }
-            );
-
-            // Retourner les données sans le mot de passe
-           const userResponse = {
-    idUtilisateur: newUser.idUtilisateur,
-    prenom: newUser.prenom,
-    nom: newUser.nom,
-    email: newUser.email,
-    telephone: newUser.telephone,
-    adresseRue: newUser.adresseRue,
-    adresseVille: newUser.adresseVille,
-    adresseCodePostal: newUser.adresseCodePostal,
-    adressePays: newUser.adressePays,
-    role: newUser.role
-};
-
-            res.status(200).json({
-                message: 'Connexion réussie',
-                token,
-                user: userResponse
-            });
-
-        } catch (error) {
-            res.status(500).json({
-                message: 'Erreur lors de la connexion',
-                error: error.message
+        // Vérification si l'utilisateur existe
+        const user = await Utilisateur.findOne({ where: { email } });
+        if (!user) {
+            return res.status(400).json({
+                message: 'Email ou mot de passe incorrect'
             });
         }
+
+        // ✅ NOUVELLE VÉRIFICATION : Utilisateur Google
+        if (user.isGoogleUser && !user.motDePasse) {
+            return res.status(400).json({
+                message: 'Ce compte utilise l\'authentification Google. Veuillez vous connecter avec Google.',
+                isGoogleUser: true
+            });
+        }
+
+        // ✅ VÉRIFICATION : Mot de passe existe
+        if (!user.motDePasse) {
+            return res.status(400).json({
+                message: 'Aucun mot de passe défini pour ce compte'
+            });
+        }
+
+        console.log('1');
+        // Vérification du mot de passe
+        const isValidPassword = await bcrypt.compare(motDePasse, user.motDePasse);
+        if (!isValidPassword) {
+            return res.status(400).json({
+                message: 'Email ou mot de passe incorrect'
+            });
+        }
+
+        console.log('2');
+        // Génération du token JWT
+        const token = jwt.sign(
+            {
+                userId: user.idUtilisateur,
+                email: user.email,
+                role: user.role
+            },
+            process.env.JWT_SECRET,
+            { expiresIn: process.env.JWT_EXPIRES_IN }
+        );
+
+        // Retourner les données sans le mot de passe
+        const userResponse = {
+            idUtilisateur: user.idUtilisateur,
+            prenom: user.prenom,
+            nom: user.nom,
+            email: user.email,
+            telephone: user.telephone,
+            adresseRue: user.adresseRue,
+            adresseVille: user.adresseVille,
+            adresseCodePostal: user.adresseCodePostal,
+            adressePays: user.adressePays,
+            role: user.role
+        };
+
+        res.status(200).json({
+            message: 'Connexion réussie',
+            token,
+            user: userResponse
+        });
+
+    } catch (error) {
+        res.status(500).json({
+            message: 'Erreur lors de la connexion',
+            error: error.message
+        });
     }
+}
 
     // Profil utilisateur (nécessite authentification)
     async getProfile(req, res) {

@@ -24,6 +24,10 @@ const Reclamation = require('./Reclamation');
 const StoreInfo = require('./StoreInfo');
 const Avis = require('./Avis');
 const Commentaire = require('./Commentaire');
+const ProduitVariation = require('./ProduitVariation');
+const Couleur = require('./Couleur');
+const Taille = require('./Taille');
+const Age = require('./Age');
 
 
 // Existing associations
@@ -95,9 +99,6 @@ Produit.belongsTo(Marque, { foreignKey: 'idMarque', as: 'marque' });
 
 Fournisseur.hasMany(Produit, { foreignKey: 'idFournisseur', as: 'produits' });
 Produit.belongsTo(Fournisseur, { foreignKey: 'idFournisseur', as: 'fournisseur' });
-
-Promotion.hasMany(CodePromo, { foreignKey: 'idPromotion', as: 'codesPromo' });
-CodePromo.belongsTo(Promotion, { foreignKey: 'idPromotion', as: 'promotion' });
 
 Promotion.belongsToMany(Produit, {
     through: PromotionProduit,
@@ -177,6 +178,14 @@ Promotion.hasMany(Commande, {
     as: 'commandesGlobales' 
 });
 
+Produit.hasMany(ProduitVariation, { as: 'variations', foreignKey: 'idProduit' });
+ProduitVariation.belongsTo(Produit, { foreignKey: 'idProduit' });
+
+// ProduitVariation → Couleur/Taille/Age
+ProduitVariation.belongsTo(Couleur, { as: 'couleur', foreignKey: 'idCouleur' });
+ProduitVariation.belongsTo(Taille, { as: 'taille', foreignKey: 'idTaille' });
+ProduitVariation.belongsTo(Age, { as: 'age', foreignKey: 'idAge' });
+
 module.exports = {
     sequelize,
     Utilisateur,
@@ -203,6 +212,10 @@ module.exports = {
     Reclamation,
     StoreInfo,
     Avis,
-    Commentaire
+    Commentaire,
+    ProduitVariation,
+    Couleur,
+    Taille,
+    Age
 
 };

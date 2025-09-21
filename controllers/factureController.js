@@ -169,7 +169,7 @@ console.log('Données de la facture:', factureData);
                                 as: 'produit',
                                 attributes: ['idProduit', 'nom', 'description']
                             }]
-                        }
+                        },
                     ]
                 }]
             });
@@ -228,6 +228,7 @@ console.log('Données de la facture:', factureData);
                 include: [{
                     model: Commande,
                     as: 'commande',
+                    attributes: ['idCommande', 'dateCommande', 'montantTotal', 'codePromoGlobal', 'reductionCodePromo'],
                     include: [
                         {
                             model: Utilisateur,
@@ -318,6 +319,7 @@ console.log('Données de la facture:', factureData);
             }
         }
     }
+
 async generateSimpleFacturePDF(doc, facture) {
     const pageWidth = doc.page.width;
     const pageHeight = doc.page.height;
@@ -371,7 +373,7 @@ async generateSimpleFacturePDF(doc, facture) {
                  entrepriseX, yPosition + 50);
     }
 
-    // Informations facture (côté droit) - SANS STATUT
+    // Informations facture (côté droit)
     const rightColumnX = pageWidth - 200;
     doc.fontSize(14)
        .font('Helvetica-Bold')
@@ -537,6 +539,34 @@ async generateSimpleFacturePDF(doc, facture) {
 
     yPosition += 20;
 
+    // SECTION CODE PROMO (simple)
+    if (facture.commande && (facture.commande.codePromoGlobal || (facture.commande.reductionCodePromo && facture.commande.reductionCodePromo > 0))) {
+        // Boîte code promo avec fond vert clair
+        const promoBoxHeight = 40;
+        doc.roundedRect(margin, yPosition, pageWidth - 2 * margin, promoBoxHeight, 5)
+           .fill('#f0fdf4')
+           .stroke('#22c55e');
+
+        // Contenu du code promo
+        const promoPadding = 12;
+        let promoText = '';
+        
+        if (facture.commande.codePromoGlobal && facture.commande.reductionCodePromo > 0) {
+            promoText = `Code promo "${facture.commande.codePromoGlobal}" appliqué - Économie: ${facture.commande.reductionCodePromo.toFixed(2)} TND`;
+        } else if (facture.commande.codePromoGlobal) {
+            promoText = `Code promo "${facture.commande.codePromoGlobal}" appliqué`;
+        } else if (facture.commande.reductionCodePromo > 0) {
+            promoText = `Réduction appliquée: ${facture.commande.reductionCodePromo.toFixed(2)} TND`;
+        }
+
+        doc.fontSize(10)
+           .font('Helvetica-Bold')
+           .fillColor('#15803d')
+           .text(promoText, margin + promoPadding, yPosition + (promoBoxHeight/2) - 5);
+
+        yPosition += promoBoxHeight + 20;
+    }
+
     // Section totaux (alignée à droite)
     const totalsWidth = 250;
     const totalsX = pageWidth - totalsWidth - margin;
@@ -550,8 +580,18 @@ async generateSimpleFacturePDF(doc, facture) {
 
     yPosition += 20;
 
+    // Ligne réduction code promo dans les totaux
+    if (facture.commande?.reductionCodePromo && facture.commande.reductionCodePromo > 0) {
+        doc.fillColor('#22c55e')
+           .text('Réduction code promo:', totalsX, yPosition)
+           .text(`-${facture.commande.reductionCodePromo.toFixed(2)} TND`, totalsX + 120, yPosition);
+        
+        yPosition += 20;
+    }
+
     // TVA
-    doc.text(`TVA (${facture.tauxTVA}%):`, totalsX, yPosition)
+    doc.fillColor('#374151')
+       .text(`TVA (${facture.tauxTVA}%):`, totalsX, yPosition)
        .text(`${facture.montantTVA.toFixed(2)} TND`, totalsX + 120, yPosition);
 
     yPosition += 25;

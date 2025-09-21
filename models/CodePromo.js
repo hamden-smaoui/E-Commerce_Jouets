@@ -12,13 +12,9 @@ const CodePromo = sequelize.define('CodePromo', {
         allowNull: false,
         unique: true,
     },
-    idPromotion: {
-        type: DataTypes.INTEGER,
+    valeurPourcentage: { // Nouveau champ pour la réduction en pourcentage
+        type: DataTypes.DECIMAL(5, 2), // ex: 20.00 pour 20%
         allowNull: false,
-        references: {
-            model: 'promotions',
-            key: 'idPromotion',
-        },
     },
     actif: {
         type: DataTypes.BOOLEAN,

@@ -1,6 +1,5 @@
 const { 
     Promotion, 
-    CodePromo, 
     PromotionProduit, 
     PromotionCategorie,
     PromotionMarque,
@@ -36,8 +35,7 @@ class PromotionController {
                 produits = [],
                 categories = [],
                 marques = [],
-                types = [],
-                codesPromo = []
+                types = []
             } = req.body;
 
             const promotion = await Promotion.create({
@@ -86,14 +84,6 @@ class PromotionController {
                 await PromotionType.bulkCreate(promotionTypes);
             }
 
-            if (codesPromo.length > 0) {
-                const codes = codesPromo.map(codeData => ({
-                    ...codeData,
-                    idPromotion: promotion.idPromotion
-                }));
-                await CodePromo.bulkCreate(codes);
-            }
-
             res.status(201).json({
                 message: 'Promotion créée avec succès',
                 data: promotion
@@ -111,13 +101,13 @@ class PromotionController {
     // Appliquer une promotion en utilisant le service
     static async appliquerPromotion(req, res) {
         try {
-            const { codePromo, panierData, idUtilisateur } = req.body;
+            const { panierData, idUtilisateur } = req.body;
 
-            // Utiliser le service pour appliquer la promotion
+            // Utiliser le service pour appliquer la promotion automatique
             const resultat = await PromotionService.appliquerPromotionCommande({
                 ...panierData,
                 idClient: idUtilisateur
-            }, codePromo);
+            });
 
             if (resultat.error || !resultat.promotion) {
                 return res.status(400).json({
@@ -151,10 +141,6 @@ class PromotionController {
         try {
             const promotions = await Promotion.findAll({
                 include: [
-                    {
-                        model: CodePromo,
-                        as: 'codesPromo'
-                    },
                     {
                         model: Produit,
                         as: 'produits',
@@ -193,10 +179,6 @@ class PromotionController {
         try {
             const promotion = await Promotion.findByPk(req.params.id, {
                 include: [
-                    {
-                        model: CodePromo,
-                        as: 'codesPromo'
-                    },
                     {
                         model: Produit,
                         as: 'produits',
@@ -264,8 +246,7 @@ class PromotionController {
                 produits = [],
                 categories = [],
                 marques = [],
-                types = [],
-                codesPromo = []
+                types = []
             } = req.body;
 
             await promotion.update({
@@ -286,7 +267,6 @@ class PromotionController {
             await PromotionCategorie.destroy({ where: { idPromotion: promotion.idPromotion } });
             await PromotionMarque.destroy({ where: { idPromotion: promotion.idPromotion } });
             await PromotionType.destroy({ where: { idPromotion: promotion.idPromotion } });
-            await CodePromo.destroy({ where: { idPromotion: promotion.idPromotion } });
 
             if (typeApplication === 'produit' && produits.length > 0) {
                 const promotionProduits = produits.map(idProduit => ({
@@ -320,14 +300,6 @@ class PromotionController {
                 await PromotionType.bulkCreate(promotionTypes);
             }
 
-            if (codesPromo.length > 0) {
-                const codes = codesPromo.map(codeData => ({
-                    ...codeData,
-                    idPromotion: promotion.idPromotion
-                }));
-                await CodePromo.bulkCreate(codes);
-            }
-
             res.status(200).json({
                 message: 'Promotion mise à jour avec succès',
                 data: promotion
@@ -355,7 +327,6 @@ class PromotionController {
             await PromotionCategorie.destroy({ where: { idPromotion: promotion.idPromotion } });
             await PromotionMarque.destroy({ where: { idPromotion: promotion.idPromotion } });
             await PromotionType.destroy({ where: { idPromotion: promotion.idPromotion } });
-            await CodePromo.destroy({ where: { idPromotion: promotion.idPromotion } });
             await PromotionUtilisation.destroy({ where: { idPromotion: promotion.idPromotion } });
 
             await promotion.destroy();
@@ -551,6 +522,7 @@ class PromotionController {
             });
         }
     }
+
     // Nouvelle méthode pour obtenir les promotions actives
     static async getPromotionsActives(req, res) {
         try {
@@ -569,51 +541,47 @@ class PromotionController {
             });
         }
     }
-// Ajoutez cette nouvelle méthode dans PromotionController
-static async getPromotionsPourProduit(req, res) {
-    try {
-        const { idProduit } = req.params;
-        
-        // Utiliser le service pour récupérer toutes les promotions applicables
-        const promotions = await PromotionService.getPromotionsActives(parseInt(idProduit));
-        
-        res.status(200).json({
-            message: 'Promotions récupérées avec succès',
-            data: promotions
-        });
-    } catch (error) {
-        console.error('Erreur récupération promotions produit:', error);
-        res.status(500).json({
-            message: 'Erreur lors de la récupération des promotions',
-            error: error.message
-        });
-    }
-}
 
-// Nouvelle méthode pour calculer le prix avec promotions
-static async calculerPrixProduit(req, res) {
-    try {
-        const { idProduit } = req.params;
-        const { prix, quantite = 1 } = req.body;
-        
-        const resultat = await PromotionService.calculerPrixAvecPromotions(
-            parseInt(idProduit), 
-            parseFloat(prix), 
-            parseInt(quantite)
-        );
-        
-        res.status(200).json({
-            message: 'Prix calculé avec succès',
-            data: resultat
-        });
-    } catch (error) {
-        console.error('Erreur calcul prix produit:', error);
-        res.status(500).json({
-            message: 'Erreur lors du calcul du prix',
-            error: error.message
-        });
+    // Nouvelle méthode pour récupérer les promotions d'un produit
+    static async getPromotionsPourProduit(req, res) {
+        try {
+            const { idProduit } = req.params;
+            const promotions = await PromotionService.getPromotionsActives(parseInt(idProduit));
+            res.status(200).json({
+                message: 'Promotions récupérées avec succès',
+                data: promotions
+            });
+        } catch (error) {
+            console.error('Erreur récupération promotions produit:', error);
+            res.status(500).json({
+                message: 'Erreur lors de la récupération des promotions',
+                error: error.message
+            });
+        }
     }
-}
+
+    // Nouvelle méthode pour calculer le prix avec promotions
+    static async calculerPrixProduit(req, res) {
+        try {
+            const { idProduit } = req.params;
+            const { prix, quantite = 1 } = req.body;
+            const resultat = await PromotionService.calculerPrixAvecPromotions(
+                parseInt(idProduit), 
+                parseFloat(prix), 
+                parseInt(quantite)
+            );
+            res.status(200).json({
+                message: 'Prix calculé avec succès',
+                data: resultat
+            });
+        } catch (error) {
+            console.error('Erreur calcul prix produit:', error);
+            res.status(500).json({
+                message: 'Erreur lors du calcul du prix',
+                error: error.message
+            });
+        }
+    }
 }
 
 module.exports = PromotionController;

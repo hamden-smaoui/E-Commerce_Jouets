@@ -11,6 +11,10 @@ const MarqueController = require('../controllers/marqueController');
 const FournisseurController = require('../controllers/fournisseurController');
 const PromotionController = require('../controllers/promotionController');
 const CodePromoController = require('../controllers/codePromoController');
+const CouleurController = require('../controllers/couleurController');
+const TailleController = require('../controllers/tailleController');
+const AgeController = require('../controllers/ageController');
+const ProduitVariationController = require('../controllers/produitVariationController');
 
 module.exports = router;
 
@@ -58,6 +62,36 @@ router.delete('/images/:imageId', ProduitController.deleteImage);
 router.get('/best-sellers', ProduitController.getTop10BestSellingProduits);
 router.get('/search', ProduitController.searchProduits);
 router.get('/search-suggestions', ProduitController.getSearchSuggestions); 
+
+// === NEW ROUTES FOR COULEUR ===
+router.post('/couleurs', CouleurController.create);
+router.get('/couleurs', CouleurController.getAll);
+router.get('/couleurs/:id', CouleurController.getById);
+router.put('/couleurs/:id', CouleurController.edit);
+router.delete('/couleurs/:id', CouleurController.delete);
+
+// === NEW ROUTES FOR TAILLE ===
+router.post('/tailles', TailleController.create);
+router.get('/tailles', TailleController.getAll);
+router.get('/tailles/:id', TailleController.getById);
+router.put('/tailles/:id', TailleController.edit);
+router.delete('/tailles/:id', TailleController.delete);
+
+// === NEW ROUTES FOR AGE ===
+router.post('/ages', AgeController.create);
+router.get('/ages', AgeController.getAll);
+router.get('/ages/:id', AgeController.getById);
+router.put('/ages/:id', AgeController.edit);
+router.delete('/ages/:id', AgeController.delete);
+
+// === NEW ROUTES FOR PRODUIT VARIATION ===
+router.post('/produit-variations', ProduitVariationController.create);
+router.get('/produit-variations', ProduitVariationController.getAll);
+router.get('/produit-variations/:id', ProduitVariationController.getById);
+router.put('/produit-variations/:id', ProduitVariationController.edit);
+router.delete('/produit-variations/:id', ProduitVariationController.delete);
+
+
 // Routes Commande
 router.get('/commandes/stats', CommandeController.getCommandeStats);
 
@@ -121,5 +155,4 @@ router.post('/codes-promo/generer', CodePromoController.genererCodesPromo);
 router.get('/codes-promo/stats/utilisation', CodePromoController.getStatsCodesPromo);
 router.get('/codes-promo/export', CodePromoController.exporterCodesPromo);
 router.patch('/codes-promo/:id/toggle', CodePromoController.toggleCodePromo);
-router.post('/codes-promo/dupliquer', CodePromoController.dupliquerCodesPromo);
 module.exports = router;

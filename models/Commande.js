@@ -99,7 +99,11 @@ const Commande = sequelize.define('Commande', {
         allowNull: true,
         comment: 'Code promo global appliqué à la commande entière'
     },
-}, {
+    reductionCodePromo: {
+        type: DataTypes.DOUBLE,
+        allowNull: true,
+        defaultValue: 0}, 
+      }, {
     timestamps: true,
     tableName: 'commandes',
 });

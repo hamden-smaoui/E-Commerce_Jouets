@@ -1,4 +1,4 @@
-const { Produit, Categorie, Marque, Type, Image, Fournisseur, LigneCommande, Avis, Utilisateur, Commentaire } = require('../models');
+const { Produit, Categorie, Marque, Type, Image, Fournisseur, LigneCommande, Avis, Utilisateur, Commentaire, ProduitVariation, Couleur, Taille, Age } = require('../models');
 const upload = require('../multerConfig');
 const path = require('path');
 const fs = require('fs').promises;
@@ -7,133 +7,126 @@ const { Sequelize, Op } = require('sequelize');
 class ProduitController {
   static uploadImages = upload.array('images', 10); // 'images' field name, max 10 files
 
-  async createProduit(req, res) {
+ async createProduit(req, res) {
     ProduitController.uploadImages(req, res, async (err) => {
       if (err) {
-        console.error('Upload error:', err);
-        return res.status(400).json({
-          message: 'Erreur lors du téléchargement des images',
-          error: err.message,
-        });
+        return res.status(400).json({ message: 'Erreur lors du téléchargement des images', error: err.message });
       }
       try {
-        const { nom, description, prix, quantiteStock, idCategorie, idMarque, idFournisseur, idType, minAge, maxAge, typeAge, genre } = req.body;
+        const { nom, description, prix,quantiteStock, idCategorie, idMarque, idFournisseur, idType, genre, variants } = req.body;
 
-        // Create product without images
+        // 1. Création du produit principal
         const produit = await Produit.create({
           nom,
           description,
-          prix: nom ? parseFloat(prix) : null,
+          prix: parseFloat(prix),
           quantiteStock: parseInt(quantiteStock),
           idCategorie: parseInt(idCategorie),
           idMarque: parseInt(idMarque),
           idType: idType ? parseInt(idType) : null,
           idFournisseur: parseInt(idFournisseur),
-          minAge,
-          maxAge,
-          typeAge,
           genre,
         });
 
-        // Save images to Image model
+        // 2. Images
         if (req.files && Array.isArray(req.files)) {
-          const images = req.files.map((file, index) => ({
+          const images = req.files.map((file, i) => ({
             url: `/Uploads/${file.filename}`,
-            rang: index + 1,
+            rang: i + 1,
             idProduit: produit.idProduit,
           }));
           await Image.bulkCreate(images);
         }
 
-        // Fetch the created product with associations
+        // 3. Variantes
+        let variantsArray = [];
+        if (variants) {
+          variantsArray = typeof variants === "string" ? JSON.parse(variants) : variants;
+          for (const v of variantsArray) {
+            await ProduitVariation.create({
+              idProduit: produit.idProduit,
+              idCouleur: v.idCouleur,
+              idTaille: v.idTaille || null,
+              idAge: v.idAge || null,
+              quantiteStock: v.quantiteStock,
+            });
+          }
+        }
+
+        // 4. Retour produit complet
         const createdProduit = await Produit.findByPk(produit.idProduit, {
           include: [
-            { model: Categorie, as: 'categorie', attributes: ['idCategorie', 'nom'] },
-            { model: Marque, as: 'marque', attributes: ['idMarque', 'nom'] },
-            { model: Type, as: 'type', attributes: ['idType', 'nom'] },
-            { model: Fournisseur, as: 'fournisseur', attributes: ['idFournisseur', 'nom'] },
-            { model: Image, as: 'images', attributes: ['idImage', 'url', 'rang'], order: [['rang', 'ASC']] },
-          ],
+            { model: Categorie, as: 'categorie' },
+            { model: Marque, as: 'marque' },
+            { model: Type, as: 'type' },
+            { model: Fournisseur, as: 'fournisseur' },
+            { model: Image, as: 'images', order: [['rang', 'ASC']] },
+            { 
+              model: ProduitVariation, as: 'variations',
+              include: [
+                { model: Couleur, as: 'couleur' },
+                { model: Taille, as: 'taille' },
+                { model: Age, as: 'age' }
+              ]
+            }
+          ]
         });
-
-        res.status(201).json({
-          message: 'Produit créé avec succès',
-          data: createdProduit,
-        });
+        res.status(201).json({ message: 'Produit créé avec succès', data: createdProduit });
       } catch (error) {
-        console.error('Create produit error:', error);
-        res.status(500).json({
-          message: 'Erreur lors de la création du produit',
-          error: error.message,
-        });
+        res.status(500).json({ message: 'Erreur lors de la création du produit', error: error.message });
       }
     });
-  }
-
-  async getAllProduits(req, res) {
+  }async getAllProduits(req, res) {
     try {
       const produits = await Produit.findAll({
         include: [
-          { model: Categorie, as: 'categorie', attributes: ['idCategorie', 'nom'] },
-          { model: Marque, as: 'marque', attributes: ['idMarque', 'nom'] },
-          { model: Type, as: 'type', attributes: ['idType', 'nom'] },
-          { model: Fournisseur, as: 'fournisseur', attributes: ['idFournisseur', 'nom'] },
+          { model: Categorie, as: 'categorie' },
+          { model: Marque, as: 'marque' },
+          { model: Type, as: 'type' },
+          { model: Fournisseur, as: 'fournisseur' },
+          { model: Image, as: 'images', order: [['rang', 'ASC']] },
           { 
-            model: Image, 
-            as: 'images', 
-            attributes: ['idImage', 'url', 'rang'],
-            order: [['rang', 'ASC']]
-          },
-        ],
+            model: ProduitVariation, as: 'variations',
+            include: [
+              { model: Couleur, as: 'couleur' },
+              { model: Taille, as: 'taille' },
+              { model: Age, as: 'age' }
+            ]
+          }
+        ]
       });
       res.status(200).json(produits);
     } catch (error) {
-      console.error('Get all produits error:', error);
-      res.status(500).json({
-        message: 'Erreur lors de la récupération des produits',
-        error: error.message,
-      });
+      res.status(500).json({ message: 'Erreur lors de la récupération des produits', error: error.message });
     }
   }
 
+  // GET produit by id (+ variantes, images, etc)
   async getProduitById(req, res) {
     try {
       const produit = await Produit.findByPk(req.params.id, {
         include: [
-          { model: Categorie, as: 'categorie', attributes: ['idCategorie', 'nom'] },
-          { model: Marque, as: 'marque', attributes: ['idMarque', 'nom'] },
-          { model: Type, as: 'type', attributes: ['idType', 'nom'] },
-          { model: Fournisseur, as: 'fournisseur', attributes: ['idFournisseur', 'nom'] },
+          { model: Categorie, as: 'categorie' },
+          { model: Marque, as: 'marque' },
+          { model: Type, as: 'type' },
+          { model: Fournisseur, as: 'fournisseur' },
+          { model: Image, as: 'images', order: [['rang', 'ASC']] },
           { 
-            model: Image, 
-            as: 'images', 
-            attributes: ['idImage', 'url', 'rang'],
-            order: [['rang', 'ASC']]
+            model: ProduitVariation, as: 'variations',
+            include: [
+              { model: Couleur, as: 'couleur' },
+              { model: Taille, as: 'taille' },
+              { model: Age, as: 'age' }
+            ]
           },
-          { 
-    model: Avis, 
-    as: 'avis',
-    include: [{ model: Utilisateur, as: 'utilisateur', attributes: ['prenom', 'nom'] }]
-  },
-  { 
-    model: Commentaire, 
-    as: 'commentaires',
-    include: [{ model: Utilisateur, as: 'utilisateur', attributes: ['prenom', 'nom'] }],
-    limit: 5, // Limiter à 5 commentaires récents
-    order: [['createdAt', 'DESC']]
-  }
-        ],
+          { model: Avis, as: 'avis', include: [{ model: Utilisateur, as: 'utilisateur' }] },
+          { model: Commentaire, as: 'commentaires', include: [{ model: Utilisateur, as: 'utilisateur' }], limit: 5, order: [['createdAt', 'DESC']] }
+        ]
       });
-      if (!produit) {
-        return res.status(404).json({ message: 'Produit non trouvé' });
-      }
+      if (!produit) return res.status(404).json({ message: 'Produit non trouvé' });
       res.status(200).json(produit);
     } catch (error) {
-      console.error('Get produit by ID error:', error);
-      res.status(500).json({
-        message: 'Erreur lors de la récupération du produit',
-        error: error.message,
-      });
+      res.status(500).json({ message: 'Erreur lors de la récupération du produit', error: error.message });
     }
   }
 
@@ -150,9 +143,7 @@ class ProduitController {
           'idMarque',
           'idType',
           'idFournisseur',
-          'minAge',
-          'maxAge',
-          'typeAge',
+          
           'genre',
           [Sequelize.fn('COALESCE', Sequelize.fn('SUM', Sequelize.col('lignesCommandes.quantite')), 0), 'totalVendu'],
         ],
@@ -202,146 +193,72 @@ class ProduitController {
 
   async updateProduit(req, res) {
     ProduitController.uploadImages(req, res, async (err) => {
-      if (err) {
-        console.error('Upload error:', err);
-        return res.status(400).json({
-          message: 'Erreur lors du téléchargement des images',
-          error: err.message,
-        });
-      }
+      if (err) return res.status(400).json({ message: 'Erreur upload', error: err.message });
       try {
-        const produit = await Produit.findByPk(req.params.id, {
-          include: [{ model: Image, as: 'images' }],
-        });
-        if (!produit) {
-          return res.status(404).json({ message: 'Produit non trouvé' });
-        }
+        const produit = await Produit.findByPk(req.params.id, { include: [{ model: Image, as: 'images' }] });
+        if (!produit) return res.status(404).json({ message: 'Produit non trouvé' });
 
-        const { 
-          nom, 
-          description, 
-          prix, 
-          quantiteStock, 
-          idCategorie, 
-          idMarque, 
-          idType, 
-          idFournisseur,
-          minAge,
-          maxAge,
-          typeAge,
-          genre,
-          imagesToDelete,
-          imageRangs
-        } = req.body;
+        const { nom, description, prix,quantiteStock, idCategorie, idMarque, idType, idFournisseur, genre, imagesToDelete, imageRangs } = req.body;
 
-        // Update product data
         await produit.update({
-          nom,
-          description,
-          prix: parseFloat(prix),
-          quantiteStock: parseInt(quantiteStock),
+          nom, description, prix: parseFloat(prix),quantiteStock: parseInt(quantiteStock),
           idCategorie: parseInt(idCategorie),
           idMarque: parseInt(idMarque),
           idType: idType ? parseInt(idType) : null,
           idFournisseur: parseInt(idFournisseur),
-          minAge,
-          maxAge,
-          typeAge,
           genre,
         });
 
-        // Handle image deletions if specified
-        if (imagesToDelete && Array.isArray(imagesToDelete) && imagesToDelete.length > 0) {
-          const imagesToDeleteParsed = imagesToDelete.map(id => parseInt(id));
-          const imagesToDeleteFromDb = await Image.findAll({
-            where: { 
-              idImage: imagesToDeleteParsed,
-              idProduit: produit.idProduit 
-            }
-          });
-
-          // Delete images from disk
-          for (const image of imagesToDeleteFromDb) {
-            const imagePath = path.join(__dirname, '..', image.url);
-            try {
-              await fs.unlink(imagePath);
-              console.log('Image deleted from disk:', imagePath);
-            } catch (err) {
-              console.error('Failed to delete image from disk:', err);
-            }
+        // Delete images if needed
+        if (imagesToDelete && Array.isArray(imagesToDelete)) {
+          const idsToDelete = imagesToDelete.map(Number);
+          const imgs = await Image.findAll({ where: { idImage: idsToDelete, idProduit: produit.idProduit } });
+          for (const img of imgs) {
+            try { await fs.unlink(path.join(__dirname, '..', img.url)); } catch {}
           }
-
-          // Delete images from database
-          await Image.destroy({
-            where: { 
-              idImage: imagesToDeleteParsed,
-              idProduit: produit.idProduit 
-            }
-          });
+          await Image.destroy({ where: { idImage: idsToDelete, idProduit: produit.idProduit } });
         }
 
-        // Update existing image ranks if provided
+        // Update image rangs
         if (imageRangs && typeof imageRangs === 'object') {
-          for (const [imageId, newRang] of Object.entries(imageRangs)) {
-            await Image.update(
-              { rang: parseInt(newRang) },
-              { 
-                where: { 
-                  idImage: parseInt(imageId),
-                  idProduit: produit.idProduit 
-                }
-              }
-            );
+          for (const [id, rang] of Object.entries(imageRangs)) {
+            await Image.update({ rang: parseInt(rang) }, { where: { idImage: parseInt(id), idProduit: produit.idProduit } });
           }
         }
 
-        // Add new images if provided
+        // Add new images
         if (req.files && Array.isArray(req.files) && req.files.length > 0) {
-          // Get the highest existing rang
-          const existingImages = await Image.findAll({
-            where: { idProduit: produit.idProduit },
-            order: [['rang', 'DESC']],
-            limit: 1
-          });
-          
-          const maxRang = existingImages.length > 0 ? existingImages[0].rang : 0;
-
-          // Create new images with incremental rang
-          const newImages = req.files.map((file, index) => ({
+          const last = await Image.findOne({ where: { idProduit: produit.idProduit }, order: [['rang', 'DESC']] });
+          const maxRang = last ? last.rang : 0;
+          const newImages = req.files.map((file, i) => ({
             url: `/Uploads/${file.filename}`,
-            rang: maxRang + index + 1,
+            rang: maxRang + i + 1,
             idProduit: produit.idProduit,
           }));
-          
           await Image.bulkCreate(newImages);
         }
 
-        // Fetch updated product with associations
         const updatedProduit = await Produit.findByPk(produit.idProduit, {
           include: [
-            { model: Categorie, as: 'categorie', attributes: ['idCategorie', 'nom'] },
-            { model: Marque, as: 'marque', attributes: ['idMarque', 'nom'] },
-            { model: Type, as: 'type', attributes: ['idType', 'nom'] },
-            { model: Fournisseur, as: 'fournisseur', attributes: ['idFournisseur', 'nom'] },
+            { model: Categorie, as: 'categorie' },
+            { model: Marque, as: 'marque' },
+            { model: Type, as: 'type' },
+            { model: Fournisseur, as: 'fournisseur' },
+            { model: Image, as: 'images', order: [['rang', 'ASC']] },
             { 
-              model: Image, 
-              as: 'images', 
-              attributes: ['idImage', 'url', 'rang'],
-              order: [['rang', 'ASC']]
-            },
-          ],
+              model: ProduitVariation, as: 'variations',
+              include: [
+                { model: Couleur, as: 'couleur' },
+                { model: Taille, as: 'taille' },
+                { model: Age, as: 'age' }
+              ]
+            }
+          ]
         });
 
-        res.status(200).json({
-          message: 'Produit mis à jour avec succès',
-          data: updatedProduit,
-        });
+        res.status(200).json({ message: 'Produit mis à jour', data: updatedProduit });
       } catch (error) {
-        console.error('Update produit error:', error);
-        res.status(500).json({
-          message: 'Erreur lors de la mise à jour du produit',
-          error: error.message,
-        });
+        res.status(500).json({ message: 'Erreur lors de la mise à jour', error: error.message });
       }
     });
   }
@@ -378,37 +295,27 @@ class ProduitController {
   }
 
   async deleteProduit(req, res) {
-    try {
-      const produit = await Produit.findByPk(req.params.id, {
-        include: [{ model: Image, as: 'images' }],
-      });
-      if (!produit) {
-        return res.status(404).json({ message: 'Produit non trouvé' });
-      }
+  try {
+    const produit = await Produit.findByPk(req.params.id, { include: [{ model: Image, as: 'images' }] });
+    if (!produit) return res.status(404).json({ message: 'Produit non trouvé' });
 
-      // Delete associated images from disk
-      if (produit.images && produit.images.length > 0) {
-        for (const image of produit.images) {
-          const imagePath = path.join(__dirname, '..', image.url);
-          try {
-            await fs.unlink(imagePath);
-            console.log('Image deleted:', imagePath);
-          } catch (err) {
-            console.error('Failed to delete image:', err);
-          }
-        }
-      }
+    // Supprimer les variantes liées
+    await ProduitVariation.destroy({ where: { idProduit: produit.idProduit } });
 
-      await produit.destroy();
-      res.status(200).json({ message: 'Produit supprimé avec succès' });
-    } catch (error) {
-      console.error('Delete produit error:', error);
-      res.status(500).json({
-        message: 'Erreur lors de la suppression du produit',
-        error: error.message,
-      });
+    // Supprimer les images sur le disque
+    if (produit.images && produit.images.length > 0) {
+      for (const img of produit.images) {
+        try { await fs.unlink(path.join(__dirname, '..', img.url)); } catch {}
+      }
     }
+
+    // Supprimer le produit
+    await produit.destroy();
+    res.status(200).json({ message: 'Produit supprimé avec succès' });
+  } catch (error) {
+    res.status(500).json({ message: 'Erreur lors de la suppression du produit', error: error.message });
   }
+}
 searchProduits = async (req, res) => {
   try {
     const { q, category, marque, type, minPrice, maxPrice, page = 1, limit = 12 } = req.query;

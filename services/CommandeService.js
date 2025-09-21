@@ -41,7 +41,7 @@ class CommandeService {
             fraisLivraison, 
             transaction
         );
-        
+        console.log('Commande créée avec ID:', commande.idCommande ,lignesAvecPromotions);
         // 6. Créer lignes de commande
         await this.creerLignesCommande(commande.idCommande, lignesAvecPromotions, transaction);
         
@@ -79,6 +79,7 @@ async traiterProduitsEtPromotions(lignesCommandes, idClient, transaction) {
                 ligne.quantite,
                 idClient
             );
+            console.log('Ligne avec promotion:', {...ligne , prixUnitaireOriginal: produit.prix, prixUnitaireFinal: promotionResult.prixFinal, reductionUnitaire: produit.prix - promotionResult.prixFinal, idPromotionAppliquee: promotionResult.idPromotion || null, sousTotal: promotionResult.prixFinal * ligne.quantite});
 
             return {
                 ...ligne,
@@ -88,6 +89,7 @@ async traiterProduitsEtPromotions(lignesCommandes, idClient, transaction) {
                 idPromotionAppliquee: promotionResult.idPromotion || null,
                 sousTotal: promotionResult.prixFinal * ligne.quantite
             }; 
+            
         })
     );
 }
@@ -111,39 +113,39 @@ async traiterProduitsEtPromotions(lignesCommandes, idClient, transaction) {
         };
     }
     
-    async appliquerCodePromoGlobal(codePromo, commandeData, lignesAvecPromotions, montants, fraisLivraison, transaction) {
-        let montantFinal = montants.montantProduits;
-        let promotionGlobale = null;
-        let reductionCodePromo = 0;
+ async appliquerCodePromoGlobal(codePromo, commandeData, lignesAvecPromotions, montants, fraisLivraison, transaction) {
+    let montantFinal = montants.montantProduits;
+    let reductionCodePromo = 0;
+    let codePromoResult = null; // <-- always defined
 
-        if (codePromo) {
-            const donneesCommande = {
-                ...commandeData,
-                montantTotal: montants.montantProduits,
-                lignesCommandes: lignesAvecPromotions,
-                fraisLivraison: parseFloat(fraisLivraison) || 0
-            };
-
-            const promotionResult = await PromotionService.appliquerCodePromo(
-                donneesCommande, 
-                codePromo,
-                transaction
-            );
-
-            if (promotionResult.promotion) {
-                promotionGlobale = promotionResult.promotion;
-                reductionCodePromo = promotionResult.montantReduction;
-                montantFinal = promotionResult.montantFinal;
-            }
-        }
-        
-        return {
-            montantFinal,
-            promotionGlobale,
-            reductionCodePromo,
-            reductionTotale: montants.montantOriginal - montantFinal
+    if (codePromo) {
+        const donneesCommande = {
+            ...commandeData,
+            montantTotal: montants.montantProduits,
+            lignesCommandes: lignesAvecPromotions,
+            fraisLivraison: parseFloat(fraisLivraison) || 0
         };
+
+        // APPELER LE NOUVEAU SERVICE
+        codePromoResult = await PromotionService.appliquerCodePromo(
+            donneesCommande, 
+            codePromo,
+            transaction
+        );
+
+        if (codePromoResult && !codePromoResult.error) {
+            reductionCodePromo = codePromoResult.montantReduction;
+            montantFinal = codePromoResult.montantFinal;
+        }
     }
+    console.log('Montants après code promo:', { montantFinal, reductionCodePromo, montants ,reductionTotale: montants.montantOriginal - montantFinal });
+    return {
+        montantFinal,
+        reductionCodePromo,
+        reductionTotale: montants.montantOriginal - montantFinal,
+        codePromoResult 
+    };
+}
     
     async mettreAJourProfilUtilisateur(commandeData, transaction) {
         const utilisateur = await Utilisateur.findByPk(commandeData.idClient, { transaction });
@@ -177,12 +179,12 @@ async traiterProduitsEtPromotions(lignesCommandes, idClient, transaction) {
     async creerEntiteCommande(commandeData, montants, resultatsPromo, fraisLivraison, transaction) {
         return await Commande.create({
             ...commandeData,
-            montantTotal: montants.montantTotalAvecLivraison,
+            montantTotal: resultatsPromo.montantFinal,
             montantOriginal: montants.montantOriginal + montants.fraisLivraisonFinal,
-            montantReduction: resultatsPromo.reductionTotale + resultatsPromo.reductionCodePromo,
+            montantReduction: resultatsPromo.reductionTotale ,
             fraisLivraison: montants.fraisLivraisonFinal,
-            idPromotionUtilisee: resultatsPromo.promotionGlobale?.idPromotion || null,
-            codePromoGlobal: null // sera ajouté si nécessaire
+            codePromoGlobal:resultatsPromo.codePromoResult.codePromo.code,
+            reductionCodePromo: resultatsPromo.reductionCodePromo || 0
         }, { transaction });
     }
     

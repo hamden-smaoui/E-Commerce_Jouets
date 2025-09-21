@@ -1,7 +1,5 @@
-// services/PromotionService.js
 const { 
     Promotion, 
-    CodePromo, 
     PromotionProduit, 
     PromotionCategorie,
     PromotionMarque,
@@ -11,64 +9,58 @@ const {
     Categorie,
     Marque,
     Type 
+    , CodePromo
 } = require('../models');
 const { Op } = require('sequelize');
 
 class PromotionService {
-    
-    // Dans PromotionService.js
 
-static async appliquerPromotionCommande(commandeData, codePromo = null, transaction = null) {
-    try {
-        const promotion = await this.trouverPromotionApplicable(commandeData, codePromo, transaction);
-        
-        if (!promotion.promotion) {
+    // Appliquer automatiquement une promotion (plus de codePromo ici)
+    static async appliquerPromotionCommande(commandeData, transaction = null) {
+        try {
+            const promotion = await this.trouverPromotionAutomatique(commandeData);
+
+            if (!promotion) {
+                return { 
+                    montantReduction: 0, 
+                    promotion: null,
+                    montantFinal: commandeData.montantTotal
+                };
+            }
+
+            const eligibilite = await this.verifierEligibiliteComplete(
+                promotion, 
+                commandeData, 
+                commandeData.idClient,
+                transaction
+            );
+
+            if (!eligibilite.eligible) {
+                return { 
+                    montantReduction: 0, 
+                    promotion: null,
+                    montantFinal: commandeData.montantTotal,
+                    error: eligibilite.message
+                };
+            }
+
+            const montantReduction = await this.calculerReductionComplete(promotion, commandeData, transaction);
+
+            return {
+                montantReduction,
+                promotion,
+                montantFinal: Math.max(0, commandeData.montantTotal - montantReduction)
+            };
+        } catch (error) {
+            console.error('Erreur service promotion:', error);
             return { 
                 montantReduction: 0, 
                 promotion: null,
                 montantFinal: commandeData.montantTotal,
-                codePromo: null
+                error: error.message
             };
         }
-
-        const eligibilite = await this.verifierEligibiliteComplete(
-            promotion.promotion, 
-            commandeData, 
-            commandeData.idClient,
-            promotion.codePromoObjet,
-            transaction
-        );
-
-        if (!eligibilite.eligible) {
-            return { 
-                montantReduction: 0, 
-                promotion: null,
-                montantFinal: commandeData.montantTotal,
-                error: eligibilite.message,
-                codePromo: null
-            };
-        }
-
-        const montantReduction = await this.calculerReductionComplete(promotion.promotion, commandeData, transaction);
-        
-        return {
-            montantReduction,
-            promotion: promotion.promotion,
-            codePromo: promotion.codePromoObjet,
-            montantFinal: Math.max(0, commandeData.montantTotal - montantReduction)
-        };
-
-    } catch (error) {
-        console.error('Erreur service promotion:', error);
-        return { 
-            montantReduction: 0, 
-            promotion: null,
-            montantFinal: commandeData.montantTotal,
-            error: error.message,
-            codePromo: null
-        };
     }
-}
 
 // Modifier aussi cette méthode
 static async enregistrerUtilisation(idPromotion, idCommande, idUtilisateur, montantReduction, idCodePromo = null, transaction = null) {
@@ -686,7 +678,7 @@ static async calculerPrixProduit(idProduit, prixOriginal, quantite = 1, idUtilis
             ],
             transaction
         });
-
+        console.log('Produit récupéré:', produit);
         if (!produit) {
             throw new Error('Produit non trouvé');
         }
@@ -730,6 +722,7 @@ static async calculerPrixProduit(idProduit, prixOriginal, quantite = 1, idUtilis
             ],
             transaction
         });
+        console.log('Promotions trouvées:', promotions);
 
         // Si aucune promotion, retourner le prix original
         if (!promotions || promotions.length === 0) {
@@ -776,6 +769,9 @@ static async calculerPrixProduit(idProduit, prixOriginal, quantite = 1, idUtilis
             } else if (promotion.typeApplication === 'type') {
                 produitEligible = promotion.types.some(t => t.idType === produit.idType);
             }
+            else if (promotion.typeApplication === 'global' || promotion.typeApplication === 'panier') {
+                produitEligible = true;
+            }   
 
             if (!produitEligible) {
                 continue;
@@ -797,7 +793,7 @@ static async calculerPrixProduit(idProduit, prixOriginal, quantite = 1, idUtilis
 
         const prixFinal = Math.max(0, prixOriginal - meilleurReduction);
         const pourcentageReduction = prixOriginal > 0 ? (meilleurReduction / prixOriginal) * 100 : 0;
-
+        console.log('resultat du calcul:', { prixFinal, meilleurReduction, pourcentageReduction, meilleurePromotion });
         return {
             prixFinal,
             idPromotion: meilleurePromotion ? meilleurePromotion.idPromotion : null,
@@ -814,79 +810,55 @@ static async calculerPrixProduit(idProduit, prixOriginal, quantite = 1, idUtilis
 
 static async appliquerCodePromo(commandeData, codePromo, transaction = null) {
     try {
-        const maintenant = new Date();
+      // 1. Vérifier l'existence et la validité du code promo
+      const codePromoObjet = await CodePromo.findOne({
+        where: {
+          code: codePromo,
+          actif: true
+        },
+        transaction
+      });
 
-        // 1. Vérifier l'existence et la validité du code promo
-        const codePromoObjet = await CodePromo.findOne({
-            where: {
-                code: codePromo,
-                actif: true
-            },
-            include: [{
-                model: Promotion,
-                as: 'promotion',
-                where: {
-                    actif: true,
-                    dateDebut: { [Op.lte]: maintenant },
-                    dateFin: { [Op.gte]: maintenant }
-                }
-            }],
-            transaction
-        });
-
-        if (!codePromoObjet || !codePromoObjet.promotion) {
-            return {
-                montantReduction: 0,
-                promotion: null,
-                montantFinal: commandeData.montantTotal,
-                codePromo: null,
-                error: 'Code promo invalide ou promotion expirée'
-            };
-        }
-
-        const promotion = codePromoObjet.promotion;
-
-        // 2. Vérifier l'éligibilité de la promotion
-        const eligibilite = await this.verifierEligibiliteComplete(
-            promotion,
-            commandeData,
-            commandeData.idClient,
-            codePromoObjet,
-            transaction
-        );
-
-        if (!eligibilite.eligible) {
-            return {
-                montantReduction: 0,
-                promotion: null,
-                montantFinal: commandeData.montantTotal,
-                codePromo: null,
-                error: eligibilite.message
-            };
-        }
-
-        // 3. Calculer la réduction
-        const montantReduction = await this.calculerReductionComplete(promotion, commandeData, transaction);
-
-        // 4. Retourner le résultat
+      if (!codePromoObjet) {
         return {
-            montantReduction,
-            promotion,
-            codePromo: codePromoObjet,
-            montantFinal: Math.max(0, commandeData.montantTotal - montantReduction)
+          montantReduction: 0,
+          codePromo: null,
+          montantFinal: commandeData.montantTotal,
+          error: 'Code promo invalide ou expiré'
         };
+      }
+
+      // 2. Vérifier les limites d'utilisation
+      if (codePromoObjet.utilisationMax && codePromoObjet.utilisationActuelle >= codePromoObjet.utilisationMax) {
+        return {
+          montantReduction: 0,
+          codePromo: null,
+          montantFinal: commandeData.montantTotal,
+          error: 'Code promo épuisé'
+        };
+      }
+
+      // 3. Appliquer la réduction du code promo
+      const valeurPourcentage = codePromoObjet.valeurPourcentage || 0;
+      const montantReduction = (commandeData.montantTotal * valeurPourcentage) / 100;
+      // 4. Retourner le résultat
+      return {
+        montantReduction,
+        codePromo: codePromoObjet,
+        montantFinal: Math.max(0, commandeData.montantTotal - montantReduction)
+      };
 
     } catch (error) {
-        console.error('Erreur application code promo:', error);
-        return {
-            montantReduction: 0,
-            promotion: null,
-            montantFinal: commandeData.montantTotal,
-            codePromo: null,
-            error: error.message
-        };
+      console.error('Erreur application code promo:', error);
+      return {
+        montantReduction: 0,
+        codePromo: null,
+        montantFinal: commandeData.montantTotal,
+        error: error.message
+      };
     }
-}
+  }
+
 }
 
 module.exports = PromotionService;
