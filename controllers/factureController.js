@@ -1,8 +1,19 @@
-const { Facture, Commande, Utilisateur, LigneCommande, Produit , StoreInfo } = require('../models');
+const { Facture, Commande, Utilisateur, LigneCommande, Produit , StoreInfo, ProduitVariation, Couleur, Taille, Age } = require('../models');
 const PDFDocument = require('pdfkit');
 const fs = require('fs');
 const path = require('path');
-
+function formatVariation(variation) {
+    if (!variation) return '';
+    const parts = [];
+    if (variation.couleur) parts.push(variation.couleur.nom);
+    if (variation.taille) parts.push(variation.taille.nom);
+    if (variation.age) parts.push(variation.age.label);
+    return parts.length > 0 ? parts.join(' / ') : '';
+}
+function truncate(text, maxLength = 50) {
+  if (!text) return '';
+  return text.length > maxLength ? text.substring(0, maxLength) + '...' : text;
+}
 class FactureController {
     constructor() {
         // Bind methods to ensure `this` refers to the class instance
@@ -168,7 +179,16 @@ console.log('Données de la facture:', factureData);
                                 model: Produit,
                                 as: 'produit',
                                 attributes: ['idProduit', 'nom', 'description']
-                            }]
+                            },
+                        {
+                             model: ProduitVariation,
+                             as: 'variation',
+                             include: [
+                                 { model: Couleur, as: 'couleur' },
+                                 { model: Taille, as: 'taille' },
+                                 { model: Age, as: 'age' }
+                             ]
+                         },]
                         },
                     ]
                 }]
@@ -242,7 +262,16 @@ console.log('Données de la facture:', factureData);
                                 model: Produit,
                                 as: 'produit',
                                 attributes: ['idProduit', 'nom', 'description']
-                            }]
+                            },
+                        {
+                                    model: ProduitVariation,
+                                    as: 'variation',
+                                    include: [
+                                        { model: Couleur, as: 'couleur' },
+                                        { model: Taille, as: 'taille' },
+                                        { model: Age, as: 'age' }
+                                    ]
+                                }]
                         }
                     ]
                 }]
@@ -495,21 +524,36 @@ async generateSimpleFacturePDF(doc, facture) {
                .stroke('#e5e7eb');
 
             // Description (avec nom et description)
-            doc.fontSize(10)
-               .font('Helvetica-Bold')
-               .fillColor('#111827')
-               .text(ligne.produit?.nom || 'Produit', descriptionX + 10, yPosition + 8, {
-                   width: descriptionWidth - 20
-               });
-
-            if (ligne.produit?.description) {
-                doc.fontSize(8)
-                   .font('Helvetica')
-                   .fillColor('#6b7280')
-                   .text(ligne.produit.description, descriptionX + 10, yPosition + 20, {
+                           doc.fontSize(10)
+                   .font('Helvetica-Bold')
+                   .fillColor('#111827')
+                   .text(ligne.produit?.nom || 'Produit', descriptionX + 10, yPosition + 8, {
                        width: descriptionWidth - 20
                    });
-            }
+
+                // Variation
+                if (ligne.variation && formatVariation(ligne.variation)) {
+                    doc.fontSize(9)
+                       .font('Helvetica-Oblique')
+                       .fillColor('#555')
+                       .text(formatVariation(ligne.variation), descriptionX + 10, yPosition + 19, {
+                           width: descriptionWidth - 20
+                       });
+                    var descY = yPosition + 31;
+                } else {
+                    var descY = yPosition + 19;
+                }
+
+                // Description (optionnelle)
+               if (ligne.produit?.description) {
+    const descAffichee = truncate(ligne.produit.description, 50);
+    doc.fontSize(8)
+       .font('Helvetica')
+       .fillColor('#6b7280')
+       .text(descAffichee, descriptionX + 10, descY, {
+           width: descriptionWidth - 20
+       });
+}
 
             // Quantité - alignée exactement sous "Qté"
             doc.fontSize(10)

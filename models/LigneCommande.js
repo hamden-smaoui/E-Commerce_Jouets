@@ -23,6 +23,12 @@ const LigneCommande = sequelize.define('LigneCommande', {
             key: 'idProduit',
         },
     },
+    idProduitVariation: {
+         type: DataTypes.INTEGER,
+          allowNull: true,
+           references: { model: 'produit_variations', key: 'idProduitVariation' }
+         }, 
+
     quantite: {
         type: DataTypes.INTEGER,
         allowNull: false,

@@ -28,6 +28,8 @@ const ProduitVariation = require('./ProduitVariation');
 const Couleur = require('./Couleur');
 const Taille = require('./Taille');
 const Age = require('./Age');
+const NewsLetter = require('./NewsLetter');
+const NewsletterCampaign = require('./NewsletterCampaign');
 
 
 // Existing associations
@@ -186,6 +188,22 @@ ProduitVariation.belongsTo(Couleur, { as: 'couleur', foreignKey: 'idCouleur' });
 ProduitVariation.belongsTo(Taille, { as: 'taille', foreignKey: 'idTaille' });
 ProduitVariation.belongsTo(Age, { as: 'age', foreignKey: 'idAge' });
 
+
+
+// Dans votre fichier models/index.js ou associations.js
+PanierProduit.belongsTo(ProduitVariation, {
+    foreignKey: 'idProduitVariation',
+    as: 'variation'
+});
+
+ProduitVariation.hasMany(PanierProduit, {
+    foreignKey: 'idProduitVariation',
+    as: 'paniersProduits'
+});
+
+LigneCommande.belongsTo(ProduitVariation, { as: 'variation', foreignKey: 'idProduitVariation' });
+ProduitVariation.hasMany(LigneCommande, { as: 'lignesCommandes', foreignKey: 'idProduitVariation' });
+
 module.exports = {
     sequelize,
     Utilisateur,
@@ -216,6 +234,8 @@ module.exports = {
     ProduitVariation,
     Couleur,
     Taille,
-    Age
+    Age,
+    NewsLetter,
+    NewsletterCampaign,
 
 };

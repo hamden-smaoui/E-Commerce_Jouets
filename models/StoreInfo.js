@@ -114,6 +114,16 @@ const StoreInfo = sequelize.define('StoreInfo', {
             type: DataTypes.STRING,
             allowNull: true,
         },
+    fraisLivraison: {
+            type: DataTypes.DOUBLE,
+            allowNull: false,
+            defaultValue: 7,
+        },    
+    seuilLivraisonGratuite: {
+            type: DataTypes.DOUBLE,
+            allowNull: false,
+            defaultValue: 100,
+        },
 }, {
     timestamps: true,
     tableName: 'store_infos',

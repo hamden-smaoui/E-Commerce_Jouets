@@ -192,76 +192,129 @@ class ProduitController {
   }
 
   async updateProduit(req, res) {
-    ProduitController.uploadImages(req, res, async (err) => {
-      if (err) return res.status(400).json({ message: 'Erreur upload', error: err.message });
-      try {
-        const produit = await Produit.findByPk(req.params.id, { include: [{ model: Image, as: 'images' }] });
-        if (!produit) return res.status(404).json({ message: 'Produit non trouvé' });
+  ProduitController.uploadImages(req, res, async (err) => {
+    if (err) return res.status(400).json({ message: 'Erreur upload', error: err.message });
+    try {
+      const produit = await Produit.findByPk(req.params.id, { include: [{ model: Image, as: 'images' }] });
+      if (!produit) return res.status(404).json({ message: 'Produit non trouvé' });
 
-        const { nom, description, prix,quantiteStock, idCategorie, idMarque, idType, idFournisseur, genre, imagesToDelete, imageRangs } = req.body;
+      const {
+        nom,
+        description,
+        prix,
+        quantiteStock,
+        idCategorie,
+        idMarque,
+        idType,
+        idFournisseur,
+        genre,
+        imagesToDelete,
+        imageRangs,
+        variants, // Ajouté ici pour la gestion des variations
+      } = req.body;
 
-        await produit.update({
-          nom, description, prix: parseFloat(prix),quantiteStock: parseInt(quantiteStock),
-          idCategorie: parseInt(idCategorie),
-          idMarque: parseInt(idMarque),
-          idType: idType ? parseInt(idType) : null,
-          idFournisseur: parseInt(idFournisseur),
-          genre,
-        });
+      // 1. MAJ des champs principaux
+      await produit.update({
+        nom,
+        description,
+        prix: parseFloat(prix),
+        quantiteStock: parseInt(quantiteStock),
+        idCategorie: parseInt(idCategorie),
+        idMarque: parseInt(idMarque),
+        idType: idType ? parseInt(idType) : null,
+        idFournisseur: parseInt(idFournisseur),
+        genre,
+      });
 
-        // Delete images if needed
-        if (imagesToDelete && Array.isArray(imagesToDelete)) {
-          const idsToDelete = imagesToDelete.map(Number);
-          const imgs = await Image.findAll({ where: { idImage: idsToDelete, idProduit: produit.idProduit } });
-          for (const img of imgs) {
-            try { await fs.unlink(path.join(__dirname, '..', img.url)); } catch {}
-          }
-          await Image.destroy({ where: { idImage: idsToDelete, idProduit: produit.idProduit } });
+      // 2. MAJ des images (suppression, rangs, ajout)
+      if (imagesToDelete && Array.isArray(imagesToDelete)) {
+        const idsToDelete = imagesToDelete.map(Number);
+        const imgs = await Image.findAll({ where: { idImage: idsToDelete, idProduit: produit.idProduit } });
+        for (const img of imgs) {
+          try { await fs.unlink(path.join(__dirname, '..', img.url)); } catch {}
         }
-
-        // Update image rangs
-        if (imageRangs && typeof imageRangs === 'object') {
-          for (const [id, rang] of Object.entries(imageRangs)) {
-            await Image.update({ rang: parseInt(rang) }, { where: { idImage: parseInt(id), idProduit: produit.idProduit } });
-          }
-        }
-
-        // Add new images
-        if (req.files && Array.isArray(req.files) && req.files.length > 0) {
-          const last = await Image.findOne({ where: { idProduit: produit.idProduit }, order: [['rang', 'DESC']] });
-          const maxRang = last ? last.rang : 0;
-          const newImages = req.files.map((file, i) => ({
-            url: `/Uploads/${file.filename}`,
-            rang: maxRang + i + 1,
-            idProduit: produit.idProduit,
-          }));
-          await Image.bulkCreate(newImages);
-        }
-
-        const updatedProduit = await Produit.findByPk(produit.idProduit, {
-          include: [
-            { model: Categorie, as: 'categorie' },
-            { model: Marque, as: 'marque' },
-            { model: Type, as: 'type' },
-            { model: Fournisseur, as: 'fournisseur' },
-            { model: Image, as: 'images', order: [['rang', 'ASC']] },
-            { 
-              model: ProduitVariation, as: 'variations',
-              include: [
-                { model: Couleur, as: 'couleur' },
-                { model: Taille, as: 'taille' },
-                { model: Age, as: 'age' }
-              ]
-            }
-          ]
-        });
-
-        res.status(200).json({ message: 'Produit mis à jour', data: updatedProduit });
-      } catch (error) {
-        res.status(500).json({ message: 'Erreur lors de la mise à jour', error: error.message });
+        await Image.destroy({ where: { idImage: idsToDelete, idProduit: produit.idProduit } });
       }
-    });
-  }
+
+      if (imageRangs && typeof imageRangs === 'object') {
+        for (const [id, rang] of Object.entries(imageRangs)) {
+          await Image.update({ rang: parseInt(rang) }, { where: { idImage: parseInt(id), idProduit: produit.idProduit } });
+        }
+      }
+
+      if (req.files && Array.isArray(req.files) && req.files.length > 0) {
+        const last = await Image.findOne({ where: { idProduit: produit.idProduit }, order: [['rang', 'DESC']] });
+        const maxRang = last ? last.rang : 0;
+        const newImages = req.files.map((file, i) => ({
+          url: `/Uploads/${file.filename}`,
+          rang: maxRang + i + 1,
+          idProduit: produit.idProduit,
+        }));
+        await Image.bulkCreate(newImages);
+      }
+
+      // 3. MAJ des variations (le coeur de la correction)
+      if (variants) {
+        let variantsArray = typeof variants === "string" ? JSON.parse(variants) : variants;
+        const existingVariations = await ProduitVariation.findAll({ where: { idProduit: produit.idProduit } });
+        const sentVariationIds = variantsArray.filter(v => v.idProduitVariation).map(v => v.idProduitVariation);
+
+        // Supprimer les variations qui ne sont plus dans le tableau envoyé
+        const variationsToDelete = existingVariations.filter(ev => !sentVariationIds.includes(ev.idProduitVariation));
+        if (variationsToDelete.length > 0) {
+          const idsToDelete = variationsToDelete.map(v => v.idProduitVariation);
+          await ProduitVariation.destroy({ where: { idProduitVariation: idsToDelete } });
+        }
+
+        // Mettre à jour ou insérer les variations
+        for (const v of variantsArray) {
+          if (v.idProduitVariation) {
+            await ProduitVariation.update(
+              {
+                idCouleur: v.idCouleur,
+                idTaille: v.idTaille || null,
+                idAge: v.idAge || null,
+                quantiteStock: v.quantiteStock,
+              },
+              { where: { idProduitVariation: v.idProduitVariation, idProduit: produit.idProduit } }
+            );
+          } else {
+            await ProduitVariation.create({
+              idProduit: produit.idProduit,
+              idCouleur: v.idCouleur,
+              idTaille: v.idTaille || null,
+              idAge: v.idAge || null,
+              quantiteStock: v.quantiteStock,
+            });
+          }
+        }
+      }
+
+      // 4. Retour du produit complet à jour
+      const updatedProduit = await Produit.findByPk(produit.idProduit, {
+        include: [
+          { model: Categorie, as: 'categorie' },
+          { model: Marque, as: 'marque' },
+          { model: Type, as: 'type' },
+          { model: Fournisseur, as: 'fournisseur' },
+          { model: Image, as: 'images', order: [['rang', 'ASC']] },
+          {
+            model: ProduitVariation, as: 'variations',
+            include: [
+              { model: Couleur, as: 'couleur' },
+              { model: Taille, as: 'taille' },
+              { model: Age, as: 'age' }
+            ]
+          }
+        ]
+      });
+
+      res.status(200).json({ message: 'Produit mis à jour', data: updatedProduit });
+    } catch (error) {
+      res.status(500).json({ message: 'Erreur lors de la mise à jour', error: error.message });
+    }
+  });
+}
 
   async deleteImage(req, res) {
     try {

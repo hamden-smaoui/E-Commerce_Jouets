@@ -1,4 +1,4 @@
-const { Commande, Utilisateur, LigneCommande, Facture, Produit, Image, Promotion } = require('../models');
+const { Commande, Utilisateur, LigneCommande, Facture, Produit, Image, Promotion, ProduitVariation, Couleur, Taille, Age } = require('../models');
 const PromotionService = require('../services/PromotionService');
 const CommandeService = require('../services/CommandeService');
 const sequelize = require('../config/database');
@@ -9,18 +9,12 @@ class CommandeController {
  async createCommande(req, res) {
         const transaction = await sequelize.transaction();
         let isTransactionCommitted = false;
-        
         try {
-            console.log('Données de la commande reçues :', req.body);
-            
-            // Déléguer la création au service
             const resultat = await CommandeService.creerCommande(req.body, transaction);
-            
-            // Commit de la transaction
             await transaction.commit();
             isTransactionCommitted = true;
-            
-            // Récupérer les données complètes
+
+            // On enrichit la commande avec la variation dans chaque ligne
             const commandeComplete = await CommandeService.obtenirCommandeComplete(
                 resultat.commande.idCommande
             );
@@ -43,6 +37,7 @@ class CommandeController {
                         .filter(ligne => ligne.idPromotionAppliquee)
                         .map(ligne => ({
                             idProduit: ligne.idProduit,
+                            idProduitVariation: ligne.idProduitVariation,
                             reduction: ligne.reductionUnitaire * ligne.quantite
                         })),
                     promotionGlobale: resultat.resultatsPromo.promotionGlobale ? {
@@ -51,17 +46,12 @@ class CommandeController {
                     } : null
                 }
             });
-            
+
         } catch (error) {
+             console.error('ERREUR CREATE COMMANDE:', error);
             if (!isTransactionCommitted && !transaction.finished) {
-                try {
-                    await transaction.rollback();
-                } catch (rollbackError) {
-                    console.error('Error during rollback:', rollbackError);
-                }
+                try { await transaction.rollback(); } catch (rollbackError) {}
             }
-            
-            console.error('Create commande error:', error);
             res.status(500).json({
                 message: 'Erreur lors de la création de la commande',
                 error: error.message
@@ -252,91 +242,92 @@ class CommandeController {
         }
     }
 
-  async getCommandeById(req, res) {
-    try {
-        const commande = await Commande.findByPk(req.params.id, {
-            include: [
-                {
-                    model: Utilisateur,
-                    as: 'client',
-                    attributes: ['idUtilisateur', 'prenom', 'nom', 'email']
-                },
-                {
-                    model: LigneCommande,
-                    as: 'lignesCommandes',
-                    attributes: [
-                        'idLigneCommande',
-                        'idProduit', 
-                        'quantite', 
-                        'prixUnitaire', // Prix facturé (pour compatibilité)
-                        'prixUnitaireOriginal', // Prix original (nouveau)
-                        'prixUnitaireFinal', // Prix final après promotion (nouveau)
-                        'sousTotal',
-                        'reductionUnitaire', // Montant de réduction par unité (nouveau)
-                        'idPromotionAppliquee' // ID de la promotion appliquée (nouveau)
-                    ],
-                    include: [
-                        {
-                            model: Produit,
-                            as: 'produit',
-                            attributes: ['idProduit', 'nom', 'prix'], // Prix actuel du produit
-                            include: [{
-                                model: Image,
-                                as: 'images',
-                                attributes: ['url', 'rang'],
-                                order: [['rang', 'ASC']]
-                            }]
-                        },
-                        {
-                            model: Promotion,
-                            as: 'promotionAppliquee', // Nouvelle association
-                            attributes: ['idPromotion', 'nom', 'description', 'typePromotion'],
-                            required: false
-                        }
-                    ]
-                },
-                {
-                    model: Promotion,
-                    as: 'promotionGlobale', // Promotion globale/code promo
-                    attributes: ['idPromotion', 'nom', 'description', 'typePromotion'],
-                    required: false
-                }
-            ]
-        });
-        
-        if (!commande) {
-            return res.status(404).json({ message: 'Commande non trouvée' });
-        }
-        
-        // Enrichir la réponse avec des informations calculées
-        const commandeEnrichie = {
-            ...commande.toJSON(),
-            calculDetails: {
-                montantOriginal: commande.montantOriginal,
-                montantFinal: commande.montantTotal - (commande.fraisLivraison || 0),
-                fraisLivraison: commande.fraisLivraison || 0,
-                montantTotal: commande.montantTotal,
-                economiesTotal: commande.montantReduction || 0,
-                // Calculer les économies par type
-                economiesProduits: commande.lignesCommandes?.reduce((total, ligne) => 
-                    total + ((ligne.reductionUnitaire || 0) * ligne.quantite), 0) || 0,
-                economiesCodePromo: (commande.montantReduction || 0) - 
-                    (commande.lignesCommandes?.reduce((total, ligne) => 
-                        total + ((ligne.reductionUnitaire || 0) * ligne.quantite), 0) || 0)
-            }
-        };
-        
-        res.status(200).json(commandeEnrichie);
-    } catch (error) {
-        console.error('Get commande by ID error:', error);
-        res.status(500).json({
-            message: 'Erreur lors de la récupération de la commande',
-            error: error.message
-        });
-    }
-}
+async getCommandeById(req, res) {
+        try {
+            const commande = await Commande.findByPk(req.params.id, {
+                include: [
+                    {
+                        model: Utilisateur,
+                        as: 'client',
+                        attributes: ['idUtilisateur', 'prenom', 'nom', 'email']
+                    },
+                    {
+                        model: LigneCommande,
+                        as: 'lignesCommandes',
+                        attributes: [
+                            'idLigneCommande',
+                            'idProduit',
+                            'idProduitVariation',
+                            'quantite',
+                            'prixUnitaire',
+                            'prixUnitaireOriginal',
+                            'prixUnitaireFinal',
+                            'sousTotal',
+                            'reductionUnitaire',
+                            'idPromotionAppliquee'
+                        ],
+                        include: [
+                            {
+                                model: Produit,
+                                as: 'produit',
+                                attributes: ['idProduit', 'nom', 'prix'],
+                                include: [{
+                                    model: Image,
+                                    as: 'images',
+                                    attributes: ['url', 'rang'],
+                                    order: [['rang', 'ASC']]
+                                }]
+                            },
+                            {
+                                model: ProduitVariation,
+                                as: 'variation',
+                                include: [
+                                    { model: Couleur, as: 'couleur' },
+                                    { model: Taille, as: 'taille' },
+                                    { model: Age, as: 'age' }
+                                ]
+                            },
+                            {
+                                model: Promotion, as: 'promotionAppliquee', attributes: ['idPromotion', 'nom', 'description', 'typePromotion'], required: false
+                            }
+                        ]
+                    },
+                    {
+                        model: Promotion,
+                        as: 'promotionGlobale',
+                        attributes: ['idPromotion', 'nom', 'description', 'typePromotion'],
+                        required: false
+                    }
+                ]
+            });
+            if (!commande) return res.status(404).json({ message: 'Commande non trouvée' });
 
-    async updateCommande(req, res) {
+            // Calculs enrichis
+            const commandeEnrichie = {
+                ...commande.toJSON(),
+                calculDetails: {
+                    montantOriginal: commande.montantOriginal,
+                    montantFinal: commande.montantTotal - (commande.fraisLivraison || 0),
+                    fraisLivraison: commande.fraisLivraison || 0,
+                    montantTotal: commande.montantTotal,
+                    economiesTotal: commande.montantReduction || 0,
+                    economiesProduits: commande.lignesCommandes?.reduce((total, ligne) =>
+                        total + ((ligne.reductionUnitaire || 0) * ligne.quantite), 0) || 0,
+                    economiesCodePromo: (commande.montantReduction || 0) -
+                        (commande.lignesCommandes?.reduce((total, ligne) =>
+                            total + ((ligne.reductionUnitaire || 0) * ligne.quantite), 0) || 0)
+                }
+            };
+            res.status(200).json(commandeEnrichie);
+        } catch (error) {
+            res.status(500).json({
+                message: 'Erreur lors de la récupération de la commande',
+                error: error.message
+            });
+        }
+    }
+
+ async updateCommande(req, res) {
     const transaction = await sequelize.transaction();
     let isTransactionCommitted = false;
 
@@ -354,12 +345,13 @@ class CommandeController {
             nouveauStatut === 'annulée' &&
             commande.statut !== 'annulée'
         ) {
-            // Pour chaque ligne de commande, restituer la quantité au stock du produit
+            // Pour chaque ligne de commande, restituer la quantité au stock de la VARIATION
             for (const ligne of commande.lignesCommandes) {
-                const produit = await Produit.findByPk(ligne.idProduit, { transaction });
-                if (produit) {
-                    produit.quantiteStock += ligne.quantite;
-                    await produit.save({ transaction });
+                // ✅ Correction : restaurer le stock de la variation, pas du produit
+                const variation = await ProduitVariation.findByPk(ligne.idProduitVariation, { transaction });
+                if (variation) {
+                    variation.quantiteStock += ligne.quantite;
+                    await variation.save({ transaction });
                 }
             }
         }
@@ -377,11 +369,22 @@ class CommandeController {
                 {
                     model: LigneCommande,
                     as: 'lignesCommandes',
-                    include: [{
-                        model: Produit,
-                        as: 'produit',
-                        attributes: ['idProduit', 'nom']
-                    }]
+                    include: [
+                        {
+                            model: Produit,
+                            as: 'produit',
+                            attributes: ['idProduit', 'nom']
+                        },
+                        {
+                            model: ProduitVariation,
+                            as: 'variation',
+                            include: [
+                                { model: Couleur, as: 'couleur' },
+                                { model: Taille, as: 'taille' },
+                                { model: Age, as: 'age' }
+                            ]
+                        }
+                    ]
                 },
                 {
                     model: Facture,
@@ -420,7 +423,7 @@ class CommandeController {
                 return res.status(404).json({ message: 'Commande non trouvée' });
             }
             
-            await commande.destroy(); // Les lignes de commande seront supprimées automatiquement si cascade est configuré
+            await commande.destroy(); 
             res.status(200).json({ message: 'Commande supprimée avec succès' });
         } catch (error) {
             console.error('Delete commande error:', error);

@@ -1,65 +1,95 @@
-const { Panier, PanierProduit, Produit, Image } = require('../models');
+const { Panier, PanierProduit, Produit, Image, ProduitVariation, Couleur, Taille, Age } = require('../models');
 
 class PanierController {
     async getPanier(req, res) {
-  try {
-    const { idUtilisateur } = req.user;
+        try {
+            const { idUtilisateur } = req.user;
 
-    let panier = await Panier.findOne({
-      where: { idUtilisateur },
-      include: [
-        {
-          model: PanierProduit,
-          as: 'produits', // Use the correct alias from the association
-          include: [
-            {
-              model: Produit,
-              as: 'produit', // Use the correct alias from the association
-              include: [
-                {
-                  model: Image,
-                  as: 'images',
-                  attributes: ['idImage', 'url', 'rang']
-                }
-              ]
+            let panier = await Panier.findOne({
+                where: { idUtilisateur },
+                include: [
+                    {
+                        model: PanierProduit,
+                        as: 'produits',
+                        include: [
+                            {
+                                model: Produit,
+                                as: 'produit',
+                                include: [
+                                    {
+                                        model: Image,
+                                        as: 'images',
+                                        attributes: ['idImage', 'url', 'rang']
+                                    }
+                                ]
+                            },
+                            {
+                                model: ProduitVariation,
+                                as: 'variation',
+                                include: [
+                                    { model: Couleur, as: 'couleur' },
+                                    { model: Taille, as: 'taille' },
+                                    { model: Age, as: 'age' }
+                                ]
+                            }
+                        ]
+                    }
+                ]
+            });
+
+            if (!panier) {
+                panier = await Panier.create({ idUtilisateur });
             }
-          ]
+
+            res.status(200).json({
+                message: 'Panier récupéré avec succès',
+                data: panier
+            });
+        } catch (error) {
+            res.status(500).json({
+                message: 'Erreur lors de la récupération du panier',
+                error: error.message
+            });
         }
-      ]
-    });
-
-    if (!panier) {
-      // Create an empty cart if it doesn't exist
-      panier = await Panier.create({ idUtilisateur });
     }
-
-    res.status(200).json({
-      message: 'Panier récupéré avec succès',
-      data: panier
-    });
-  } catch (error) {
-    res.status(500).json({
-      message: 'Erreur lors de la récupération du panier',
-      error: error.message
-    });
-  }
-}
 
     async ajouterProduit(req, res) {
         try {
             const { idUtilisateur } = req.user;
-            const { idProduit, quantite = 1 } = req.body;
+            const { idProduit, quantite = 1, idProduitVariation } = req.body;
 
-            // Vérifier que le produit existe et a du stock
+            // Vérifier que le produit existe
             const produit = await Produit.findByPk(idProduit);
             if (!produit) {
                 return res.status(404).json({ message: 'Produit non trouvé' });
             }
 
-            if (produit.quantiteStock < quantite) {
+            let stockDisponible;
+            let variation = null;
+
+            if (idProduitVariation) {
+                // Vérifier que la variation existe et appartient au produit
+                variation = await ProduitVariation.findOne({
+                    where: { 
+                        idProduitVariation,
+                        idProduit 
+                    }
+                });
+
+                if (!variation) {
+                    return res.status(404).json({ message: 'Variation de produit non trouvée' });
+                }
+
+                stockDisponible = variation.quantiteStock;
+            } else {
+                // Pour les anciens produits sans variation
+                stockDisponible = produit.quantiteStock;
+            }
+
+            if (stockDisponible < quantite) {
                 return res.status(400).json({ 
                     message: 'Stock insuffisant',
-                    stockDisponible: produit.quantiteStock
+                    stockDisponible
                 });
             }
 
@@ -69,11 +99,12 @@ class PanierController {
                 panier = await Panier.create({ idUtilisateur });
             }
 
-            // Vérifier si le produit est déjà dans le panier
+            // Vérifier si cette combinaison produit/variation est déjà dans le panier
             let panierProduit = await PanierProduit.findOne({
                 where: { 
                     idPanier: panier.idPanier,
-                    idProduit 
+                    idProduit,
+                    idProduitVariation: idProduitVariation || null
                 }
             });
 
@@ -81,10 +112,10 @@ class PanierController {
                 // Mettre à jour la quantité
                 const nouvelleQuantite = panierProduit.quantite + quantite;
                 
-                if (nouvelleQuantite > produit.quantiteStock) {
+                if (nouvelleQuantite > stockDisponible) {
                     return res.status(400).json({ 
                         message: 'Stock insuffisant',
-                        stockDisponible: produit.quantiteStock,
+                        stockDisponible,
                         quantiteActuelle: panierProduit.quantite
                     });
                 }
@@ -95,7 +126,9 @@ class PanierController {
                 panierProduit = await PanierProduit.create({
                     idPanier: panier.idPanier,
                     idProduit,
-                    quantite
+                    idProduitVariation: idProduitVariation || null,
+                    quantite,
+                    prixUnitaire: produit.prix
                 });
             }
 
@@ -114,8 +147,8 @@ class PanierController {
     async modifierQuantite(req, res) {
         try {
             const { idUtilisateur } = req.user;
-            const { idProduit, quantite } = req.body;
-
+            const { idProduit, quantite, idProduitVariation } = req.body;
+console.log(req.body);
             if (quantite < 1) {
                 return res.status(400).json({ message: 'La quantité doit être au moins 1' });
             }
@@ -128,12 +161,17 @@ class PanierController {
             const panierProduit = await PanierProduit.findOne({
                 where: { 
                     idPanier: panier.idPanier,
-                    idProduit 
+                    idProduit,
+                    idProduitVariation: idProduitVariation || null
                 },
                 include: [
                     {
                         model: Produit,
                         as: 'produit'
+                    },
+                    {
+                        model: ProduitVariation,
+                        as: 'variation'
                     }
                 ]
             });
@@ -142,10 +180,18 @@ class PanierController {
                 return res.status(404).json({ message: 'Produit non trouvé dans le panier' });
             }
 
-            if (quantite > panierProduit.produit.quantiteStock) {
+            // Vérifier le stock disponible
+            let stockDisponible;
+            if (panierProduit.variation) {
+                stockDisponible = panierProduit.variation.quantiteStock;
+            } else {
+                stockDisponible = panierProduit.produit.quantiteStock;
+            }
+
+            if (quantite > stockDisponible) {
                 return res.status(400).json({ 
                     message: 'Stock insuffisant',
-                    stockDisponible: panierProduit.produit.quantiteStock
+                    stockDisponible
                 });
             }
 
@@ -166,8 +212,8 @@ class PanierController {
     async retirerProduit(req, res) {
         try {
             const { idUtilisateur } = req.user;
-            const { idProduit } = req.params;
-
+            const { idPanierProduit } = req.params; 
+            console.log("panierproddd",req.params);
             const panier = await Panier.findOne({ where: { idUtilisateur } });
             if (!panier) {
                 return res.status(404).json({ message: 'Panier non trouvé' });
@@ -175,8 +221,8 @@ class PanierController {
 
             const deleted = await PanierProduit.destroy({
                 where: { 
-                    idPanier: panier.idPanier,
-                    idProduit 
+                    idPanierProduit,
+                    idPanier: panier.idPanier
                 }
             });
 

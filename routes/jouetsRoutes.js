@@ -15,6 +15,9 @@ const CouleurController = require('../controllers/couleurController');
 const TailleController = require('../controllers/tailleController');
 const AgeController = require('../controllers/ageController');
 const ProduitVariationController = require('../controllers/produitVariationController');
+const NewsletterController = require('../controllers/newsLetterController');
+
+// POST /api/newsletter/subscribe
 
 module.exports = router;
 
@@ -155,4 +158,17 @@ router.post('/codes-promo/generer', CodePromoController.genererCodesPromo);
 router.get('/codes-promo/stats/utilisation', CodePromoController.getStatsCodesPromo);
 router.get('/codes-promo/export', CodePromoController.exporterCodesPromo);
 router.patch('/codes-promo/:id/toggle', CodePromoController.toggleCodePromo);
+
+
+
+router.post('/newsletter/subscribe', NewsletterController.subscribe);
+
+router.get('/newsletter', NewsletterController.getAll);
+
+router.post('/newsletter/unsubscribe', NewsletterController.unsubscribe);
+router.post('/newsletter/campaigns', NewsletterController.createCampaign);
+router.get('/newsletter/campaigns', NewsletterController.getCampaigns);
+router.post('/newsletter/campaigns/:campaignId/send', NewsletterController.sendCampaign);
+router.delete('/newsletter/campaigns/:campaignId', NewsletterController.deleteCampaign);
+router.put('/newsletter/campaigns/:campaignId', NewsletterController.updateCampaign);
 module.exports = router;

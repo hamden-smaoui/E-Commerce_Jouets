@@ -1,5 +1,5 @@
 // services/CommandeService.js
-const { Commande, Utilisateur, LigneCommande, Facture, Produit, StoreInfo } = require('../models');
+const { Commande, Utilisateur, LigneCommande, Facture, Produit, StoreInfo , ProduitVariation, Couleur, Taille, Age } = require('../models');
 const PromotionService = require('./PromotionService');
 const sequelize = require('../config/database');
 
@@ -7,17 +7,14 @@ class CommandeService {
     
     async creerCommande(donneesCommande, transaction) {
         const { lignesCommandes, codePromo, fraisLivraison = 0, ...commandeData } = donneesCommande;
-        
-        // 1. Traiter les produits et promotions
+        // 1. Traiter les produits et promotions (modifie ici)
         const lignesAvecPromotions = await this.traiterProduitsEtPromotions(
             lignesCommandes, 
             commandeData.idClient, 
             transaction
         );
-        
-        // 2. Calculer les montants
+        // 2. Calcul montants
         const montants = this.calculerMontants(lignesAvecPromotions, fraisLivraison);
-        
         // 3. Appliquer code promo global
         const resultatsPromo = await this.appliquerCodePromoGlobal(
             codePromo, 
@@ -27,12 +24,10 @@ class CommandeService {
             fraisLivraison, 
             transaction
         );
-        
         // 4. Mettre à jour profil utilisateur
         if (commandeData.idClient) {
             await this.mettreAJourProfilUtilisateur(commandeData, transaction);
         }
-        
         // 5. Créer la commande
         const commande = await this.creerEntiteCommande(
             commandeData, 
@@ -41,11 +36,9 @@ class CommandeService {
             fraisLivraison, 
             transaction
         );
-        console.log('Commande créée avec ID:', commande.idCommande ,lignesAvecPromotions);
-        // 6. Créer lignes de commande
+        // 6. Créer lignes de commande (modifie ici)
         await this.creerLignesCommande(commande.idCommande, lignesAvecPromotions, transaction);
-        
-        
+
         return {
             commande,
             montants,
@@ -55,44 +48,42 @@ class CommandeService {
     }
     
  
-async traiterProduitsEtPromotions(lignesCommandes, idClient, transaction) {
-    return await Promise.all(
-        lignesCommandes.map(async (ligne) => {
-            const produit = await Produit.findByPk(ligne.idProduit, { transaction });
-            if (!produit) {
-                throw new Error(`Produit ${ligne.idProduit} non trouvé`);
-            }
+ async traiterProduitsEtPromotions(lignesCommandes, idClient, transaction) {
+        return await Promise.all(
+            lignesCommandes.map(async (ligne) => {
+                // On attend idProduitVariation dans chaque ligne
+                const variation = await ProduitVariation.findByPk(ligne.idProduitVariation, { transaction });
+                if (!variation) throw new Error(`Variation ${ligne.idProduitVariation} non trouvée`);
+                if (variation.quantiteStock < ligne.quantite) throw new Error(`Stock insuffisant pour la variation`);
 
-            // Vérifier la disponibilité du stock
-            if (produit.quantiteStock < ligne.quantite) {
-                throw new Error(`Stock insuffisant pour le produit "${produit.nom}". Stock disponible: ${produit.quantiteStock}, demandé: ${ligne.quantite}`);
-            }
+                // Décrémenter le stock de la variation (PAS du produit)
+                variation.quantiteStock -= ligne.quantite;
+                await variation.save({ transaction });
 
-            // Décrémenter le stock
-            produit.quantiteStock -= ligne.quantite;
-            await produit.save({ transaction });
+                // On peut aller chercher le produit lié si besoin
+                const produit = await Produit.findByPk(variation.idProduit, { transaction });
 
-            // Calculer la promotion éventuelle
-            const promotionResult = await PromotionService.calculerPrixProduit(
-                ligne.idProduit,
-                produit.prix,
-                ligne.quantite,
-                idClient
-            );
-            console.log('Ligne avec promotion:', {...ligne , prixUnitaireOriginal: produit.prix, prixUnitaireFinal: promotionResult.prixFinal, reductionUnitaire: produit.prix - promotionResult.prixFinal, idPromotionAppliquee: promotionResult.idPromotion || null, sousTotal: promotionResult.prixFinal * ligne.quantite});
+                // Calculer la promo éventuellement (à adapter selon ta logique)
+                const promotionResult = await PromotionService.calculerPrixProduit(
+                    produit.idProduit,
+                    produit.prix,
+                    ligne.quantite,
+                    idClient
+                );
 
-            return {
-                ...ligne,
-                prixUnitaireOriginal: produit.prix,
-                prixUnitaireFinal: promotionResult.prixFinal,
-                reductionUnitaire: produit.prix - promotionResult.prixFinal,
-                idPromotionAppliquee: promotionResult.idPromotion || null,
-                sousTotal: promotionResult.prixFinal * ligne.quantite
-            }; 
-            
-        })
-    );
-}
+                return {
+                    ...ligne,
+                    idProduit: produit.idProduit, // utile pour stat ou affichage
+                    idProduitVariation: variation.idProduitVariation,
+                    prixUnitaireOriginal: produit.prix,
+                    prixUnitaireFinal: promotionResult.prixFinal,
+                    reductionUnitaire: produit.prix - promotionResult.prixFinal,
+                    idPromotionAppliquee: promotionResult.idPromotion || null,
+                    sousTotal: promotionResult.prixFinal * ligne.quantite
+                };
+            })
+        );
+    }
     
     calculerMontants(lignesAvecPromotions, fraisLivraison) {
         const montantOriginal = lignesAvecPromotions.reduce((total, ligne) => {
@@ -176,24 +167,24 @@ async traiterProduitsEtPromotions(lignesCommandes, idClient, transaction) {
         }
     }
     
-    async creerEntiteCommande(commandeData, montants, resultatsPromo, fraisLivraison, transaction) {
-        return await Commande.create({
-            ...commandeData,
-            montantTotal: resultatsPromo.montantFinal,
-            montantOriginal: montants.montantOriginal + montants.fraisLivraisonFinal,
-            montantReduction: resultatsPromo.reductionTotale ,
-            fraisLivraison: montants.fraisLivraisonFinal,
-            codePromoGlobal:resultatsPromo.codePromoResult.codePromo.code,
-            reductionCodePromo: resultatsPromo.reductionCodePromo || 0
-        }, { transaction });
-    }
+async creerEntiteCommande(commandeData, montants, resultatsPromo, fraisLivraison, transaction) {
+  return await Commande.create({
+    ...commandeData,
+    montantTotal: resultatsPromo.montantFinal + montants.fraisLivraisonFinal,
+    montantOriginal: montants.montantOriginal + montants.fraisLivraisonFinal,
+    montantReduction: resultatsPromo.reductionTotale,
+    fraisLivraison: montants.fraisLivraisonFinal,
+    codePromoGlobal: resultatsPromo.codePromoResult?.codePromo?.code || null,
+    reductionCodePromo: resultatsPromo.reductionCodePromo || 0
+  }, { transaction });
+}
     
-    async creerLignesCommande(idCommande, lignesAvecPromotions, transaction) {
+   async creerLignesCommande(idCommande, lignesAvecPromotions, transaction) {
         if (!lignesAvecPromotions || lignesAvecPromotions.length === 0) return;
-        
         const lignes = lignesAvecPromotions.map(ligne => ({
             idCommande,
             idProduit: ligne.idProduit,
+            idProduitVariation: ligne.idProduitVariation,
             quantite: ligne.quantite,
             prixUnitaireOriginal: ligne.prixUnitaireOriginal,
             prixUnitaireFinal: ligne.prixUnitaireFinal,
@@ -202,7 +193,6 @@ async traiterProduitsEtPromotions(lignesCommandes, idClient, transaction) {
             reductionUnitaire: ligne.reductionUnitaire,
             idPromotionAppliquee: ligne.idPromotionAppliquee
         }));
-        
         return await LigneCommande.bulkCreate(lignes, { transaction });
     }
     
@@ -286,6 +276,7 @@ async traiterProduitsEtPromotions(lignesCommandes, idClient, transaction) {
 }
     
     async obtenirCommandeComplete(idCommande) {
+        // Ajoute l'include variation/couleur/age/taille pour chaque ligne de commande
         return await Commande.findByPk(idCommande, {
             include: [
                 {
@@ -296,11 +287,22 @@ async traiterProduitsEtPromotions(lignesCommandes, idClient, transaction) {
                 {
                     model: LigneCommande,
                     as: 'lignesCommandes',
-                    include: [{
-                        model: Produit,
-                        as: 'produit',
-                        attributes: ['idProduit', 'nom', 'prix']
-                    }]
+                    include: [
+                        {
+                            model: Produit,
+                            as: 'produit',
+                            attributes: ['idProduit', 'nom', 'prix']
+                        },
+                        {
+                            model: ProduitVariation,
+                            as: 'variation',
+                            include: [
+                                { model: Couleur, as: 'couleur' },
+                                { model: Taille, as: 'taille' },
+                                { model: Age, as: 'age' }
+                            ]
+                        }
+                    ]
                 },
                 {
                     model: Facture,
@@ -310,6 +312,7 @@ async traiterProduitsEtPromotions(lignesCommandes, idClient, transaction) {
             ]
         });
     }
+
 }
 
 module.exports = new CommandeService();

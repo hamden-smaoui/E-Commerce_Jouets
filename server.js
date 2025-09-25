@@ -3,7 +3,7 @@ const http = require('http');
 const sequelize = require('./config/database'); 
 const cors = require('cors');
 require('dotenv').config();
-
+const SchedulerService = require('./services/SchedulerService');
 const jouetsRoutes = require('./routes/jouetsRoutes');
 const authRoutes = require('./routes/auth');
 const panierRoutes = require('./routes/panier');

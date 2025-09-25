@@ -41,6 +41,8 @@ class StoreInfoController {
           urlYoutube,
           topDescription,
           tauxTVA,
+          fraisLivraison,
+          seuilLivraisonGratuite,
           entrepriseSiret,
         } = req.body;
 
@@ -79,6 +81,8 @@ class StoreInfoController {
           urlYoutube,
           topDescription,
           tauxTVA: parseFloat(tauxTVA) || 19,
+          fraisLivraison: parseFloat(fraisLivraison) || 7,
+          seuilLivraisonGratuite: parseFloat(seuilLivraisonGratuite) || 100,
           entrepriseSiret
         });
 
@@ -157,6 +161,8 @@ class StoreInfoController {
           imagesToDelete,
           imageRangs,
           tauxTVA,
+          seuilLivraisonGratuite,
+          fraisLivraison,
           entrepriseSiret,
         } = req.body;
 
@@ -241,6 +247,8 @@ class StoreInfoController {
           urlYoutube,
           topDescription,
           tauxTVA: parseFloat(tauxTVA) || 19,
+          fraisLivraison: parseFloat(fraisLivraison) || 7,
+          seuilLivraisonGratuite: parseFloat(seuilLivraisonGratuite) || 100,
           entrepriseSiret
         });
 
