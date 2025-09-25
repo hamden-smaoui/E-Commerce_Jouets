@@ -8,7 +8,7 @@ interface HeaderCardComponentProps {
   searchTerm: string;
   onSearchChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   selectedItems: any[];
-  onEdit: () => void;
+  onEdit?: () => void;
   onDelete: () => void;
   onAdd?: () => void;
   showAddButton?: boolean;

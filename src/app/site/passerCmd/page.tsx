@@ -4,6 +4,7 @@ import Footer from "@/components/ui/Footer";
 import Link from 'next/link';
 import { useState, useEffect, useMemo } from "react";
 import { toast } from "react-hot-toast";
+import { useStoreInfo } from "@/hooks/useStoreInfo";
 import { 
   ShieldCheckIcon, 
   TruckIcon, 
@@ -74,7 +75,7 @@ function Checkout() {
   const [mounted, setMounted] = useState(false);
 const [codePromo, setCodePromo] = useState<{ code: string; valeurPourcentage: number } | null>(null);
   const [errors, setErrors] = useState<FormErrors>({});
-
+const { storeInfo, loading: storeLoading } = useStoreInfo();
   const { getTotals, clearTotals, itemTotals } = useCartPromotionContext();
 
   const [formData, setFormData] = useState<FormData>({
@@ -130,13 +131,16 @@ const totalPriceWithPromotions = useMemo(() => {
   return total;
 }, [mounted, totalFinal, codePromo]);
 
-  const livraison = useMemo(() => {
-    return totalPriceWithPromotions >= 100 ? 0 : 7.9;
-  }, [totalPriceWithPromotions]);
+  const fraisLivraison = storeInfo?.fraisLivraison ?? 7.9;
+const seuilLivraisonGratuite = storeInfo?.seuilLivraisonGratuite ?? 100;
 
-  const totalTTC = useMemo(() => {
-    return totalPriceWithPromotions + livraison;
-  }, [totalPriceWithPromotions, livraison]);  
+const livraison = useMemo(() => {
+  return totalPriceWithPromotions >= seuilLivraisonGratuite ? 0 : fraisLivraison;
+}, [totalPriceWithPromotions, seuilLivraisonGratuite, fraisLivraison]);
+
+ const totalTTC = useMemo(() => {
+  return totalPriceWithPromotions + livraison;
+}, [totalPriceWithPromotions, livraison]);
 
   const totalEconomiesCodePromo = totalFinal - totalPriceWithPromotions;
   const totalEconomiesGlobal = totalOriginal - totalPriceWithPromotions;
@@ -207,27 +211,41 @@ const totalPriceWithPromotions = useMemo(() => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email);
   };
-
+const formatVariation = (variation: any) => {
+  if (!variation) return '';
+  const { couleur, taille, age } = variation;
+  const parts = [];
+  if (couleur) parts.push(couleur.nom);
+  if (taille) parts.push(taille.nom);
+  if (age) parts.push(age.label);
+  return parts.length > 0 ? parts.join(' / ') : '';
+};
   const isValidPhone = (phone: string): boolean => {
     const phoneRegex = /^[0-9\s\-\+\(\)]{8,}$/;
     return phoneRegex.test(phone.replace(/\s/g, ''));
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!validateForm()) return;
-    
-    setLoading(true);
-    const toastId = toast.loading('Création de votre commande en cours...');
-    
-    try {
-      const lignesCommandes = cartItems.map(item => ({
-        idProduit: item.idProduit,
-        quantite: item.quantite,
-        prixUnitaire: item.produit.prix,
-        sousTotal: item.quantite * item.produit.prix
-      }));
+ const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+
+  if (!validateForm()) return;
+
+  if (cartItems.some(item => !item.idProduitVariation)) {
+    toast.error("Merci de choisir la couleur/taille pour tous les produits du panier.");
+    return;
+  }
+
+  setLoading(true);
+  const toastId = toast.loading('Création de votre commande en cours...');
+
+  try {
+    const lignesCommandes = cartItems.map(item => ({
+      idProduit: item.idProduit,
+      idProduitVariation: item.idProduitVariation as number, 
+      quantite: item.quantite,
+      prixUnitaire: item.produit.prix,
+      sousTotal: item.quantite * item.produit.prix
+    }));
 
       const montantOriginal = lignesCommandes.reduce((sum, ligne) => sum + ligne.sousTotal, 0);
 
@@ -511,41 +529,53 @@ const handleCodeApplique = (data: { code: string; valeurPourcentage: number }) =
                   </div>
                 </div>
                 <div className={`p-4 ${cartItems.length > 4 ? 'max-h-[300px] overflow-y-auto' : ''}`}>
-                  {cartItems.map((item, index) => {
-                    const imageUrl = item.produit.images && item.produit.images.length > 0
-                      ? `http://localhost:3001${item.produit.images.sort((a:any, b:any) => a.rang - b.rang)[0].url}`
-                      : '/images/placeholder.jpg';
 
-                    return (
-                      <div
-                        key={item.idProduit}
-                        className={`flex items-start gap-3 py-3 border-b border-gray-100 last:border-b-0 ${
-                          index !== 0 ? 'border-t-0' : ''
-                        }`}
-                      >
-                        <Image
-                          src={imageUrl}
-                          alt={item.produit.nom}
-                          width={60}
-                          height={60}
-                          className="rounded-lg object-cover border"
-                        />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xs font-semibold text-gray-900 line-clamp-2 mb-1">{item.produit.nom}</p>
-                          <CartItemPromotion
-                            idProduit={item.idProduit}
-                            prixOriginal={item.produit.prix}
-                            quantite={item.quantite}
-                          />
-                          <p className="text-xs text-gray-500 mt-1">Qté: {item.quantite}</p>
-                        </div>
-                        <CheckoutItemTotalDisplay 
-                          idProduit={item.idProduit}
-                          quantite={item.quantite}
-                        />
-                      </div>
-                    );
-                  })}
+{cartItems.map((item, index) => {
+  const imageUrl = item.produit.images && item.produit.images.length > 0
+    ? `http://localhost:3001${item.produit.images.sort((a:any, b:any) => a.rang - b.rang)[0].url}`
+    : '/images/placeholder.jpg';
+
+  return (
+    <div
+      key={`${item.idProduit}-${item.idProduitVariation || 'no-var'}`}
+      className={`flex items-start gap-3 py-3 border-b border-gray-100 last:border-b-0 ${
+        index !== 0 ? 'border-t-0' : ''
+      }`}
+    >
+      <Image
+        src={imageUrl}
+        alt={item.produit.nom}
+        width={60}
+        height={60}
+        className="rounded-lg object-cover border"
+      />
+      <div className="flex-1 min-w-0">
+        <p className="text-xs font-semibold text-gray-900 line-clamp-2 mb-1">{item.produit.nom}</p>
+        
+         {item.variation && (
+          <div className="mb-2 space-y-1 text-xs">
+            {formatVariation(item.variation) && (
+              <div className="flex items-center gap-1 italic text-gray-600">
+                {formatVariation(item.variation)}
+              </div>
+            )}
+          </div>
+        )}
+        
+        <CartItemPromotion
+          idProduit={item.idProduit}
+          prixOriginal={item.produit.prix}
+          quantite={item.quantite}
+        />
+        <p className="text-xs text-gray-500 mt-1">Qté: {item.quantite}</p>
+      </div>
+      <CheckoutItemTotalDisplay 
+        idProduit={item.idProduit}
+        quantite={item.quantite}
+      />
+    </div>
+  );
+})}
                 </div>
                 <div className="p-6 border-t border-gray-100">
                   <div className="space-y-4 text-sm">

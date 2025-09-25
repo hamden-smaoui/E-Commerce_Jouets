@@ -1,5 +1,58 @@
 const API_BASE_URL = 'http://localhost:3001/api/jouets';
 
+export interface Couleur {
+  idCouleur: number;
+  nom: string;
+}
+export interface Taille {
+  idTaille: number;
+  nom: string;
+}
+export interface Age {
+  idAge: number;
+  minAge: number;
+  maxAge: number;
+  typeAge: 'mois' | 'ans';
+  label: string;
+}
+export interface ProduitVariation {
+  idProduitVariation: number;
+  idProduit: number;
+  idCouleur: number;
+  idTaille?: number;
+  idAge?: number;
+  quantiteStock: number;
+  couleur?: Couleur;
+  taille?: Taille;
+  age?: Age;
+}
+export interface LigneCommande {
+  idLigneCommande?: number;
+  idCommande?: number;
+  idProduit: number;
+  idProduitVariation: number;
+  quantite: number;
+  prixUnitaire: number;
+  prixUnitaireOriginal?: number;
+  prixUnitaireFinal?: number;
+  sousTotal: number;
+  reductionUnitaire?: number;
+  idPromotionAppliquee?: number;
+  variation?: ProduitVariation; // <-- AJOUT/MAJ
+  produit?: {
+    idProduit: number;
+    nom: string;
+    description?: string;
+    images?: Array<{ url: string; rang: number }>;
+  };
+  promotionAppliquee?: {
+    idPromotion: number;
+    nom: string;
+    description: string;
+    typePromotion: string;
+  };
+}
+
 export interface Facture {
   idFacture: number;
   numeroFacture: string;
@@ -60,19 +113,9 @@ export interface FactureResponse extends Facture {
       email: string;
       telephone: string;
     };
-    codePromoGlobal :string;
-    reductionCodePromo:number;
-    lignesCommandes?: Array<{
-      idLigneCommande: number;
-      quantite: number;
-      prixUnitaireFinal: number;
-      sousTotal: number;
-      produit: {
-        idProduit: number;
-        nom: string;
-        description: string;
-      };
-    }>;
+    codePromoGlobal?: string;
+    reductionCodePromo?: number;
+    lignesCommandes?: LigneCommande[];
   };
 }
 

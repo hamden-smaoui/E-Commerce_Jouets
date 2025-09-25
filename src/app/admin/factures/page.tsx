@@ -64,7 +64,6 @@ const Factures: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
@@ -239,6 +238,7 @@ const Factures: React.FC = () => {
       ),
     },
   ];
+
   // Updated factureFields to include enterprise fields for editing
   const factureFields: Field<FormData>[] = [
     {
@@ -444,35 +444,6 @@ const Factures: React.FC = () => {
     },
   ];
 
-  const handleAddSubmit = async (data: FormData) => {
-    try {
-      const montantTVA = (data.montantHT * data.tauxTVA) / 100;
-      const montantTotal = data.montantHT + montantTVA;
-
-      const factureData: FactureFormData = {
-        ...data,
-        montantTVA,
-        montantTotal,
-      };
-
-      const newFacture = await FacturesService.createFacture(factureData);
-      setFactures([newFacture, ...factures]);
-      setIsAddModalOpen(false);
-      await fetchData();
-      setNotification({
-        type: 'success',
-        message: 'Facture créée avec succès !',
-      });
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Erreur inconnue';
-      setNotification({
-        type: 'error',
-        message: `Erreur lors de la création: ${message}`,
-      });
-    }
-  };
-
- 
   const handleDelete = () => {
     setIsDeleteModalOpen(true);
   };
@@ -555,49 +526,20 @@ const Factures: React.FC = () => {
     }
   };
 
-  const handleAdd = () => {
-    const newFormData: FormData = {
-      numeroFacture: '',
-      idCommande: 0,
-      dateFacture: new Date().toISOString().split('T')[0],
-      dateEcheance: '',
-      montantHT: 0,
-      montantTVA: 0,
-      montantTotal: 0,
-      tauxTVA: 19,
-      statut: 'brouillon',
-      clientNom: '',
-      clientEmail: '',
-      clientTelephone: '',
-      clientAdresse: '',
-      entrepriseNom: 'Jouets Paradise',
-      entrepriseAdresse: '',
-      entrepriseTelephone: '',
-      entrepriseEmail: '',
-      entrepriseSiret: '',
-      notes: '',
-    };
-    setFormData(newFormData);
-    setIsAddModalOpen(true);
-  };
-
- const handleEditSubmit = async (data: FormData) => {
+  const handleEditSubmit = async (data: FormData) => {
     try {
       if (!data.idFacture) return;
 
-      // Parse numbers to ensure they're not strings from form
       const parsedMontantHT = parseFloat(data.montantHT.toString()) || 0;
       const parsedTauxTVA = parseFloat(data.tauxTVA.toString()) || 19;
       const montantTVA = (parsedMontantHT * parsedTauxTVA) / 100;
       const parsedMontantTotal = parseFloat((parsedMontantHT + montantTVA).toFixed(2)) || 0;
 
-      // Format dates to ISO for backend
       const isoDateFacture = new Date(data.dateFacture).toISOString();
       const isoDateEcheance = data.dateEcheance ? new Date(data.dateEcheance).toISOString() : null;
 
-      // Prepare update data (exclude idFacture and numeroFacture for partial update)
       const updatePayload: Partial<FactureFormData> = {
-        idCommande: parseInt(data.idCommande.toString()) || 0, // Ensure number
+        idCommande: parseInt(data.idCommande.toString()) || 0,
         dateFacture: isoDateFacture,
         dateEcheance: isoDateEcheance || undefined,
         montantHT: parsedMontantHT,
@@ -617,8 +559,6 @@ const Factures: React.FC = () => {
         notes: data.notes || '',
       };
 
-      console.log('Sending update payload to service:', updatePayload); // Log the exact payload
-
       const updatedFacture = await FacturesService.updateFacture(data.idFacture, updatePayload);
       setFactures(factures.map((f) => (f.idFacture === data.idFacture ? updatedFacture : f)));
       setIsEditModalOpen(false);
@@ -629,7 +569,6 @@ const Factures: React.FC = () => {
       });
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Erreur inconnue';
-      console.error('Edit error details:', error); // Log full error for debugging
       setNotification({
         type: 'error',
         message: `Erreur lors de la modification: ${message}`,
@@ -637,7 +576,6 @@ const Factures: React.FC = () => {
     }
   };
 
-  // Updated handleEdit to set enterprise fields properly
   const handleEdit = (facture: FactureResponse) => {
     const editFormData: FormData = {
       idFacture: facture.idFacture,
@@ -645,7 +583,7 @@ const Factures: React.FC = () => {
       idCommande: facture.idCommande,
       dateFacture: facture.dateFacture.split('T')[0],
       dateEcheance: facture.dateEcheance ? facture.dateEcheance.split('T')[0] : '',
-      montantHT: parseFloat(facture.montantHT.toString()) || 0, // Ensure number
+      montantHT: parseFloat(facture.montantHT.toString()) || 0,
       montantTVA: parseFloat(facture.montantTVA.toString()) || 0,
       montantTotal: parseFloat(facture.montantTotal.toString()) || 0,
       tauxTVA: parseFloat(facture.tauxTVA.toString()) || 19,
@@ -678,13 +616,11 @@ const Factures: React.FC = () => {
   }
 
   return (
-    <div className="p-6 w-full h-screen flex  flex-col relative">
+    <div className="p-6 w-full h-screen flex flex-col relative">
       <Notification notification={notification} onClose={() => setNotification(null)} />
 
       {/* Stats Cards */}
       {stats && <FactureStatsCards stats={stats} loading={loading} />}
-
-      
 
       <HeaderCardComponent
         title="Gestion des Factures"
@@ -696,26 +632,27 @@ const Factures: React.FC = () => {
           if (facture) handleEdit(facture);
         }}
         onDelete={handleDelete}
-        onAdd={handleAdd}
-      />
-  <div className="flex-1 min-h-[50vh] sm:min-h-[60vh] overflow-auto">
+showAddButton={false}      
+/>
 
-      <TableComponent
-        data={filteredFactures}
-        columns={columns}
-        loading={loading}
-        error={error}
-        selectedItems={selectedFactures}
-        handleCheckboxChange={handleCheckboxChange}
-        handleSelectAll={handleSelectAll}
-        onEdit={handleEdit}
-        onDelete={(id: number) => {
-          setSelectedFactures([id]);
-          handleDelete();
-        }}
-        idField="idFacture"
-      />
-</div>
+      <div className="flex-1 min-h-[50vh] sm:min-h-[60vh] overflow-auto">
+        <TableComponent
+          data={filteredFactures}
+          columns={columns}
+          loading={loading}
+          error={error}
+          selectedItems={selectedFactures}
+          handleCheckboxChange={handleCheckboxChange}
+          handleSelectAll={handleSelectAll}
+          onEdit={handleEdit}
+          onDelete={(id: number) => {
+            setSelectedFactures([id]);
+            handleDelete();
+          }}
+          idField="idFacture"
+        />
+      </div>
+
       {/* Modals */}
       <ConfirmDeleteModal
         isOpen={isDeleteModalOpen}
@@ -726,17 +663,6 @@ const Factures: React.FC = () => {
       />
 
       <FormModal
-        isOpen={isAddModalOpen}
-        onClose={() => setIsAddModalOpen(false)}
-        title="Créer une Nouvelle Facture"
-        fields={factureFields}
-        formData={formData}
-        setFormData={setFormData}
-        onSubmit={handleAddSubmit}
-        submitButtonText="Créer"
-      />
-
-       <FormModal
         isOpen={isEditModalOpen}
         onClose={() => setIsEditModalOpen(false)}
         title="Modifier la Facture"
@@ -748,6 +674,7 @@ const Factures: React.FC = () => {
         onSubmit={handleEditSubmit}
         submitButtonText="Modifier"
       />
+      
       <FactureViewModal
         isOpen={isViewModalOpen}
         onClose={() => setIsViewModalOpen(false)}

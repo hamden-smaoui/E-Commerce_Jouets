@@ -2,6 +2,7 @@
 import React from "react";
 import Image from "next/image";
 import { useStoreInfo } from "@/hooks/useStoreInfo";
+import NewsletterSubscribe from '@/components/layout/NewsletterSubscribe';
 import { 
   MapPinIcon, 
   PhoneIcon, 
@@ -33,8 +34,8 @@ export default function Footer() {
               ) : (
                 <img
                   className="w-48 h-36 object-contain drop-shadow-2xl"
-                  src="/images/logo2.png"
-                  alt="Toy Universe Logo"
+                  src="/images/logoBamby.png"
+                  alt="Bamby Joy Logo"
                   onError={() => console.error("Failed to load logo image")}
                 />
               )}
@@ -109,22 +110,7 @@ export default function Footer() {
             <p className="text-purple-100 mb-4 text-base">
               Inscrivez-vous pour recevoir nos dernières offres et nouveautés.
             </p>
-            <form className="mb-8">
-              <div className="flex flex-col sm:flex-row gap-2">
-                <input
-                  type="email"
-                  placeholder="Votre email"
-                  className="flex-1 px-4 py-2 rounded-lg bg-white/10 border-2 border-blue-300 text-white placeholder-blue-200 focus:outline-none focus:border-pink-400 focus:ring-1 focus:ring-pink-300 shadow-inner"
-                  required
-                />
-                <button
-                  type="submit"
-                  className="px-6 py-2 bg-gradient-to-r from-pink-400 to-blue-400 text-white font-bold rounded-lg hover:from-pink-500 hover:to-blue-500 transition-all duration-300 whitespace-nowrap shadow"
-                >
-                  S'inscrire
-                </button>
-              </div>
-            </form>
+           <NewsletterSubscribe />
             {/* Social Media */}
             <div>
               <h4 className="text-md font-bold mb-4 text-purple-300 drop-shadow-lg">Suivez-nous</h4>
@@ -179,7 +165,7 @@ export default function Footer() {
         <div className="max-w-7xl mx-auto px-4 py-6">
           <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0 text-center md:text-left">
             <div className="text-purple-200 text-sm font-semibold">
-              © 2024 {storeInfo?.nom || 'Toy Universe'}. Tous droits réservés.
+              © 2024 {storeInfo?.nom || 'Bamby Joy'}. Tous droits réservés.
             </div>
             <div className="flex flex-wrap justify-center md:justify-end gap-6 text-sm">
               <a href="/privacy" className="text-purple-200 hover:text-pink-400 transition-colors duration-300 font-semibold">

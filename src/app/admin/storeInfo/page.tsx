@@ -1,7 +1,7 @@
 'use client';
 import { NextPage } from 'next';
 import { useState, useEffect } from 'react';
-import { Tag, Edit, Save, X, Upload, Trash2, MapPin, Phone, Mail, Globe, Clock, Facebook, Instagram, Youtube, Camera } from 'lucide-react';
+import { Tag, Edit, Save, X, Upload, Trash2, MapPin, Phone, Mail, Globe, Clock, Facebook, Instagram, Youtube, Camera, Truck } from 'lucide-react';
 import StoreInfoService, { StoreInfo, StoreInfoFormData } from '@/services/storeInfo-service';
 import Image from 'next/image';
 import Notification from '@/components/layout/Notification';
@@ -37,6 +37,8 @@ const StoreInfoPage: NextPage = () => {
     imagesToDelete: [],
     imageRangs: {},
     tauxTVA:19,
+    fraisLivraison:7,
+    seuilLivraisonGratuite:100,
     entrepriseSiret: '',
   });
   const [newImages, setNewImages] = useState<File[]>([]);
@@ -78,6 +80,8 @@ const StoreInfoPage: NextPage = () => {
         imagesToDelete: [],
         imageRangs: {},
         tauxTVA: data.tauxTVA || 19,
+        fraisLivraison: data.fraisLivraison || 7,
+        seuilLivraisonGratuite: data.seuilLivraisonGratuite || 100,
         entrepriseSiret: data.entrepriseSiret || '',
       });
     } catch (err) {
@@ -340,46 +344,7 @@ if (isLoading && !storeInfo) {
                     )}
                   </div>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="form-control">
-                    <label className="label">
-                      <span className="label-text font-semibold">Siret</span>
-                    </label>
-                    {isEditing ? (
-                      <input
-                        type="text"
-                        className="input input-bordered w-full"
-                        value={formData.entrepriseSiret}
-                        onChange={(e) => handleInputChange('entrepriseSiret', e.target.value)}
-                        placeholder="siret de votre magasin"
-                      />
-                    ) : (
-                      <div className="p-3 bg-base-200 rounded-lg">
-                        {storeInfo?.entrepriseSiret || 'Non défini'}
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="form-control">
-                    <label className="label">
-                      <span className="label-text font-semibold">Taux TVA</span>
-                    </label>
-                    {isEditing ? (
-                      <input
-                         type="text"
-                        className="input input-bordered w-full"
-                        value={formData.tauxTVA}
-                        onChange={(e) => handleInputChange('tauxTVA', e.target.value)}
-                        placeholder="taux TVA  du magasin"
-                      />
-                    ) : (
-                      <div className="p-3 bg-base-200 rounded-lg">
-                        {storeInfo?.tauxTVA || 'Non défini'}
-                      </div>
-                    )}
-                  </div></div>
               </div>
-              
             </div>
 
             {/* Contact Information */}
@@ -498,8 +463,111 @@ if (isLoading && !storeInfo) {
             </div>
           </div>
 
-          {/* Location & Branding */}
+          {/* Business Settings */}
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+            {/* Business Information */}
+            <div className="card bg-base-100 shadow-xl">
+              <div className="card-body">
+                <h2 className="card-title text-xl lg:text-2xl flex items-center gap-2 mb-6">
+                  <Tag className="w-5 h-5 lg:w-6 lg:h-6" />
+                  Informations Commerciales
+                </h2>
+                
+                <div className="space-y-4">
+                 
+<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="form-control">
+                      <label className="label">
+                        <span className="label-text font-semibold">Taux TVA (%)</span>
+                      </label>
+                      {isEditing ? (
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          max="100"
+                          className="input input-bordered w-full"
+                          value={formData.tauxTVA}
+                          onChange={(e) => handleInputChange('tauxTVA', parseFloat(e.target.value) || 0)}
+                          placeholder="19"
+                        />
+                      ) : (
+                        <div className="p-3 bg-base-200 rounded-lg">
+                          {storeInfo?.tauxTVA ? `${storeInfo.tauxTVA}%` : 'Non défini'}
+                        </div>
+                      )}
+                    </div>
+                     <div className="form-control">
+                    <label className="label">
+                      <span className="label-text font-semibold">SIRET</span>
+                    </label>
+                    {isEditing ? (
+                      <input
+                        type="text"
+                        className="input input-bordered w-full"
+                        value={formData.entrepriseSiret}
+                        onChange={(e) => handleInputChange('entrepriseSiret', e.target.value)}
+                        placeholder="SIRET de votre entreprise"
+                      />
+                    ) : (
+                      <div className="p-3 bg-base-200 rounded-lg">
+                        {storeInfo?.entrepriseSiret || 'Non défini'}
+                      </div>
+                    )}
+                  </div>
+                    </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                   
+
+                    <div className="form-control">
+                      <label className="label">
+                        <span className="label-text font-semibold flex items-center gap-2">
+                          <Truck className="w-4 h-4" />
+                          Frais de livraison 
+                        </span>
+                      </label>
+                      {isEditing ? (
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          className="input input-bordered w-full"
+                          value={formData.fraisLivraison}
+                          onChange={(e) => handleInputChange('fraisLivraison', parseFloat(e.target.value) || 0)}
+                          placeholder="7.00"
+                        />
+                      ) : (
+                        <div className="p-3 bg-base-200 rounded-lg">
+                          {storeInfo?.fraisLivraison ? `${storeInfo.fraisLivraison}` : 'Non défini'}
+                        </div>
+                      )}
+                    </div>
+                     <div className="form-control">
+                      <label className="label">
+                        <span className="label-text font-semibold">Seuil de la livraison gratuite</span>
+                      </label>
+                      {isEditing ? (
+                        <input
+                          type="number"
+                          step="0.1"
+                          min="0"
+                          max="1000"
+                          className="input input-bordered w-full"
+                          value={formData.seuilLivraisonGratuite}
+                          onChange={(e) => handleInputChange('seuilLivraisonGratuite', parseFloat(e.target.value) || 100)}
+                          placeholder="valeur minimale pour avoir la livraison gratuite"
+                        />
+                      ) : (
+                        <div className="p-3 bg-base-200 rounded-lg">
+                          {storeInfo?.seuilLivraisonGratuite ? `${storeInfo.seuilLivraisonGratuite}` : 'Non défini'}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             {/* Location */}
             <div className="card bg-base-100 shadow-xl">
               <div className="card-body">
@@ -551,14 +619,15 @@ if (isLoading && !storeInfo) {
                 </div>
               </div>
             </div>
+          </div>
 
-            {/* Branding & Description */}
-            <div className="card bg-base-100 shadow-xl">
-              <div className="card-body">
-                <h2 className="card-title text-xl lg:text-2xl mb-6">
-                  Description & Branding
-                </h2>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {/* Branding & Description */}
+          <div className="card bg-base-100 shadow-xl">
+            <div className="card-body">
+              <h2 className="card-title text-xl lg:text-2xl mb-6">
+                Description & Branding
+              </h2>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 <div className="form-control">
                   <label className="label">
                     <span className="label-text font-semibold">Description Hero</span>
@@ -587,14 +656,13 @@ if (isLoading && !storeInfo) {
                       rows={4}
                       value={formData.topDescription}
                       onChange={(e) => handleInputChange('topDescription', e.target.value)}
-                      placeholder="Description qui apparaît sur la page d'accueil de votre magasin..."
+                      placeholder="Description qui apparaît en haut de la page d'accueil de votre magasin..."
                     />
                   ) : (
                     <div className="p-3 bg-base-200 rounded-lg">
                       {storeInfo?.topDescription || 'Non défini'}
                     </div>
                   )}
-                </div>
                 </div>
               </div>
             </div>

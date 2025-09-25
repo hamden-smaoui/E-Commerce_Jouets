@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { FactureResponse } from '@/services/facture-service';
+import { FactureResponse ,ProduitVariation} from '@/services/facture-service';
 import FacturesService from '@/services/facture-service';
 import { useStoreInfo } from "@/hooks/useStoreInfo";
 
@@ -23,7 +23,14 @@ const FactureViewModal: React.FC<FactureViewModalProps> = ({
   const { storeInfo } = useStoreInfo();
 
   if (!facture) return null;
-
+const formatVariation = (variation?: ProduitVariation) => {
+  if (!variation) return '';
+  const parts = [];
+  if (variation.couleur) parts.push(variation.couleur.nom);
+  if (variation.taille) parts.push(variation.taille.nom);
+  if (variation.age) parts.push(variation.age.label);
+  return parts.length > 0 ? parts.join(' / ') : '';
+};
   return (
     <div className={`modal ${isOpen ? 'modal-open' : ''}`}>
       <div className="modal-box w-11/12 max-w-5xl">
@@ -162,14 +169,17 @@ const FactureViewModal: React.FC<FactureViewModalProps> = ({
                     </tr>
                   </thead>
                   <tbody>
-                    {facture.commande.lignesCommandes.map((ligne, index) => (
-                      <tr key={index}>
-                        <td>
-                          <div>
-                            <div className="font-semibold">{ligne.produit.nom}</div>
-                            <div className="text-sm text-gray-500">{ligne.produit.description}</div>
-                          </div>
-                        </td>
+  {facture.commande.lignesCommandes.map((ligne, index) => (
+    <tr key={index}>
+      <td>
+        <div>
+          <div className="font-semibold">{ligne.produit?.nom}</div>
+          <div className="text-xs text-gray-500 italic">
+            {formatVariation(ligne.variation)}
+          </div>
+          <div className="text-sm text-gray-500">{ligne.produit?.description}</div>
+        </div>
+      </td>
                         <td className="text-right">{ligne.quantite}</td>
                         <td className="text-right">{FacturesService.formatAmount(ligne.prixUnitaireFinal)}</td>
                         <td className="text-right font-semibold">

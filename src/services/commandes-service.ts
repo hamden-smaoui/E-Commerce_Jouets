@@ -1,18 +1,45 @@
-// services/commandes-service.ts
 const API_BASE_URL = 'http://localhost:3001/api/jouets';
 
 // Interfaces mises à jour
+export interface Couleur {
+  idCouleur: number;
+  nom: string;
+}
+export interface Taille {
+  idTaille: number;
+  nom: string;
+}
+export interface Age {
+  idAge: number;
+  minAge: number;
+  maxAge: number;
+  typeAge: 'mois' | 'ans';
+  label: string;
+}
+export interface ProduitVariation {
+  idProduitVariation: number;
+  idProduit: number;
+  idCouleur: number;
+  idTaille?: number;
+  idAge?: number;
+  quantiteStock: number;
+  couleur?: Couleur;
+  taille?: Taille;
+  age?: Age;
+}
+
 export interface LigneCommande {
   idLigneCommande?: number;
   idCommande?: number;
   idProduit: number;
+  idProduitVariation: number; // <-- AJOUT OBLIGATOIRE
   quantite: number;
-  prixUnitaire: number; // Prix facturé (compatibilité)
-  prixUnitaireOriginal?: number; // Prix original avant promotion
-  prixUnitaireFinal?: number; // Prix final après promotion
+  prixUnitaire: number;
+  prixUnitaireOriginal?: number;
+  prixUnitaireFinal?: number;
   sousTotal: number;
-  reductionUnitaire?: number; // Montant de réduction par unité
-  idPromotionAppliquee?: number; // ID de la promotion appliquée
+  reductionUnitaire?: number;
+  idPromotionAppliquee?: number;
   produit?: {
     idProduit: number;
     nom: string;
@@ -22,6 +49,7 @@ export interface LigneCommande {
       rang: number;
     }>;
   };
+  variation?: ProduitVariation;
   promotionAppliquee?: {
     idPromotion: number;
     nom: string;
@@ -44,12 +72,12 @@ export interface Commande {
   dateCommande: string;
   statut: 'en attente' | 'en traitement' | 'expédiée' | 'livrée' | 'annulée';
   montantTotal: number;
-  montantOriginal?: number; // Montant original avant promotions
-  montantReduction?: number; // Montant total des réductions
-  fraisLivraison?: number; // Frais de livraison
-  codePromoGlobal?: string; // Code promo utilisé
-  idPromotionUtilisee?: number; // ID de la promotion globale utilisée
-  reductionCodePromo?: number; // Montant de la réduction du code promo
+  montantOriginal?: number;
+  montantReduction?: number;
+  fraisLivraison?: number;
+  codePromoGlobal?: string;
+  idPromotionUtilisee?: number;
+  reductionCodePromo?: number;
   notesLivraison: string | null;
   createdAt: string;
   updatedAt: string;
@@ -123,7 +151,6 @@ export interface CommandeStats {
   total: number;
 }
 
-// Interface pour les réponses de création avec détails promotions
 export interface CommandeCreateResponse {
   message: string;
   data: CommandeResponse;
@@ -140,6 +167,7 @@ export interface CommandeCreateResponse {
   promotions: {
     promotionsProduits: Array<{
       idProduit: number;
+      idProduitVariation: number; // <-- Pour savoir quelle variation a eu la promo
       reduction: number;
     }>;
     promotionGlobale: {
@@ -150,7 +178,6 @@ export interface CommandeCreateResponse {
   };
 }
 
-// Interface pour le calcul du panier
 export interface CalculPanierResponse {
   message: string;
   data: {
@@ -168,7 +195,6 @@ export interface CalculPanierResponse {
   };
 }
 
-// Interface pour la validation de code promo
 export interface ValidationCodePromoResponse {
   message: string;
   valide: boolean;
@@ -180,17 +206,15 @@ export interface ValidationCodePromoResponse {
 }
 
 class CommandesService {
-  // Create a new commande with promotion details
   async createCommande(commandeData: CommandeFormData & { 
     codePromo?: string; 
     fraisLivraison?: number; 
   }): Promise<CommandeCreateResponse> {
     try {
+      // ATTENTION : chaque ligne doit avoir idProduitVariation !
       const response = await fetch(`${API_BASE_URL}/commandes`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(commandeData),
       });
 
@@ -198,7 +222,6 @@ class CommandesService {
         const errorData = await response.json();
         throw new Error(errorData.message || 'Failed to create commande');
       }
-
       const data = await response.json();
       return data;
     } catch (error: unknown) {
@@ -206,7 +229,6 @@ class CommandesService {
       throw new Error(`Error creating commande: ${message}`);
     }
   }
-
   // Get all commandes with pagination and filtering
   async getAllCommandes(params: {
     page?: number;

@@ -30,6 +30,8 @@ export interface StoreInfo {
   topDescription?: string;
   heroImages?: Image[];
   tauxTVA?: number;
+  fraisLivraison?: number;
+  seuilLivraisonGratuite?: number;
   entrepriseSiret?: string;
 }
 
@@ -48,8 +50,8 @@ export interface StoreInfoFormData {
   longitude?: number;
   logo1?: string;
   logo2?: string;
-  logo1File?: File; // Nouveau champ pour le fichier logo1
-  logo2File?: File; // Nouveau champ pour le fichier logo2
+  logo1File?: File; 
+  logo2File?: File; 
   descriptionHero?: string;
   urlFacebook?: string;
   urlInstagram?: string;
@@ -60,6 +62,8 @@ export interface StoreInfoFormData {
   imagesToDelete?: number[];
   imageRangs?: { [imageId: string]: number };
   tauxTVA?: number;
+  fraisLivraison?: number;
+  seuilLivraisonGratuite?: number;
   entrepriseSiret?: string;
 }
 

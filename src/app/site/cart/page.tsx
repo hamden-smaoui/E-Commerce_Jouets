@@ -4,6 +4,7 @@ import Image from "next/image";
 import Footer from "@/components/ui/Footer";
 import Link from 'next/link';
 import { useCart } from "@/hooks/useCart";
+import { useStoreInfo } from "@/hooks/useStoreInfo"; // Import du hook
 import { CartPromotionProvider, useCartPromotionContext } from '@/contexts/CartPromotionContext';
 import CartItemPromotion from '@/components/ui/CartItemPromotion';
 import KidsCornerLoader from "@/components/ui/KidsCornerLoader";
@@ -25,6 +26,26 @@ const CartItemWithPromotion = ({ item, index, onIncrement, onDecrement, onQuanti
     ? `http://localhost:3001${item.produit.images.sort((a:any, b:any) => a.rang - b.rang)[0].url}`
     : '/images/placeholder.jpg';
 
+  // Fonction pour déterminer le stock disponible
+  const getStockDisponible = () => {
+    if (item.variation && item.variation.quantiteStock !== undefined) {
+      return item.variation.quantiteStock;
+    }
+    return item.produit.quantiteStock;
+  };
+
+  const stockDisponible = getStockDisponible();
+
+  const formatVariation = (variation: any) => {
+    if (!variation) return '';
+    const { couleur, taille, age } = variation;
+    const parts = [];
+    if (couleur) parts.push(couleur.nom);
+    if (taille) parts.push(taille.nom);
+    if (age) parts.push(age.label);
+    return parts.length > 0 ? parts.join(' / ') : '';
+  };
+
   return (
     <div className={`flex flex-col sm:flex-row items-start justify-between p-4 gap-4 bg-white rounded-xl hover:shadow-lg transition-shadow border-b-2 border-pink-50 ${
       index !== 0 ? 'border-t-0 rounded-t-none' : ''
@@ -43,7 +64,12 @@ const CartItemWithPromotion = ({ item, index, onIncrement, onDecrement, onQuanti
           <h3 className="font-extrabold text-pink-600 text-sm sm:text-base line-clamp-2 mb-2 font-[Comic_Sans_MS,sans-serif]">
             {item.produit.nom}
           </h3>
-          
+          {item.variation && (
+            <div className="text-xs text-gray-500 font-medium truncate">
+              {formatVariation(item.variation)}
+            </div>
+          )}
+         
           <CartItemPromotion
             idProduit={item.idProduit}
             prixOriginal={item.produit.prix}
@@ -52,15 +78,15 @@ const CartItemWithPromotion = ({ item, index, onIncrement, onDecrement, onQuanti
           
           <div className="flex items-center gap-2 text-xs mt-2">
             <span className={`px-2 py-1 rounded-full text-xs font-bold font-[Comic_Sans_MS,sans-serif] ${
-              item.produit.quantiteStock > 10 
+              stockDisponible > 10 
                 ? 'bg-green-100 text-green-700'
-                : item.produit.quantiteStock > 0
+                : stockDisponible > 0
                   ? 'bg-orange-100 text-orange-700'
                   : 'bg-red-100 text-red-700'
             }`}>
-              {item.produit.quantiteStock > 10 
+              {stockDisponible > 10 
                 ? 'En stock'
-                : item.produit.quantiteStock > 0
+                : stockDisponible > 0
                   ? `Stock limité`
                   : 'Rupture'
               }
@@ -73,7 +99,7 @@ const CartItemWithPromotion = ({ item, index, onIncrement, onDecrement, onQuanti
         {/* Sélecteur de quantité */}
         <div className="flex items-center gap-1 bg-pink-50 rounded-lg p-1">
           <button
-            onClick={() => onDecrement(item.idProduit, item.quantite)}
+            onClick={() => onDecrement(item)}
             disabled={item.quantite <= 1}
             className="w-8 h-8 rounded-md flex items-center justify-center hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed transition-all font-bold"
           >
@@ -82,14 +108,14 @@ const CartItemWithPromotion = ({ item, index, onIncrement, onDecrement, onQuanti
           <input
             type="number"
             value={item.quantite}
-            onChange={(e) => onQuantityChange(item.idProduit, e)}
+            onChange={(e) => onQuantityChange(item, e)}
             className="w-12 h-8 text-center border-0 bg-transparent focus:outline-none focus:ring-0 text-sm font-medium"
             min="1"
-            max={item.produit.quantiteStock}
+            max={stockDisponible}
           />
           <button
-            onClick={() => onIncrement(item.idProduit, item.quantite, item.produit.quantiteStock)}
-            disabled={item.quantite >= item.produit.quantiteStock}
+            onClick={() => onIncrement(item)}
+            disabled={item.quantite >= stockDisponible}
             className="w-8 h-8 rounded-md flex items-center justify-center hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed transition-all font-bold"
           >
             <PlusIcon className="w-4 h-4 text-pink-600" />
@@ -102,7 +128,7 @@ const CartItemWithPromotion = ({ item, index, onIncrement, onDecrement, onQuanti
         />
         
         <button
-          onClick={() => onRemove(item.idProduit)}
+          onClick={() => onRemove(item)}
           className="text-gray-400 hover:text-red-500 transition-colors p-2 hover:bg-red-50 rounded-lg"
           title="Supprimer"
         >
@@ -153,6 +179,8 @@ function Cart() {
     clearCart 
   } = useCart();
   
+  const { storeInfo, loading: storeLoading } = useStoreInfo(); 
+  
   const [mounted, setMounted] = useState(false);
 
   const { getTotals, clearTotals, itemTotals, removeItemTotal } = useCartPromotionContext();
@@ -168,37 +196,43 @@ function Cart() {
   }, [cartItems, itemTotals, removeItemTotal]);
 
   const { totalOriginal, totalFinal, totalSavings } = getTotals();
-  const livraison = totalFinal >= 100 ? 0 : 7.9;
+  
+  // Calcul dynamique des frais de livraison
+  const fraisLivraison = storeInfo?.fraisLivraison || 7; 
+  const seuilLivraisonGratuite = storeInfo?.seuilLivraisonGratuite || 100; 
+  const livraison = totalFinal >= seuilLivraisonGratuite ? 0 : fraisLivraison;
   const totalTTC = totalFinal + livraison;
-
-  const handleIncrement = async (idProduit: number, currentQuantity: number, stock: number) => {
-    if (currentQuantity < stock) {
+   
+  const handleIncrement = async (item: any) => {
+    const stockDisponible = item.variation ? item.variation.quantiteStock : item.produit.quantiteStock;
+    if (item.quantite < stockDisponible) {
       try {
-        await updateQuantity(idProduit, currentQuantity + 1);
+        await updateQuantity(item.idProduit, item.quantite + 1, item.idProduitVariation);
       } catch (error) {}
     }
   };
 
-  const handleDecrement = async (idProduit: number, currentQuantity: number) => {
-    if (currentQuantity > 1) {
+  const handleDecrement = async (item: any) => {
+    if (item.quantite > 1) {
       try {
-        await updateQuantity(idProduit, currentQuantity - 1);
+        await updateQuantity(item.idProduit, item.quantite - 1, item.idProduitVariation);
       } catch (error) {}
     }
   };
 
-  const handleQuantityChange = async (idProduit: number, e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleQuantityChange = async (item: any, e: React.ChangeEvent<HTMLInputElement>) => {
     const value = parseInt(e.target.value);
-    if (isNaN(value) || value < 1) return;
+    const stockDisponible = item.variation ? item.variation.quantiteStock : item.produit.quantiteStock;
+    if (isNaN(value) || value < 1 || value > stockDisponible) return;
     try {
-      await updateQuantity(idProduit, value);
+      await updateQuantity(item.idProduit, value, item.idProduitVariation);
     } catch (error) {}
   };
 
-  const handleRemove = async (idProduit: number) => {
+  const handleRemove = async (item: any) => {
     try {
-      await removeFromCart(idProduit);
-      removeItemTotal(idProduit);
+      await removeFromCart(item.idPanierProduit);
+      removeItemTotal(item.idProduit);
     } catch (error) {}
   };
 
@@ -276,7 +310,7 @@ function Cart() {
                 <div className={`divide-y divide-pink-50 ${cartItems.length > 4 ? 'max-h-[400px] overflow-y-auto' : ''}`}>
                   {cartItems.map((item, index) => (
                     <CartItemWithPromotion
-                      key={item.idProduit}
+                      key={`${item.idProduit}-${item.idProduitVariation || 'no-var'}`}
                       item={item}
                       index={index}
                       onIncrement={handleIncrement}

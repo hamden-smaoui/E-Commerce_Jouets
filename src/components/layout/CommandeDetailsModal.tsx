@@ -33,7 +33,15 @@ const CommandeDetailsModal: React.FC<CommandeDetailsModalProps> = ({
       minute: '2-digit',
     });
   };
-
+const formatVariation = (ligne: any) => {
+  if (!ligne.variation) return '';
+  const { couleur, taille, age } = ligne.variation;
+  const parts = [];
+  if (couleur) parts.push(couleur.nom);
+  if (taille) parts.push(taille.nom);
+  if (age) parts.push(age.label);
+  return parts.length > 0 ? parts.join(' / ') : '';
+};
   const getStatusBadge = (statut: string): string => {
     const badges = {
       'en attente': 'badge-warning',
@@ -211,23 +219,24 @@ const CommandeDetailsModal: React.FC<CommandeDetailsModalProps> = ({
               <tbody>
                 {commande.lignesCommandes?.map((ligne, index) => (
                   <tr key={index} className={ligne.reductionUnitaire && ligne.reductionUnitaire > 0 ? 'bg-success/5' : ''}>
-                    <td>
-                      <div className="flex items-center gap-3">
-                        {ligne.produit?.images && ligne.produit.images.length > 0 && (
-                          <div className="avatar">
-                            <div className="mask mask-squircle w-12 h-12">
-                              <img 
-                                src={`http://localhost:3001${ligne.produit.images[0].url}`} 
-                                alt={ligne.produit.nom} 
-                              />
-                            </div>
-                          </div>
-                        )}
-                        <div>
-                          <div className="font-bold text-sm">{ligne.produit?.nom || 'N/A'}</div>
-                        </div>
-                      </div>
-                    </td>
+                   <td>
+        <div className="flex items-center gap-3">
+          {ligne.produit?.images && ligne.produit.images.length > 0 && (
+            <div className="avatar">
+              <div className="mask mask-squircle w-12 h-12">
+                <img 
+                  src={`http://localhost:3001${ligne.produit.images[0].url}`} 
+                  alt={ligne.produit.nom} 
+                />
+              </div>
+            </div>
+          )}
+          <div>
+            <div className="font-bold text-sm">{ligne.produit?.nom || 'N/A'}</div>
+            <div className="text-xs text-gray-500 italic">{formatVariation(ligne)}</div>
+          </div>
+        </div>
+      </td>
                     <td>
                       <div>
                         <div className="font-bold">{formatPrice(ligne.prixUnitaireFinal || ligne.prixUnitaire)}</div>
@@ -290,7 +299,8 @@ const CommandeDetailsModal: React.FC<CommandeDetailsModalProps> = ({
                       </div>
                     )}
                     <div className="flex-grow min-w-0">
-                      <h5 className="font-bold text-sm mb-2">{ligne.produit?.nom || 'N/A'}</h5>
+                     <div className="font-bold text-sm mb-2">{ligne.produit?.nom || 'N/A'}</div>
+                      <div className="text-xs text-gray-500 italic">{formatVariation(ligne)}</div>
                       <div className="grid grid-cols-2 gap-2 text-xs">
                         <div>
                           <span className="opacity-70">Prix: </span>

@@ -52,7 +52,15 @@ const CommandeItem = ({ ligne, index }: { ligne: any, index: number }) => {
   const imageUrl = ligne.produit?.images && ligne.produit.images.length > 0
     ? `http://localhost:3001${ligne.produit.images.sort((a: any, b: any) => a.rang - b.rang)[0].url}`
     : '/images/placeholder.jpg';
-
+const formatVariation = (variation: any) => {
+  if (!variation) return '';
+  const { couleur, taille, age } = variation;
+  const parts = [];
+  if (couleur) parts.push(couleur.nom);
+  if (taille) parts.push(taille.nom);
+  if (age) parts.push(age.label);
+  return parts.length > 0 ? parts.join(' / ') : '';
+};
   return (
     <div className={`flex flex-col sm:flex-row items-start justify-between p-4 gap-4 bg-white rounded-lg  hover:shadow-md transition-shadow ${
       index !== 0 ? 'border-t-0 rounded-t-none' : ''
@@ -71,7 +79,12 @@ const CommandeItem = ({ ligne, index }: { ligne: any, index: number }) => {
           <h3 className="font-semibold text-gray-900 text-sm sm:text-base line-clamp-2 mb-2">
             {ligne.produit?.nom}
           </h3>
-          
+                    {/* Affichage de la variation */}
+          {ligne.variation && (
+            <div className="mb-2 text-xs italic text-gray-600">
+              {formatVariation(ligne.variation)}
+            </div>
+          )}
           <CommandeItemPromotion
   idProduit={ligne.idProduit}
   prixOriginal={ligne.produit?.prix || ligne.prixUnitaire}
@@ -268,8 +281,8 @@ function CommandeConfirmation({ params }: Props) {
   const cancellationDeadline = getCancellationDeadline(commande.dateCommande);
   const orderNumber = `CMD-${commande.idCommande.toString().padStart(6, '0')}`;
 
-  const fraisLivraison = commande.montantTotal >= 100 ? 0 : 7.9;
-  const totalTTC = commande.montantTotal + fraisLivraison;
+  const totalTTC = commande.montantTotal ;
+  const totalTTCWithoutLivraison = totalTTC - (commande.fraisLivraison || 0);
 
   const getStatusColor = (statut: string) => {
     switch (statut) {
@@ -426,14 +439,14 @@ function CommandeConfirmation({ params }: Props) {
             <div className="max-w-full sm:max-w-sm ml-auto space-y-2">
               <div className="flex justify-between text-gray-700 text-sm sm:text-base">
                 <span>Sous-total</span>
-                <span>{commande.montantTotal.toFixed(2)} <span className="text-xs">TND</span></span>
+                <span>{totalTTCWithoutLivraison.toFixed(2)} <span className="text-xs">TND</span></span>
               </div>
               <div className="flex justify-between text-gray-700 text-sm sm:text-base">
                 <span>Livraison</span>
-                <span className={fraisLivraison === 0 ? "text-green-600 font-medium" : ""}>
-                  {fraisLivraison === 0 ? "Gratuite" : (
+                <span className={commande.fraisLivraison === 0 ? "text-green-600 font-medium" : ""}>
+                  {commande.fraisLivraison === 0 ? "Gratuite" : (
                     <>
-                      {fraisLivraison.toFixed(2)} <span className="text-xs">TND</span>
+                      {commande.fraisLivraison} <span className="text-xs">TND</span>
                     </>
                   )}
                 </span>

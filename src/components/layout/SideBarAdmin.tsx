@@ -3,7 +3,25 @@
 import React from 'react';
 import { useParams, usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { Home, Users, Package, Truck, ShoppingCart, MessageSquare, Tag, Building, Folder, Shield, Percent, Ticket,Receipt } from 'lucide-react';
+import { 
+  Home, 
+  Users, 
+  Package, 
+  Truck, 
+  ShoppingCart, 
+  MessageSquare, 
+  Tag, 
+  Building, 
+  Folder, 
+  Shield, 
+  Percent, 
+  Ticket,
+  Receipt,
+  Palette,
+  Ruler,
+  Calendar,
+  Mail
+} from 'lucide-react';
 
 interface SideBarProps {
   children: React.ReactNode;
@@ -102,6 +120,45 @@ const SideBar: React.FC<SideBarProps> = ({ children }) => {
           </li>
           <li>
             <Link
+              href={`/admin/couleurs`}
+              className={`flex items-center gap-3 p-3 rounded-lg transition ${
+                pathname === '/admin/couleurs'
+                  ? 'text-blue-600 font-bold border-blue-600 border-b-2'
+                  : 'hover:bg-gray-800 hover:text-white'
+              }`}
+            >
+              <Palette size={20} />
+              Couleurs
+            </Link>
+          </li>
+          <li>
+            <Link
+              href={`/admin/tailles`}
+              className={`flex items-center gap-3 p-3 rounded-lg transition ${
+                pathname === '/admin/tailles'
+                  ? 'text-blue-600 font-bold border-blue-600 border-b-2'
+                  : 'hover:bg-gray-800 hover:text-white'
+              }`}
+            >
+              <Ruler size={20} />
+              Tailles
+            </Link>
+          </li>
+          <li>
+            <Link
+              href={`/admin/ages`}
+              className={`flex items-center gap-3 p-3 rounded-lg transition ${
+                pathname === '/admin/ages'
+                  ? 'text-blue-600 font-bold border-blue-600 border-b-2'
+                  : 'hover:bg-gray-800 hover:text-white'
+              }`}
+            >
+              <Calendar size={20} />
+              Ages
+            </Link>
+          </li>
+          <li>
+            <Link
               href={`/admin/produits`}
               className={`flex items-center gap-3 p-3 rounded-lg transition ${
                 pathname === '/admin/produits'
@@ -189,6 +246,34 @@ const SideBar: React.FC<SideBarProps> = ({ children }) => {
             >
               <Receipt size={20} />
               Factures
+            </Link>
+          </li>
+          {/* Newsletter Button */}
+          <li>
+            <Link
+              href={`/admin/newsLetter`}
+              className={`flex items-center gap-3 p-3 rounded-lg transition ${
+                pathname === '/admin/newsLetter'
+                  ? 'text-blue-600 font-bold border-blue-600 border-b-2'
+                  : 'hover:bg-gray-800 hover:text-white'
+              }`}
+            >
+              <Mail size={20} />
+              Newsletter
+            </Link>
+          </li>
+          {/* Newsletter compaign Button */}
+          <li>
+            <Link
+              href={`/admin/newsletters-compaign`}
+              className={`flex items-center gap-3 p-3 rounded-lg transition ${
+                pathname === '/admin/newsletters-compaign'
+                  ? 'text-blue-600 font-bold border-blue-600 border-b-2'
+                  : 'hover:bg-gray-800 hover:text-white'
+              }`}
+            >
+              <Mail size={20} />
+              Newsletters Compaign
             </Link>
           </li>
         </ul>

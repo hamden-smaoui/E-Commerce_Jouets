@@ -11,9 +11,9 @@ interface CartContextType {
   totalItems: number;
   totalPrice: number;
   loading: boolean;
-  addToCart: (idProduit: number, quantite?: number) => Promise<void>;
-  updateQuantity: (idProduit: number, quantite: number) => Promise<void>;
-  removeFromCart: (idProduit: number) => Promise<void>;
+  addToCart: (idProduit: number, quantite?: number, variationId?: number) => Promise<void>;
+  updateQuantity: (idProduit: number, quantite: number, idProduitVariation?: number) => Promise<void>;
+  removeFromCart: (idPanierProduit: number) => Promise<void>;
   clearCart: () => Promise<void>;
   refreshCart: () => Promise<void>;
   clearCartWithoutToast: () => Promise<void>;
@@ -27,15 +27,16 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const [mounted, setMounted] = useState(false);
   const { isAuthenticated } = useAuth();
 
-  // Fix hydration mismatch
   useEffect(() => {
     setMounted(true);
   }, []);
 
   const cartItems = cart?.produits || [];
   const totalItems = cartItems.reduce((sum, item) => sum + item.quantite, 0);
+  
+  // Utiliser le prix unitaire stocké dans le panier
   const totalPrice = cartItems.reduce(
-    (sum, item) => sum + item.quantite * item.produit.prix,
+    (sum, item) => sum + item.quantite * item.prixUnitaire,
     0
   );
 
@@ -58,14 +59,14 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const addToCart = async (idProduit: number, quantite: number = 1) => {
+  const addToCart = async (idProduit: number, quantite: number = 1, variationId?: number) => {
     if (!isAuthenticated) {
       toast.error("Vous devez être connecté pour ajouter des produits au panier");
       return;
     }
 
     try {
-      await PanierService.ajouterProduit(idProduit, quantite);
+      await PanierService.ajouterProduit(idProduit, quantite, variationId);
       await refreshCart();
       toast.success("Produit ajouté au panier");
     } catch (error: any) {
@@ -75,9 +76,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const updateQuantity = async (idProduit: number, quantite: number) => {
+  // CORRECTION: Fonction updateQuantity corrigée pour correspondre au service
+  const updateQuantity = async (idProduit: number, quantite: number, idProduitVariation?: number) => {
     try {
-      await PanierService.modifierQuantite(idProduit, quantite);
+      await PanierService.modifierQuantite(idProduit, quantite, idProduitVariation);
       await refreshCart();
     } catch (error: any) {
       const message = error.message || "Erreur lors de la modification";
@@ -86,9 +88,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const removeFromCart = async (idProduit: number) => {
+  const removeFromCart = async (idPanierProduit: number) => {
     try {
-      await PanierService.retirerProduit(idProduit);
+      console.log("Suppression du produit avec idPanierProduit:", idPanierProduit);
+      await PanierService.retirerProduit(idPanierProduit);
       await refreshCart();
       toast.success("Produit retiré du panier");
     } catch (error: any) {
@@ -109,6 +112,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       throw error;
     }
   };
+
   const clearCartWithoutToast = async () => {
     try {
       await PanierService.viderPanier();

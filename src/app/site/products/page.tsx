@@ -4,30 +4,14 @@ import Filter, { FilterState } from "@/components/ui/Filter";
 import { useState, useEffect, useCallback, useMemo } from "react";
 import React from "react";
 import Footer from "@/components/ui/Footer";
-import ProduitsService, { Produit } from "@/services/produits-service";
+import ProduitsService, { ProduitResponse, ProduitVariation } from "@/services/produits-service";
 import KidsCornerLoader from '@/components/ui/KidsCornerLoader';
 import { useSearchParams } from 'next/navigation';
 import { CubeIcon } from '@heroicons/react/24/solid';
 
-interface ProductWithDetails extends Produit {
+interface ProductWithDetails extends ProduitResponse {
   image?: string;
-  categorie?: {
-    idCategorie: number;
-    nom: string;
-  };
-  marque?: {
-    idMarque: number;
-    nom: string;
-  };
-  type?: {
-    idType: number;
-    nom: string;
-  };
-  images?: Array<{
-    idImage: number;
-    url: string;
-    rang: number;
-  }>;
+  totalStock?: number;
 }
 
 export default function Products() {
@@ -61,15 +45,22 @@ export default function Products() {
     setCurrentPage(1);
   }, [currentFilters, sortBy]);
 
+  // Calcul du stock total basé sur les variations
+  const calculateTotalStock = (variations: ProduitVariation[] | undefined): number => {
+    if (!variations || variations.length === 0) return 0;
+    return variations.reduce((total, variation) => total + (variation.quantiteStock || 0), 0);
+  };
+
   const loadProducts = async () => {
     try {
       setLoading(true);
       const data = await ProduitsService.getAllProduits();
-      const transformedProducts: ProductWithDetails[] = data.map((product: any) => ({
+      const transformedProducts: ProductWithDetails[] = data.map((product: ProduitResponse) => ({
         ...product,
         image: product.images && product.images.length > 0 
-          ? product.images.sort((a: any, b: any) => a.rang - b.rang)[0].url 
+          ? product.images.sort((a, b) => a.rang - b.rang)[0].url 
           : '/images/placeholder.jpg',
+        totalStock: calculateTotalStock(product.variations),
       }));
       setProducts(transformedProducts);
     } catch (error) {
@@ -92,56 +83,71 @@ export default function Products() {
     });
   }, [searchParams]);
 
-  const getAgeInMonths = (minAge: string | null, maxAge: string | null, typeAge: 'mois' | 'ans' | null): { min: number; max: number } | null => {
-    if (!minAge && !maxAge) return null;
-    const min = minAge ? parseInt(minAge) : 0;
-    const max = maxAge ? parseInt(maxAge) : 144;
-    if (isNaN(min) || isNaN(max)) return null;
-    return {
-      min: typeAge === 'ans' ? min * 12 : min,
-      max: typeAge === 'ans' ? max * 12 : max,
-    };
+  // Fonction pour vérifier si un produit correspond aux filtres d'âge
+  const matchesAgeFilter = (product: ProductWithDetails): boolean => {
+    if (currentFilters.age.min === 0 && currentFilters.age.max === 144) return true;
+    
+    // Vérifier les variations qui ont des tranches d'âge
+    if (product.variations && product.variations.length > 0) {
+      return product.variations.some(variation => {
+        if (!variation.age) return true; // Si pas d'âge spécifié, on inclut
+        
+        const ageMinInMonths = variation.age.typeAge === 'ans' 
+          ? variation.age.minAge * 12 
+          : variation.age.minAge;
+        const ageMaxInMonths = variation.age.typeAge === 'ans' 
+          ? variation.age.maxAge * 12 
+          : variation.age.maxAge;
+        
+        return !(ageMaxInMonths < currentFilters.age.min || ageMinInMonths > currentFilters.age.max);
+      });
+    }
+    
+    return true;
   };
 
   const filteredProducts = useMemo(() => {
     let filtered = [...products];
+    
     if (currentFilters.categories.length > 0) {
       filtered = filtered.filter(product => 
         currentFilters.categories.includes(product.idCategorie)
       );
     }
+    
     if (currentFilters.marques.length > 0) {
       filtered = filtered.filter(product => 
         currentFilters.marques.includes(product.idMarque)
       );
     }
+    
     if (currentFilters.types.length > 0) {
       filtered = filtered.filter(product => 
         product.idType && currentFilters.types.includes(product.idType)
       );
     }
+    
     if (currentFilters.genres.length > 0) {
       filtered = filtered.filter(product => 
         currentFilters.genres.includes(product.genre)
       );
     }
+    
     filtered = filtered.filter(product => 
       product.prix >= currentFilters.prix.min && 
       product.prix <= currentFilters.prix.max
     );
-    if (currentFilters.age.min > 0 || currentFilters.age.max < 144) {
-      filtered = filtered.filter(product => {
-        const ageRange = getAgeInMonths(product.minAge, product.maxAge, product.typeAge);
-        if (!ageRange) return true;
-        return !(ageRange.max < currentFilters.age.min || ageRange.min > currentFilters.age.max);
-      });
-    }
+    
+    // Nouveau filtre d'âge amélioré
+    filtered = filtered.filter(matchesAgeFilter);
+    
     if (sortBy) {
       switch (sortBy) {
         case 'a-z': filtered.sort((a, b) => a.nom.localeCompare(b.nom)); break;
         case 'z-a': filtered.sort((a, b) => b.nom.localeCompare(a.nom)); break;
         case 'price-asc': filtered.sort((a, b) => a.prix - b.prix); break;
         case 'price-desc': filtered.sort((a, b) => b.prix - a.prix); break;
+        case 'stock-desc': filtered.sort((a, b) => (b.totalStock || 0) - (a.totalStock || 0)); break;
         default: break;
       }
     }

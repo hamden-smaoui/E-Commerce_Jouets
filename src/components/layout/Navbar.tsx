@@ -83,7 +83,7 @@ export default function Navbar() {
                 />
               </div>
             ) : (
-              <img src="/images/logo.png" alt="Toy Universe Logo" className="h-16 w-auto sm:h-20 " />
+              <img src="/images/logoBamby.png" alt="Bamby Joy" className="h-16 w-auto sm:h-20 " />
             )}
           </Link>
           <div className="flex space-x-2 md:hidden">

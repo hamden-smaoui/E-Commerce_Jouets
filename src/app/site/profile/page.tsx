@@ -5,12 +5,13 @@ import { useSearchParams } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import CommandesService, { CommandeResponse } from '@/services/commandes-service';
 import UsersService, { User, FormData } from '@/services/users-service';
+import NewsletterService from '@/services/newsletter-service';
 import KidsCornerLoader from '@/components/ui/KidsCornerLoader';
 import { toast } from 'react-hot-toast';
 
-import { 
-  UserCircleIcon, 
-  PencilIcon, 
+import {
+  UserCircleIcon,
+  PencilIcon,
   ShoppingBagIcon,
   MapPinIcon,
   PhoneIcon,
@@ -22,7 +23,8 @@ import {
   TruckIcon,
   ExclamationTriangleIcon,
   XMarkIcon,
-  MagnifyingGlassIcon
+  MagnifyingGlassIcon,
+  EnvelopeOpenIcon as MailIcon
 } from '@heroicons/react/24/outline';
 
 export default function ProfilePage() {
@@ -49,6 +51,11 @@ export default function ProfilePage() {
     role: 'client',
   });
 
+  // Newsletter state
+  const [newsletterStatus, setNewsletterStatus] = useState<'unknown' | 'subscribed' | 'not_subscribed' | 'loading'>('unknown');
+  const [newsletterEmail, setNewsletterEmail] = useState(user?.email || '');
+  const [newsletterMsg, setNewsletterMsg] = useState<string | null>(null);
+
   useEffect(() => {
     if (user) {
       setProfileData({
@@ -63,6 +70,7 @@ export default function ProfilePage() {
         adressePays: user.adressePays || 'Tunisie',
         role: user.role || 'client',
       });
+      setNewsletterEmail(user.email || '');
     }
   }, [user]);
 
@@ -84,9 +92,28 @@ export default function ProfilePage() {
     setFilteredOrders(filtered.slice(0, 5));
   }, [searchQuery, orders]);
 
+  // Newsletter effect
+  useEffect(() => {
+    const checkNewsletter = async () => {
+      if (!user?.email) {
+        setNewsletterStatus('not_subscribed');
+        return;
+      }
+      try {
+        setNewsletterStatus('loading');
+        const all = await NewsletterService.getAllEntries();
+        const found = all.some(entry => entry.email === user.email);
+        setNewsletterStatus(found ? 'subscribed' : 'not_subscribed');
+      } catch {
+        setNewsletterStatus('not_subscribed');
+      }
+    };
+    checkNewsletter();
+  }, [user]);
+
   const fetchUserOrders = async () => {
     if (!user?.idUtilisateur) return;
-    
+
     try {
       setOrdersLoading(true);
       const userOrders = await CommandesService.getCommandesByClient(user.idUtilisateur);
@@ -107,7 +134,7 @@ export default function ProfilePage() {
     try {
       setLoading(true);
       const updatedUser = await UsersService.updateUser(user.idUtilisateur, profileData);
-      
+
       await updateUser({
         prenom: profileData.prenom,
         nom: profileData.nom,
@@ -118,7 +145,7 @@ export default function ProfilePage() {
         adresseCodePostal: profileData.adresseCodePostal,
         adressePays: profileData.adressePays,
       });
-      
+
       setIsEditing(false);
       toast.success('Profil mis à jour avec succès!');
     } catch (error) {
@@ -150,16 +177,43 @@ export default function ProfilePage() {
   const handleCancelOrder = async (orderId: number) => {
     try {
       const updatedOrder = await CommandesService.updateCommande(orderId, { statut: 'annulée' });
-      setOrders(orders.map((order) => 
+      setOrders(orders.map((order) =>
         order.idCommande === orderId ? { ...order, statut: updatedOrder.statut } : order
       ));
-      setFilteredOrders(filteredOrders.map((order) => 
+      setFilteredOrders(filteredOrders.map((order) =>
         order.idCommande === orderId ? { ...order, statut: updatedOrder.statut } : order
       ));
       toast.success('Commande annulée avec succès!');
     } catch (error) {
       console.error('Error canceling order:', error);
       toast.error('Erreur lors de l\'annulation de la commande');
+    }
+  };
+
+  // Newsletter subscribe/unsubscribe
+  const handleNewsletterSubscribe = async () => {
+    setNewsletterMsg(null);
+    try {
+      setNewsletterStatus('loading');
+      await NewsletterService.subscribe({ email: newsletterEmail });
+      setNewsletterStatus('subscribed');
+      setNewsletterMsg("Vous êtes maintenant abonné à la newsletter !");
+    } catch (e: any) {
+      setNewsletterStatus('not_subscribed');
+      setNewsletterMsg(e.message || "Erreur lors de l'inscription.");
+    }
+  };
+
+  const handleNewsletterUnsubscribe = async () => {
+    setNewsletterMsg(null);
+    try {
+      setNewsletterStatus('loading');
+      await NewsletterService.unsubscribe(newsletterEmail);
+      setNewsletterStatus('not_subscribed');
+      setNewsletterMsg("Vous avez été désinscrit de la newsletter.");
+    } catch (e: any) {
+      setNewsletterStatus('subscribed');
+      setNewsletterMsg(e.message || "Erreur lors de la désinscription.");
     }
   };
 
@@ -242,7 +296,7 @@ export default function ProfilePage() {
               </div>
             </div>
           </div>
-          
+
           {/* Navigation Tabs */}
           <div className="px-4 sm:px-6">
             <nav className="flex space-x-4 border-b border-gray-200">
@@ -287,7 +341,7 @@ export default function ProfilePage() {
                 <span>{isEditing ? 'Annuler' : 'Modifier'}</span>
               </button>
             </div>
-            
+
             <div className="px-4 sm:px-6 py-6">
               {isEditing ? (
                 <form onSubmit={handleSaveProfile}>
@@ -299,12 +353,12 @@ export default function ProfilePage() {
                       <input
                         type="text"
                         value={profileData.prenom}
-                        onChange={(e) => setProfileData({...profileData, prenom: e.target.value})}
+                        onChange={(e) => setProfileData({ ...profileData, prenom: e.target.value })}
                         className="input input-bordered w-full text-sm focus:ring-purple-500 focus:border-purple-500"
                         required
                       />
                     </div>
-                    
+
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         Nom *
@@ -312,12 +366,12 @@ export default function ProfilePage() {
                       <input
                         type="text"
                         value={profileData.nom}
-                        onChange={(e) => setProfileData({...profileData, nom: e.target.value})}
+                        onChange={(e) => setProfileData({ ...profileData, nom: e.target.value })}
                         className="input input-bordered w-full text-sm focus:ring-purple-500 focus:border-purple-500"
                         required
                       />
                     </div>
-                    
+
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         Email
@@ -325,11 +379,11 @@ export default function ProfilePage() {
                       <input
                         type="email"
                         value={profileData.email || ''}
-                        onChange={(e) => setProfileData({...profileData, email: e.target.value})}
+                        onChange={(e) => setProfileData({ ...profileData, email: e.target.value })}
                         className="input input-bordered w-full text-sm focus:ring-purple-500 focus:border-purple-500"
                       />
                     </div>
-                    
+
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         Téléphone *
@@ -337,12 +391,12 @@ export default function ProfilePage() {
                       <input
                         type="tel"
                         value={profileData.telephone}
-                        onChange={(e => setProfileData({...profileData, telephone: e.target.value}))}
+                        onChange={(e => setProfileData({ ...profileData, telephone: e.target.value }))}
                         className="input input-bordered w-full text-sm focus:ring-purple-500 focus:border-purple-500"
                         required
                       />
                     </div>
-                    
+
                     <div className="sm:col-span-2">
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         Adresse
@@ -350,12 +404,12 @@ export default function ProfilePage() {
                       <input
                         type="text"
                         value={profileData.adresseRue || ''}
-                        onChange={(e) => setProfileData({...profileData, adresseRue: e.target.value})}
+                        onChange={(e) => setProfileData({ ...profileData, adresseRue: e.target.value })}
                         className="input input-bordered w-full text-sm focus:ring-purple-500 focus:border-purple-500"
                         placeholder="Rue et numéro"
                       />
                     </div>
-                    
+
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         Ville
@@ -363,11 +417,11 @@ export default function ProfilePage() {
                       <input
                         type="text"
                         value={profileData.adresseVille || ''}
-                        onChange={(e) => setProfileData({...profileData, adresseVille: e.target.value})}
+                        onChange={(e) => setProfileData({ ...profileData, adresseVille: e.target.value })}
                         className="input input-bordered w-full text-sm focus:ring-purple-500 focus:border-purple-500"
                       />
                     </div>
-                    
+
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         Code postal
@@ -375,11 +429,11 @@ export default function ProfilePage() {
                       <input
                         type="text"
                         value={profileData.adresseCodePostal || ''}
-                        onChange={(e) => setProfileData({...profileData, adresseCodePostal: e.target.value})}
+                        onChange={(e) => setProfileData({ ...profileData, adresseCodePostal: e.target.value })}
                         className="input input-bordered w-full text-sm focus:ring-purple-500 focus:border-purple-500"
                       />
                     </div>
-                    
+
                     <div className="sm:col-span-2">
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         Pays
@@ -387,12 +441,12 @@ export default function ProfilePage() {
                       <input
                         type="text"
                         value={profileData.adressePays || ''}
-                        onChange={(e) => setProfileData({...profileData, adressePays: e.target.value})}
+                        onChange={(e) => setProfileData({ ...profileData, adressePays: e.target.value })}
                         className="input input-bordered w-full text-sm focus:ring-purple-500 focus:border-purple-500"
                       />
                     </div>
                   </div>
-                  
+
                   <div className="mt-6 flex justify-end space-x-3">
                     <button
                       type="button"
@@ -407,7 +461,7 @@ export default function ProfilePage() {
                       disabled={loading}
                     >
                       {loading ? (
-                        <KidsCornerLoader 
+                        <KidsCornerLoader
                           message="Sauvegarde en cours..."
                           size="sm"
                           showMessage={true}
@@ -428,7 +482,7 @@ export default function ProfilePage() {
                         <p className="font-medium text-sm sm:text-base text-gray-900">{profileData.prenom} {profileData.nom}</p>
                       </div>
                     </div>
-                    
+
                     <div className="flex items-center space-x-3">
                       <EnvelopeIcon className="h-5 w-5 text-gray-400" />
                       <div>
@@ -436,7 +490,7 @@ export default function ProfilePage() {
                         <p className="font-medium text-sm sm:text-base text-gray-900">{profileData.email || 'Non renseigné'}</p>
                       </div>
                     </div>
-                    
+
                     <div className="flex items-center space-x-3">
                       <PhoneIcon className="h-5 w-5 text-gray-400" />
                       <div>
@@ -444,7 +498,7 @@ export default function ProfilePage() {
                         <p className="font-medium text-sm sm:text-base text-gray-900">{profileData.telephone}</p>
                       </div>
                     </div>
-                    
+
                     <div className="flex items-center space-x-3">
                       <MapPinIcon className="h-5 w-5 text-gray-400" />
                       <div>
@@ -464,6 +518,66 @@ export default function ProfilePage() {
                       </div>
                     </div>
                   </div>
+
+                  {/* SECTION NEWSLETTER */}
+                  <div className="mt-10 border-t border-gray-100 pt-6">
+                    <div className="flex items-center gap-3 mb-2">
+                      <MailIcon className="h-6 w-6 text-blue-400" />
+                      <h3 className="text-md font-bold text-gray-900">Abonnement à la Newsletter</h3>
+                    </div>
+                    <p className="text-sm text-gray-500 mb-2">
+                      Soyez notifié des nouvelles offres, promos et événements. Recevez toutes les nouveautés par email !
+                    </p>
+                    {newsletterStatus === 'unknown' || newsletterStatus === 'loading' ? (
+                      <div className="text-gray-400 text-sm">Chargement…</div>
+                    ) : newsletterStatus === 'subscribed' ? (
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                        <span className="inline-flex items-center gap-1 text-green-600 font-medium">
+                          <CheckCircleIcon className="h-5 w-5" /> Vous êtes abonné(e) à la newsletter.
+                        </span>
+                        <button
+                          className="btn btn-sm btn-outline btn-error"
+                          onClick={handleNewsletterUnsubscribe}
+                        >
+                          <XCircleIcon className="h-4 w-4 mr-1" /> Se désinscrire
+                        </button>
+                      </div>
+                    ) : (
+                      <form
+                        className="flex flex-col sm:flex-row gap-2 w-full max-w-md"
+                        onSubmit={e => {
+                          e.preventDefault();
+                          handleNewsletterSubscribe();
+                        }}
+                      >
+                        <input
+                          type="email"
+                          className="input input-bordered w-full"
+                          placeholder="Votre email"
+                          value={newsletterEmail}
+                          onChange={e => setNewsletterEmail(e.target.value)}
+                          required
+                          
+                        />
+                        <button
+                          type="submit"
+                          className="btn btn-primary"
+                          
+                        >
+                          S'abonner
+                        </button>
+                      </form>
+                    )}
+                    {newsletterMsg && (
+                      <div className={`mt-2 text-sm ${
+                        newsletterMsg.includes('désinscrit') ? 'text-orange-500' :
+                        newsletterMsg.includes('abonné') ? 'text-green-500' : 'text-red-500'
+                      }`}>
+                        {newsletterMsg}
+                      </div>
+                    )}
+                  </div>
+                  {/* END SECTION NEWSLETTER */}
                 </div>
               )}
             </div>
@@ -486,11 +600,11 @@ export default function ProfilePage() {
                 />
               </div>
             </div>
-            
+
             <div className="px-4 sm:px-6 py-6">
               {ordersLoading ? (
                 <div className="flex justify-center py-8">
-                  <KidsCornerLoader 
+                  <KidsCornerLoader
                     message="Chargement des commandes..."
                     size="lg"
                     showMessage={true}
@@ -509,8 +623,8 @@ export default function ProfilePage() {
               ) : (
                 <div className="space-y-4">
                   {filteredOrders.map((order) => (
-                    <div 
-                      key={order.idCommande} 
+                    <div
+                      key={order.idCommande}
                       className="border border-gray-200 rounded-lg p-4 sm:p-6 bg-white shadow-sm hover:shadow-md transition-shadow duration-200"
                     >
                       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
@@ -533,30 +647,31 @@ export default function ProfilePage() {
                               </button>
                             )}
                             <a
-    href={`/site/confirmCmd/${order.idCommande}`}
-    className="btn btn-xs bg-purple-600 hover:bg-purple-700 text-white border-none flex items-center space-x-1 px-2 py-1 ml-2"
-    title="Voir détails de la commande"
-  >
-<svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-4 w-4"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-              />
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-              />
-            </svg>  </a>
+                              href={`/site/confirmCmd/${order.idCommande}`}
+                              className="btn btn-xs bg-purple-600 hover:bg-purple-700 text-white border-none flex items-center space-x-1 px-2 py-1 ml-2"
+                              title="Voir détails de la commande"
+                            >
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                className="h-4 w-4"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                                />
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                                />
+                              </svg>
+                            </a>
                           </div>
                         </div>
                         <div className="text-right">
@@ -567,7 +682,7 @@ export default function ProfilePage() {
                           </p>
                         </div>
                       </div>
-                      
+
                       {order.lignesCommandes && order.lignesCommandes.length > 0 && (
                         <div className="mt-4 space-y-3 border-t border-gray-100 pt-4">
                           {order.lignesCommandes.slice(0, 3).map((item, index) => (
@@ -592,7 +707,7 @@ export default function ProfilePage() {
                               </p>
                             </div>
                           ))}
-                          
+
                           {order.lignesCommandes.length > 3 && (
                             <p className="text-xs text-gray-500 text-center pt-2">
                               +{order.lignesCommandes.length - 3} autre(s) article(s)
@@ -608,7 +723,6 @@ export default function ProfilePage() {
           </div>
         )}
       </div>
-      
     </div>
   );
 }

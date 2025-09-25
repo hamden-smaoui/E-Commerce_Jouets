@@ -36,7 +36,6 @@ interface ProductCardProps {
 
 const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  const [isAddingToCart, setIsAddingToCart] = useState(false);
   const [isTogglingFavorite, setIsTogglingFavorite] = useState(false);
   const [imageError, setImageError] = useState(false);
   const [isHovering, setIsHovering] = useState(false);
@@ -45,7 +44,6 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const [isDragging, setIsDragging] = useState(false);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  const { addToCart } = useCart();
   const { addToFavorites, removeFromFavorites, isFavorite } = useFavorites();
   const { calculatePriceWithPromotion, hasPromotions } = usePromotions(product.idProduit);
 
@@ -173,20 +171,6 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
     };
   }, []);
 
-  const handleAddToCart = async (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (!stockStatus.available) return;
-    try {
-      setIsAddingToCart(true);
-      await addToCart(product.idProduit, 1);
-    } catch (error) {
-      console.error('Error adding to cart:', error);
-    } finally {
-      setIsAddingToCart(false);
-    }
-  };
-
   const handleToggleFavorite = async (e: React.MouseEvent | React.TouchEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -301,7 +285,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
         {/* Content */}
         <div className="p-4 sm:p-5 flex-1 flex flex-col">
           {/* Product Name */}
-          <h3 className="text-lg sm:text-xl font-extrabold text-pink-600 drop-shadow-lg mb-2 min-h-[3rem] group-hover:text-purple-600 transition-colors font-[Comic_Sans_MS,sans-serif]">
+          <h3 className="text-lg sm:text-xl font-extrabold text-gray-700 drop-shadow-lg mb-2 min-h-[3rem] group-hover:text-gray-900 transition-colors font-[Comic_Sans_MS,sans-serif]">
             {product.nom}
           </h3>
           
@@ -349,23 +333,14 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
                 )}
               </div>
               
-              {/* Cart Icon Button */}
-              <button 
-                onClick={handleAddToCart}
-                disabled={!stockStatus.available || isAddingToCart}
-                className={`ml-3 btn btn-circle btn-sm bg-purple-100 hover:bg-purple-200 shadow-md hover:scale-105 transition-all flex items-center justify-center ${
-                  stockStatus.available 
-                    ? 'text-purple-600'
-                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                }`}
-                title={stockStatus.available ? "Ajouter au panier" : "Produit indisponible"}
+              {/* Cart Icon Button as link */}
+              <Link
+                href={`/site/products/${product.idProduit}`}
+                className={`ml-3 btn btn-circle btn-sm bg-purple-100 hover:bg-purple-200 shadow-md hover:scale-105 transition-all flex items-center justify-center text-purple-600`}
+                title="Voir le produit"
               >
-                {isAddingToCart ? (
-                  <div className="animate-spin h-5 w-5 border-2 border-purple-600 border-t-transparent rounded-full"></div>
-                ) : (
-                  <ShoppingCartIcon className="h-5 w-5" />
-                )}
-              </button>
+                <ShoppingCartIcon className="h-5 w-5" />
+              </Link>
             </div>
           </div>
         </div>

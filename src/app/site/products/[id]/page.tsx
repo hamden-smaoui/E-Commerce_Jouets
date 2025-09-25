@@ -8,7 +8,7 @@ import { useCart } from "@/hooks/useCart";
 import { useFavorites } from "@/hooks/useFavorites";
 import { usePromotions } from "@/hooks/usePromotion";
 import PromotionBadge from "@/components/ui/PromotionBadge";
-import ProduitsService, { ProduitResponse, ImageData } from "@/services/produits-service";
+import ProduitsService, { ProduitResponse, ImageData, ProduitVariation ,Taille,Couleur, Age } from "@/services/produits-service";
 import KidsCornerLoader from '@/components/ui/KidsCornerLoader';
 import AvisComponent from '@/components/ui/avis';
 import CommentaireComponent from '@/components/ui/commentaireSection';
@@ -23,10 +23,8 @@ interface Product {
   categorie?: { idCategorie: number; nom: string };
   images?: ImageData[];
   type?: { idType: number; nom: string };
-  minAge?: string | null;
-  maxAge?: string | null;
-  typeAge?: 'mois' | 'ans' | null;
   genre?: 'fille' | 'garçon' | 'enfant' | null;
+  variations?: ProduitVariation[];
 }
 
 interface SameTypeProduct {
@@ -38,10 +36,8 @@ interface SameTypeProduct {
   marque?: { idMarque: number; nom: string };
   categorie?: { idCategorie: number; nom: string };
   image?: string;
-  minAge?: string | null;
-  maxAge?: string | null;
-  typeAge?: 'mois' | 'ans' | null;
   genre?: 'fille' | 'garçon' | 'enfant' | null;
+  variations?: ProduitVariation[];
 }
 
 export default function ProduitDetails() {
@@ -60,21 +56,18 @@ export default function ProduitDetails() {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isAddingToCart, setIsAddingToCart] = useState(false);
   const [activeTab, setActiveTab] = useState<'avis' | 'commentaires'>('avis');
-  const [isLoggedIn, setIsLoggedIn] = useState(false); // À adapter selon votre système d'auth
+  const [isLoggedIn, setIsLoggedIn] = useState(false); 
+  const [selectedVariation, setSelectedVariation] = useState<ProduitVariation | null>(null);
+  const [selectedCouleur, setSelectedCouleur] = useState<number | null>(null);
+  const [selectedTaille, setSelectedTaille] = useState<number | null>(null);
+  const [selectedAge, setSelectedAge] = useState<number | null>(null);
+  const [availableVariations, setAvailableVariations] = useState<ProduitVariation[]>([]);
   const imageRef = useRef<HTMLDivElement>(null);
 
   const { addToCart } = useCart();
   const { promotions, calculatePriceWithPromotion, hasPromotions } = usePromotions(produit?.idProduit || 0);
 
   const priceData = produit ? calculatePriceWithPromotion(produit.prix) : null;
-
-  const formatAgeRange = (minAge: string | null | undefined, maxAge: string | null | undefined, typeAge: 'mois' | 'ans' | null | undefined): string => {
-    if (!minAge && !maxAge) return 'N/A';
-    if (!typeAge) return 'N/A';
-    if (minAge && !maxAge) return `${minAge} ${typeAge}`;
-    if (!minAge && maxAge) return `Jusqu'à ${maxAge} ${typeAge}`;
-    return `${minAge} - ${maxAge} ${typeAge}`;
-  };
 
   useEffect(() => {
     const token = localStorage.getItem('authToken');
@@ -91,6 +84,25 @@ export default function ProduitDetails() {
           images: productData.images || [],
         };
         setProduit(updatedProduct);
+        
+       if (updatedProduct.variations && updatedProduct.variations.length > 0) {
+  setAvailableVariations(updatedProduct.variations);
+
+  // Trouver les valeurs uniques pour chaque option
+  const uniqueCouleurs = Array.from(new Set(updatedProduct.variations.map(v => v.idCouleur).filter(Boolean)));
+  const uniqueTailles = Array.from(new Set(updatedProduct.variations.map(v => v.idTaille).filter(Boolean)));
+  const uniqueAges = Array.from(new Set(updatedProduct.variations.map(v => v.idAge).filter(Boolean)));
+
+  // Sélectionner par défaut si une seule valeur
+  if (uniqueCouleurs.length === 1) setSelectedCouleur(uniqueCouleurs[0] as number);
+  else setSelectedCouleur(null);
+
+  if (uniqueTailles.length === 1) setSelectedTaille(uniqueTailles[0] as number);
+  else setSelectedTaille(null);
+
+  if (uniqueAges.length === 1) setSelectedAge(uniqueAges[0] as number);
+  else setSelectedAge(null);
+}
 
         const sortedImages = updatedProduct.images?.sort((a, b) => a.rang - b.rang) || [];
         if (sortedImages.length > 0) {
@@ -128,6 +140,31 @@ export default function ProduitDetails() {
     }
   }, [id]);
 
+  // Mise à jour des variations disponibles en fonction des sélections
+  useEffect(() => {
+    if (!produit?.variations) return;
+
+    // Modification 2: Trouver la variation correspondante seulement si TOUTES les options requises sont sélectionnées
+    const needsTaille = produit.variations.some(v => v.idTaille !== null);
+    const needsAge = produit.variations.some(v => v.idAge !== null);
+
+    // Vérifier si toutes les options requises sont sélectionnées
+    const allRequiredSelected = selectedCouleur && 
+      (!needsTaille || selectedTaille) && 
+      (!needsAge || selectedAge);
+
+    if (allRequiredSelected) {
+      const exactMatch = produit.variations.find(v =>
+        v.idCouleur === selectedCouleur &&
+        (!needsTaille || v.idTaille === selectedTaille) &&
+        (!needsAge || v.idAge === selectedAge)
+      );
+      setSelectedVariation(exactMatch || null);
+    } else {
+      setSelectedVariation(null);
+    }
+  }, [selectedCouleur, selectedTaille, selectedAge, produit?.variations]);
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-base-200">
@@ -153,11 +190,50 @@ export default function ProduitDetails() {
 
   const sortedImages = produit.images?.sort((a, b) => a.rang - b.rang) || [];
 
+  const getAvailableCouleurs = () => {
+    if (!produit?.variations) return [];
+    const couleurs = produit.variations
+      .map(v => v.couleur)
+      .filter((c): c is Couleur => c !== undefined && c !== null)
+      .filter((c, index, self) => self.findIndex(c2 => c2.idCouleur === c.idCouleur) === index);
+    return couleurs;
+  };
+
+  const getAvailableTailles = () => {
+    if (!produit?.variations || !selectedCouleur) return [];
+    const tailles = produit.variations
+      .filter(v => v.idCouleur === selectedCouleur)
+      .map(v => v.taille)
+      .filter((t): t is Taille => t !== undefined && t !== null)
+      .filter((t, index, self) => self.findIndex(t2 => t2.idTaille === t.idTaille) === index);
+    return tailles;
+  };
+
+  const getAvailableAges = () => {
+    if (!produit?.variations || !selectedCouleur) return [];
+    const ages = produit.variations
+      .filter(v => 
+        v.idCouleur === selectedCouleur && 
+        (!selectedTaille || v.idTaille === selectedTaille)
+      )
+      .map(v => v.age)
+      .filter((a): a is Age => a !== undefined && a !== null)
+      .filter((a, index, self) => self.findIndex(a2 => a2.idAge === a.idAge) === index);
+    return ages;
+  };
+
+  // Modification 3: Statut de stock basé sur la variation sélectionnée seulement
   const getStockStatus = () => {
-    if (produit.quantiteStock === 0) {
+    if (!selectedVariation) {
+      // Si aucune variation complète n'est sélectionnée, afficher "En stock" par défaut
+      return { text: "En stock", class: "bg-green-500 text-white", available: true };
+    }
+    
+    const stock = selectedVariation.quantiteStock;
+    if (stock === 0) {
       return { text: "Rupture de stock", class: "bg-red-500 text-white", available: false };
-    } else if (produit.quantiteStock <= 5) {
-      return { text: `Stock limité (${produit.quantiteStock})`, class: "bg-orange-500 text-white", available: true };
+    } else if (stock <= 5) {
+      return { text: "Stock limité", class: "bg-orange-500 text-white", available: true };
     } else {
       return { text: "En stock", class: "bg-green-500 text-white", available: true };
     }
@@ -166,7 +242,8 @@ export default function ProduitDetails() {
   const stockStatus = getStockStatus();
 
   const handleIncrement = () => {
-    if (quantity < produit.quantiteStock) {
+    const maxStock = selectedVariation?.quantiteStock || 0;
+    if (quantity < maxStock) {
       setQuantity((prev) => prev + 1);
     }
   };
@@ -177,7 +254,8 @@ export default function ProduitDetails() {
 
   const handleQuantityChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = parseInt(e.target.value);
-    if (!isNaN(value) && value > 0 && value <= produit.quantiteStock) {
+    const maxStock = selectedVariation?.quantiteStock || 0;
+    if (!isNaN(value) && value > 0 && value <= maxStock) {
       setQuantity(value);
     }
   };
@@ -218,10 +296,10 @@ export default function ProduitDetails() {
   };
 
   const handleAddToCart = async () => {
-    if (!stockStatus.available) return;
+    if (!stockStatus.available || !selectedVariation) return;
     try {
       setIsAddingToCart(true);
-      await addToCart(produit.idProduit, quantity);
+      await addToCart(produit!.idProduit, quantity, selectedVariation.idProduitVariation);
     } catch (error) {
       console.error('Error adding to cart:', error);
     } finally {
@@ -245,7 +323,23 @@ export default function ProduitDetails() {
     }
   };
 
+  const availableCouleurs = getAvailableCouleurs();
+  const availableTailles = getAvailableTailles();
+  const availableAges = getAvailableAges();
   const isProductFavorite = produit ? isFavorite(produit.idProduit) : false;
+
+  // Modification 4: Vérifier si le bouton panier doit être activé
+  const isCartButtonDisabled = () => {
+    if (!selectedVariation) return true; // Pas de variation complète sélectionnée
+    if (!stockStatus.available) return true; // Rupture de stock
+    return false;
+  };
+
+  const getCartButtonText = () => {
+    if (!selectedVariation) return 'Sélectionnez vos options';
+    if (!stockStatus.available) return 'Produit indisponible';
+    return 'Ajouter au panier';
+  };
 
   const tabs = [
     { 
@@ -379,7 +473,7 @@ export default function ProduitDetails() {
             <div className="bg-white rounded-2xl shadow-lg p-4 lg:p-8 h-fit sticky top-6 border-2 border-pink-200">
               <div className="space-y-6">
                 <div className="flex items-start justify-between gap-4 mb-4">
-                  <h1 className="text-2xl lg:text-3xl xl:text-4xl font-extrabold text-pink-600 drop-shadow-lg leading-tight flex-1 font-[Comic_Sans_MS,sans-serif]">
+                  <h1 className="text-2xl lg:text-3xl xl:text-4xl font-extrabold text-gray-700 drop-shadow-lg leading-tight flex-1 font-[Comic_Sans_MS,sans-serif]">
                     {produit.nom}
                   </h1>
                   
@@ -415,6 +509,141 @@ export default function ProduitDetails() {
                   </p>
                 </div>
 
+                {/* Sélecteurs de variations */}
+                {produit.variations && produit.variations.length > 0 && (
+                  <div className="space-y-4 py-4 border-t border-b border-gray-200">
+                    <h3 className="font-bold text-gray-800">Choisissez vos options :</h3>
+                    
+                    {/* Sélection de couleur */}
+                    {availableCouleurs.length > 0 && (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Couleur *
+                        </label>
+                        <div className="flex flex-wrap gap-2">
+                          {availableCouleurs.map((couleur) => {
+                            const couleurVariations = produit.variations?.filter(
+                              v => v.idCouleur === couleur.idCouleur
+                            ) || [];
+                            const hasStock = couleurVariations.some(v => v.quantiteStock > 0);
+
+                            return (
+                              <button
+                                key={couleur.idCouleur}
+                                onClick={() => {
+                                  setSelectedCouleur(couleur.idCouleur);
+                                  setSelectedTaille(null);
+                                  setSelectedAge(null);
+                                  setQuantity(1);
+                                }}
+                                disabled={!hasStock}
+                                className={`px-4 py-2 rounded-lg border-2 text-sm font-medium transition-all relative
+                                  ${!hasStock
+                                    ? 'border-gray-300 bg-gray-100 text-gray-400 cursor-not-allowed opacity-50'
+                                    : (selectedCouleur === couleur.idCouleur
+                                        ? 'border-pink-500 bg-pink-100 text-pink-700'
+                                        : 'border-gray-200 bg-white text-gray-700 hover:border-pink-300'
+                                      )
+                                  }`
+                                }
+                              >
+                                {couleur.nom}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Sélection de taille */}
+                    {availableTailles.length > 0 && selectedCouleur && (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Taille
+                        </label>
+                        <div className="flex flex-wrap gap-2">
+                          {availableTailles.map((taille) => {
+                            const tailleVariation = produit.variations?.find(
+                              v => v.idCouleur === selectedCouleur && v.idTaille === taille.idTaille
+                            );
+                            const stock = tailleVariation ? tailleVariation.quantiteStock : 0;
+                            const isDisabled = stock === 0;
+
+                            return (
+                              <button
+                                key={taille.idTaille}
+                                onClick={() => {
+                                  if (!isDisabled) {
+                                    setSelectedTaille(taille.idTaille);
+                                    setSelectedAge(null);
+                                    setQuantity(1);
+                                  }
+                                }}
+                                disabled={isDisabled}
+                                className={`px-4 py-2 rounded-lg border-2 text-sm font-medium transition-all relative
+                                  ${isDisabled
+                                    ? 'border-gray-300 bg-gray-100 text-gray-400 cursor-not-allowed opacity-50'
+                                    : (selectedTaille === taille.idTaille
+                                        ? 'border-blue-500 bg-blue-100 text-blue-700'
+                                        : 'border-gray-200 bg-white text-gray-700 hover:border-blue-300'
+                                      )
+                                  }`
+                                }
+                              >
+                                {taille.nom}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Sélection d'âge */}
+                    {availableAges.length > 0 && selectedCouleur && (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Tranche d'âge
+                        </label>
+                        <div className="flex flex-wrap gap-2">
+                          {availableAges.map((age) => {
+                            const ageVariation = produit.variations?.find(
+                              v => v.idCouleur === selectedCouleur &&
+                                   (!selectedTaille || v.idTaille === selectedTaille) &&
+                                   v.idAge === age.idAge
+                            );
+                            const stock = ageVariation ? ageVariation.quantiteStock : 0;
+                            const isDisabled = stock === 0;
+
+                           return (
+                              <button
+                                key={age.idAge}
+                                onClick={() => {
+                                  if (!isDisabled) {
+                                    setSelectedAge(age.idAge);
+                                    setQuantity(1);
+                                  }
+                                }}
+                                disabled={isDisabled}
+                                className={`px-4 py-2 rounded-lg border-2 text-sm font-medium transition-all relative
+                                  ${isDisabled
+                                    ? 'border-gray-300 bg-gray-100 text-gray-400 cursor-not-allowed opacity-50'
+                                    : (selectedAge === age.idAge
+                                        ? 'border-purple-500 bg-purple-100 text-purple-700'
+                                        : 'border-gray-200 bg-white text-gray-700 hover:border-purple-300'
+                                      )
+                                  }`
+                                }
+                              >
+                                {age.label}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 <div className="flex flex-wrap gap-3 py-4 border-t border-b border-gray-200">
                   {produit.marque && (
                     <span className="text-sm bg-blue-50 text-blue-700 px-3 py-2 rounded-full font-bold">
@@ -431,18 +660,15 @@ export default function ProduitDetails() {
                       {produit.genre}
                     </span>
                   )}
-                  {(produit.minAge || produit.maxAge) && (
-                    <span className="text-sm bg-pink-50 text-pink-700 px-3 py-2 rounded-full font-bold">
-                      {formatAgeRange(produit.minAge, produit.maxAge, produit.typeAge)}
-                    </span>
-                  )}
                   <span className={`text-sm px-3 py-2 rounded-full font-bold ${stockStatus.class}`}>
                     {stockStatus.text}
                   </span>
                 </div>
 
-                {stockStatus.available && (
-                  <div className="space-y-4">
+                {/* Section quantité et boutons */}
+                <div className="space-y-4">
+                  {/* Sélection de quantité - seulement si variation sélectionnée et en stock */}
+                  {selectedVariation && stockStatus.available && (
                     <div className="space-y-3">
                       <div className="flex items-center space-x-3">
                         <button
@@ -461,12 +687,12 @@ export default function ProduitDetails() {
                           onChange={handleQuantityChange}
                           className="w-20 h-10 text-center border-2 border-pink-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-400"
                           min="1"
-                          max={produit.quantiteStock}
+                          max={selectedVariation.quantiteStock}
                         />
                         
                         <button
                           onClick={handleIncrement}
-                          disabled={quantity >= produit.quantiteStock}
+                          disabled={quantity >= selectedVariation.quantiteStock}
                           className="w-10 h-10 rounded-lg border-2 border-pink-200 flex items-center justify-center hover:bg-pink-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                         >
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -475,73 +701,32 @@ export default function ProduitDetails() {
                         </button>
                       </div>
                     </div>
+                  )}
 
-                    <div className="space-y-3">
-                      <button 
-                        onClick={handleAddToCart}
-                        disabled={isAddingToCart}
-                        className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-extrabold py-3 px-6 rounded-lg transition-all duration-200 flex items-center justify-center space-x-2 shadow-md hover:shadow-lg disabled:opacity-70"
-                      >
-                        {isAddingToCart ? (
-                          <div className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full"></div>
-                        ) : (
-                          <>
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-2.5 5M7 13l2.5 5M17 13v6a2 2 0 01-2 2H9a2 2 0 01-2-2v-6" />
-                            </svg>
-                            <span>Ajouter au panier</span>
-                          </>
-                        )}
-                      </button>
-                      
-                      <div className="flex space-x-3">
-                        <button 
-                          onClick={handleToggleFavorite}
-                          disabled={isTogglingFavorite}
-                          className={`flex-1 font-extrabold py-3 px-6 rounded-lg transition-all duration-200 flex items-center justify-center space-x-2 ${
-                            isProductFavorite 
-                              ? 'bg-pink-100 hover:bg-pink-200 text-pink-700 border-2 border-pink-200' 
-                              : 'bg-gray-100 hover:bg-gray-200 text-gray-700 border-2 border-gray-200'
-                          } ${isTogglingFavorite ? 'opacity-70' : ''}`}
-                        >
-                          {isTogglingFavorite ? (
-                            <div className="animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full"></div>
-                          ) : (
-                            <>
-                              <svg 
-                                className="w-5 h-5" 
-                                fill={isProductFavorite ? "currentColor" : "none"} 
-                                stroke="currentColor" 
-                                viewBox="0 0 24 24"
-                              >
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                              </svg>
-                              <span className="hidden sm:inline">
-                                Favoris
-                              </span>
-                            </>
-                          )}
-                        </button>
-                        <button className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-extrabold py-3 px-6 rounded-lg transition-colors duration-200 flex items-center justify-center space-x-2 border-2 border-gray-200">
-                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z" />
-                          </svg>
-                          <span className="hidden sm:inline">Partager</span>
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {!stockStatus.available && (
+                  {/* Modification 5: Boutons toujours visibles - panier disabled selon les conditions */}
                   <div className="space-y-3">
-                    <button className="w-full bg-gray-300 text-gray-500 font-extrabold py-3 px-6 rounded-lg cursor-not-allowed" disabled>
-                      Produit indisponible
+                    <button 
+                      onClick={handleAddToCart}
+                      disabled={isAddingToCart || isCartButtonDisabled()}
+                      className={`w-full font-extrabold py-3 px-6 rounded-lg transition-all duration-200 flex items-center justify-center space-x-2 shadow-md hover:shadow-lg
+                        ${isCartButtonDisabled()
+                          ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                          : 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white'
+                        }`}
+                    >
+                      {isAddingToCart ? (
+                        <div className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full"></div>
+                      ) : (
+                        <>
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-2.5 5M7 13l2.5 5M17 13v6a2 2 0 01-2 2H9a2 2 0 01-2-2v-6" />
+                          </svg>
+                          <span>{getCartButtonText()}</span>
+                        </>
+                      )}
                     </button>
+                    
                     <div className="flex space-x-3">
-                      <button className="flex-1 border-2 border-blue-600 text-blue-600 hover:bg-blue-50 font-extrabold py-3 px-6 rounded-lg transition-colors duration-200">
-                        Me notifier
-                      </button>
                       <button 
                         onClick={handleToggleFavorite}
                         disabled={isTogglingFavorite}
@@ -549,18 +734,47 @@ export default function ProduitDetails() {
                           isProductFavorite 
                             ? 'bg-pink-100 hover:bg-pink-200 text-pink-700 border-2 border-pink-200' 
                             : 'bg-gray-100 hover:bg-gray-200 text-gray-700 border-2 border-gray-200'
-                        }`}
+                        } ${isTogglingFavorite ? 'opacity-70' : ''}`}
                       >
-                        <svg 
-                          className="w-5 h-5" 
-                          fill={isProductFavorite ? "currentColor" : "none"} 
-                          stroke="currentColor" 
-                          viewBox="0 0 24 24"
-                        >
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                        </svg>
-                        <span className="hidden sm:inline">Favoris</span>
+                        {isTogglingFavorite ? (
+                          <div className="animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full"></div>
+                        ) : (
+                          <>
+                            <svg 
+                              className="w-5 h-5" 
+                              fill={isProductFavorite ? "currentColor" : "none"} 
+                              stroke="currentColor" 
+                              viewBox="0 0 24 24"
+                            >
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                            </svg>
+                            <span className="hidden sm:inline">
+                              Favoris
+                            </span>
+                          </>
+                        )}
                       </button>
+                      
+                      <button className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-extrabold py-3 px-6 rounded-lg transition-colors duration-200 flex items-center justify-center space-x-2 border-2 border-gray-200">
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z" />
+                        </svg>
+                        <span className="hidden sm:inline">Partager</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Message d'aide pour les sélections */}
+                {produit.variations && produit.variations.length > 0 && !selectedVariation && (
+                  <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                    <div className="flex items-center">
+                      <svg className="w-5 h-5 text-yellow-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <span className="text-sm text-yellow-800">
+                        Veuillez sélectionner toutes les options requises pour ce produit.
+                      </span>
                     </div>
                   </div>
                 )}
@@ -569,7 +783,7 @@ export default function ProduitDetails() {
           </div>
         </div>
 
-        {/* Section avec onglets pour Description, Avis et Commentaires */}
+        {/* Section avec onglets pour Avis et Commentaires */}
         <div className="mt-12">
           <div className="border-b-2 border-pink-200 mb-6">
             <nav className="flex space-x-8 overflow-x-auto">
@@ -607,9 +821,7 @@ export default function ProduitDetails() {
           </div>
         </div>
 
-        
-          <SameType offers={sameTypeProducts} />
-        
+        <SameType offers={sameTypeProducts} />
       </div>
       <Footer />
     </div>

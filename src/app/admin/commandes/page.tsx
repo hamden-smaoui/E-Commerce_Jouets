@@ -140,7 +140,15 @@ const Commandes: React.FC = () => {
       setStatsLoading(false);
     }
   };
-
+const formatVariation = (ligne: any) => {
+  if (!ligne.variation) return '';
+  const { couleur, taille, age } = ligne.variation;
+  const parts = [];
+  if (couleur) parts.push(couleur.nom);
+  if (taille) parts.push(taille.nom);
+  if (age) parts.push(age.label);
+  return parts.length > 0 ? parts.join(' / ') : '';
+};
   const formatPrice = (prix: any): string => {
     if (prix === null || prix === undefined || prix === '' || isNaN(Number(prix))) {
       return '0.00 TND';
@@ -270,6 +278,7 @@ const handleCreateFacture = async (idCommande: number) => {
       ),
       className: 'hidden lg:table-cell w-20',
     },
+    
     {
       header: 'Ville',
       render: (item: CommandeResponse) => (

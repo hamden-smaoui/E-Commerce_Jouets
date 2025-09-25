@@ -3,21 +3,57 @@ import api from './api';
 
 const API_BASE_URL = 'http://localhost:3001/api';
 
-// Interface for Produit as included in the cart
+export interface Produit {
+  idProduit: number;
+  nom: string;
+  prix: number;
+  description: string;
+  quantiteStock: number;
+  images?: Array<{
+    idImage: number;
+    url: string;
+    rang: number;
+  }>;
+}
 
-// Interface for CartItem
+export interface ProduitVariation {
+  idProduitVariation: number;
+  idProduit: number;
+  idCouleur: number;
+  idTaille?: number;
+  idAge?: number;
+  quantiteStock: number;
+  couleur?: {
+    idCouleur: number;
+    nom: string;
+  };
+  taille?: {
+    idTaille: number;
+    nom: string;
+  };
+  age?: {
+    idAge: number;
+    minAge: number;
+    maxAge: number;
+    typeAge: 'mois' | 'ans';
+    label: string;
+  };
+}
+
 export interface CartItem {
   idPanierProduit: number;
   idProduit: number;
+  idProduitVariation?: number;
   quantite: number;
+  prixUnitaire: number;
   produit: Produit;
+  variation?: ProduitVariation;
 }
 
-// Interface for Cart
 export interface Cart {
   idPanier: number;
   idUtilisateur: number;
-  produits: CartItem[]; // Changed from panierProduits to produits
+  produits: CartItem[];
 }
 
 class PanierService {
@@ -30,25 +66,34 @@ class PanierService {
     }
   }
 
-  async ajouterProduit(idProduit: number, quantite: number = 1): Promise<void> {
+  async ajouterProduit(idProduit: number, quantite: number = 1, idProduitVariation?: number): Promise<void> {
     try {
-      await api.post('/panier/ajouter', { idProduit, quantite });
+      const payload: any = { idProduit, quantite };
+      if (idProduitVariation) {
+        payload.idProduitVariation = idProduitVariation;
+      }
+      await api.post('/panier/ajouter', payload);
     } catch (error: any) {
       throw new Error(error.response?.data?.message || 'Erreur lors de l\'ajout au panier');
     }
   }
 
-  async modifierQuantite(idProduit: number, quantite: number): Promise<void> {
+  async modifierQuantite(idProduit: number, quantite: number, idProduitVariation?: number): Promise<void> {
     try {
-      await api.put('/panier/modifier', { idProduit, quantite });
+      const payload: any = { idProduit, quantite };
+      if (idProduitVariation) {
+        payload.idProduitVariation = idProduitVariation;
+      }
+      await api.put('/panier/modifier', payload);
     } catch (error: any) {
       throw new Error(error.response?.data?.message || 'Erreur lors de la modification');
     }
   }
 
-  async retirerProduit(idProduit: number): Promise<void> {
+  async retirerProduit(idPanierProduit: number): Promise<void> {
+    console.log("Retirer produit avec idPanierProduit:", idPanierProduit);
     try {
-      await api.delete(`/panier/retirer/${idProduit}`);
+      await api.delete(`/panier/retirer/${idPanierProduit}`);
     } catch (error: any) {
       throw new Error(error.response?.data?.message || 'Erreur lors de la suppression');
     }

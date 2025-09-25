@@ -4,6 +4,8 @@ import Link from "next/link";
 import Image from "next/image";
 import { useCart } from "@/hooks/useCart";
 import { usePromotions } from "@/hooks/usePromotion";
+import { useStoreInfo } from "@/hooks/useStoreInfo"; 
+
 import {
   ShoppingCartIcon,
   TrashIcon,
@@ -30,12 +32,19 @@ const CartDropdownItem = ({ item, onIncrement, onDecrement, onRemove }: any) => 
 
   const subTotal = prixFinal * item.quantite;
   const subOriginal = item.produit.prix * item.quantite;
-
   useEffect(() => {
     addSubtotal(item.idProduit, subTotal, subOriginal);
     return () => removeSubtotal(item.idProduit);
   }, [addSubtotal, removeSubtotal, item.idProduit, subTotal, subOriginal]);
-
+const formatVariation = (variation: any) => {
+  if (!variation) return '';
+  const { couleur, taille, age } = variation;
+  const parts = [];
+  if (couleur) parts.push(couleur.nom);
+  if (taille) parts.push(taille.nom);
+  if (age) parts.push(age.label);
+  return parts.length > 0 ? parts.join(' / ') : '';
+};
   return (
     <div className="flex items-start gap-3 p-2 hover:bg-gray-50 rounded-lg transition-colors">
       {/* Image du produit */}
@@ -54,7 +63,11 @@ const CartDropdownItem = ({ item, onIncrement, onDecrement, onRemove }: any) => 
         <h4 className="text-sm font-medium text-gray-800 line-clamp-2 leading-tight">
           {item.produit.nom}
         </h4>
-        
+        {item.variation && (
+  <div className="text-xs text-gray-500 font-medium truncate">
+    {formatVariation(item.variation)}
+  </div>
+)}
         {/* Prix avec promotion */}
         <div className="flex items-center gap-2 mt-1">
           {hasPromotions ? (
@@ -77,7 +90,7 @@ const CartDropdownItem = ({ item, onIncrement, onDecrement, onRemove }: any) => 
         <div className="flex items-center justify-between mt-2">
           <div className="flex items-center gap-1">
             <button
-              onClick={() => onDecrement(item.idProduit, item.quantite)}
+              onClick={() => onDecrement(item.idProduit, item.quantite,item.idProduitVariation)}
               disabled={item.quantite <= 1}
               className="w-6 h-6 rounded border border-gray-300 flex items-center justify-center hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
@@ -87,7 +100,7 @@ const CartDropdownItem = ({ item, onIncrement, onDecrement, onRemove }: any) => 
               {item.quantite}
             </span>
             <button
-              onClick={() => onIncrement(item.idProduit, item.quantite, item.produit.quantiteStock)}
+              onClick={() => onIncrement(item.idProduit, item.quantite, item.produit.quantiteStock,item.idProduitVariation)}
               disabled={item.quantite >= item.produit.quantiteStock}
               className="w-6 h-6 rounded border border-gray-300 flex items-center justify-center hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
@@ -96,7 +109,7 @@ const CartDropdownItem = ({ item, onIncrement, onDecrement, onRemove }: any) => 
           </div>
           
           <button
-            onClick={() => onRemove(item.idProduit)}
+            onClick={() => onRemove(item.idPanierProduit)}
             className="text-red-500 hover:text-red-700 transition-colors p-1"
             title="Supprimer"
           >
@@ -118,9 +131,11 @@ export default function CartDropdown() {
     updateQuantity, 
     removeFromCart 
   } = useCart();
+const { storeInfo, loading: storeLoading } = useStoreInfo(); 
 
   const subtotalsRef = useRef(new Map<number, { subtotal: number; subOriginal: number }>());
   const [totals, setTotals] = useState({ totalWithPromotions: 0, totalOriginal: 0, totalSavings: 0 });
+  const seuilLivraisonGratuite = storeInfo?.seuilLivraisonGratuite || 100;
 
   const addSubtotal = useCallback((id: number, subtotal: number, subOriginal: number) => {
     subtotalsRef.current.set(id, { subtotal, subOriginal });
@@ -156,25 +171,25 @@ export default function CartDropdown() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const handleIncrement = async (idProduit: number, currentQuantity: number, stock: number) => {
+  const handleIncrement = async (idProduit: number, currentQuantity: number, stock: number,idProduitVariation: number) => {
     if (currentQuantity < stock) {
       try {
-        await updateQuantity(idProduit, currentQuantity + 1);
+        await updateQuantity(idProduit, currentQuantity + 1,idProduitVariation);
       } catch (error) {}
     }
   };
 
-  const handleDecrement = async (idProduit: number, currentQuantity: number) => {
+  const handleDecrement = async (idProduit: number,currentQuantity: number,idProduitVariation: number ) => {
     if (currentQuantity > 1) {
       try {
-        await updateQuantity(idProduit, currentQuantity - 1);
+        await updateQuantity(idProduit, currentQuantity - 1,idProduitVariation);
       } catch (error) {}
     }
   };
 
-  const handleRemove = async (idProduit: number) => {
+  const handleRemove = async (idPanierProduit: number) => {
     try {
-      await removeFromCart(idProduit);
+      await removeFromCart(idPanierProduit);
     } catch (error) {}
   };
 
@@ -299,10 +314,10 @@ export default function CartDropdown() {
                   </Link>
                 </div>
 
-                {/* Note sur la livraison */}
-                <p className="text-xs text-gray-500 text-center">
-                  Livraison gratuite à partir de 100 TND
-                </p>
+               {/* Note sur la livraison */}
+<p className="text-xs text-center text-green-600 font-semibold bg-green-50 px-2 py-1 rounded-md mt-2 shadow-sm">
+  🎁 Livraison <span className="underline decoration-green-500">offerte</span> dès {seuilLivraisonGratuite} TND d'achat ! 🚚✨
+</p>
               </div>
             </>
           )}
