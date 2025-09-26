@@ -1,5 +1,4 @@
-// services/search-service.ts - Version améliorée
-const API_BASE_URL = 'http://localhost:3001/api/jouets';
+import api from './api';
 
 export interface SearchParams {
   q: string;
@@ -49,97 +48,51 @@ class SearchService {
   constructor() {
     if (typeof window !== 'undefined') {
       const stored = localStorage.getItem('recent_searches');
-      if (stored) {
-        this.recentSearches = JSON.parse(stored);
-      }
+      if (stored) this.recentSearches = JSON.parse(stored);
     }
   }
 
   async searchProducts(params: SearchParams): Promise<SearchResult> {
-    try {
-      const searchParams = new URLSearchParams();
-      
-      Object.entries(params).forEach(([key, value]) => {
-        if (value !== undefined && value !== null && value !== '') {
-          searchParams.append(key, value.toString());
-        }
-      });
-
-      const response = await fetch(`${API_BASE_URL}/search?${searchParams}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error('Erreur lors de la recherche');
+    const searchParams = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== '') {
+        searchParams.append(key, value.toString());
       }
-
-      const result = await response.json();
-      
-      // Sauvegarder la recherche récente
-      this.addToRecentSearches(params.q);
-      
-      return result;
-    } catch (error) {
-      throw new Error(`Erreur de recherche: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
-    }
+    });
+    const response = await api.get<SearchResult>(`/produits/search?${searchParams}`);
+    this.addToRecentSearches(params.q);
+    return response.data;
   }
 
   async getSearchSuggestions(query: string): Promise<SearchSuggestion[]> {
     if (query.length < 2) {
       return this.getRecentSearches();
     }
-
     try {
-      const response = await fetch(`${API_BASE_URL}/search-suggestions?q=${encodeURIComponent(query)}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (response.ok) {
-        const suggestions = await response.json();
-        
-        // Combiner avec les recherches récentes qui matchent
-        const recentMatches = this.getRecentSearches().filter(recent => 
-          recent.text.toLowerCase().includes(query.toLowerCase())
-        );
-        
-        return [...recentMatches, ...suggestions];
-      }
-    } catch (error) {
-      console.error('Erreur suggestions:', error);
+      const response = await api.get<SearchSuggestion[]>(`/produits/search-suggestions?q=${encodeURIComponent(query)}`);
+      const suggestions = response.data;
+      const recentMatches = this.getRecentSearches().filter(recent =>
+        recent.text.toLowerCase().includes(query.toLowerCase())
+      );
+      return [...recentMatches, ...suggestions];
+    } catch {
+      return this.getRecentSearches().filter(recent =>
+        recent.text.toLowerCase().includes(query.toLowerCase())
+      );
     }
-
-    return this.getRecentSearches().filter(recent => 
-      recent.text.toLowerCase().includes(query.toLowerCase())
-    );
   }
 
-  // Nouvelle méthode pour effectuer une recherche intelligente
   async smartSearch(query: string): Promise<SearchResult> {
-    // Détecter si la recherche correspond à une catégorie, marque ou type spécifique
-    const searchParams: SearchParams = { q: query };
-    
-    // Tu peux ajouter ici une logique pour détecter automatiquement
-    // si le terme correspond à une catégorie, marque ou type connu
-    
-    return this.searchProducts(searchParams);
+    return this.searchProducts({ q: query });
   }
 
   private addToRecentSearches(query: string) {
     if (!query || query.length < 2) return;
-    
     this.recentSearches = this.recentSearches.filter(search => search !== query);
     this.recentSearches.unshift(query);
-    
     if (this.recentSearches.length > this.maxRecentSearches) {
       this.recentSearches = this.recentSearches.slice(0, this.maxRecentSearches);
     }
-
     if (typeof window !== 'undefined') {
       localStorage.setItem('recent_searches', JSON.stringify(this.recentSearches));
     }

@@ -1,4 +1,4 @@
-const API_BASE_URL = 'http://localhost:3001/api/jouets';
+import api from './api';
 
 interface Categorie {
   idCategorie: number;
@@ -9,7 +9,6 @@ export interface Type {
   idType: number;
   nom: string;
   description: string | null;
-  
 }
 
 export interface TypeFormData {
@@ -25,112 +24,27 @@ export interface TypeResponse extends Type {
 
 class TypesService {
   async createType(typeData: TypeFormData): Promise<TypeResponse> {
-    try {
-      const response = await fetch(`${API_BASE_URL}/types`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(typeData),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to create type');
-      }
-
-      const data = await response.json();
-      return data.data;
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Unknown error occurred';
-      throw new Error(`Error creating type: ${message}`);
-    }
+    const response = await api.post<{ data: TypeResponse }>('/types', typeData);
+    return response.data.data;
   }
 
   async getAllTypes(): Promise<TypeResponse[]> {
-    try {
-      const response = await fetch(`${API_BASE_URL}/types`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to fetch types');
-      }
-
-      const data = await response.json();
-      return data;
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Unknown error occurred';
-      throw new Error(`Error fetching types: ${message}`);
-    }
+    const response = await api.get<TypeResponse[]>('/types');
+    return response.data;
   }
 
   async getTypeById(id: number): Promise<TypeResponse> {
-    try {
-      const response = await fetch(`${API_BASE_URL}/types/${id}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to fetch type');
-      }
-
-      const data = await response.json();
-      return data;
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Unknown error occurred';
-      throw new Error(`Error fetching type: ${message}`);
-    }
+    const response = await api.get<TypeResponse>(`/types/${id}`);
+    return response.data;
   }
 
   async updateType(id: number, typeData: TypeFormData): Promise<TypeResponse> {
-    try {
-      const response = await fetch(`${API_BASE_URL}/types/${id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(typeData),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to update type');
-      }
-
-      const data = await response.json();
-      return data.data;
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Unknown error occurred';
-      throw new Error(`Error updating type: ${message}`);
-    }
+    const response = await api.put<{ data: TypeResponse }>(`/types/${id}`, typeData);
+    return response.data.data;
   }
 
   async deleteType(id: number): Promise<void> {
-    try {
-      const response = await fetch(`${API_BASE_URL}/types/${id}`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to delete type');
-      }
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Unknown error occurred';
-      throw new Error(`Error deleting type: ${message}`);
-    }
+    await api.delete(`/types/${id}`);
   }
 }
 

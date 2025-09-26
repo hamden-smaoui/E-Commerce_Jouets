@@ -62,7 +62,7 @@ export default function Navbar() {
   const handleLogout = () => {
     logout();
     setIsDropdownOpen(false);
-    router.push("/");
+    router.push("/signIn");
   };
 
   return (

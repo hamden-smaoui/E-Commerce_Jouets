@@ -1,4 +1,3 @@
-// app/site/search/page.tsx - Version ajustée
 "use client";
 import { useState, useEffect } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
@@ -33,6 +32,7 @@ export default function SearchPage() {
         type
       });
     }
+    // eslint-disable-next-line
   }, [query, category, marque, type]);
 
   const handleSearch = async (searchQuery: string, page = 1, additionalFilters = {}) => {
@@ -89,19 +89,10 @@ export default function SearchPage() {
               <div className="p-2 bg-gradient-to-r from-purple-600 to-pink-600 rounded-lg">
                 <MagnifyingGlassIcon className="h-6 w-6 text-white" />
               </div>
-              <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
-                Recherche de Jouets
+              <h1 className="text-xl sm:text-2xl md:text-4xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                Resultat de recherche
               </h1>
             </div>
-
-            {/* Bouton catalogue à droite */}
-            <button
-              onClick={goToCatalog}
-              className="flex items-center space-x-2 px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:from-purple-700 hover:to-pink-700 transition-all shadow-md transform hover:scale-105 duration-200"
-            >
-              <CubeIcon className="h-5 w-5" />
-              <span className="font-medium">Notre Catalogue</span>
-            </button>
           </div>
         </div>
 
@@ -111,7 +102,7 @@ export default function SearchPage() {
             <div className="mb-8">
               <div className="flex flex-col md:flex-row md:items-center justify-between mb-6">
                 <div>
-                  <p className="text-gray-600 text-lg">
+                  <p className="text-gray-600 text-base sm:text-lg">
                     <span className="font-semibold text-gray-900">{results.pagination.totalItems}</span> résultat(s) pour 
                     <span className="font-semibold text-purple-600 ml-1">"{results.searchTerm}"</span>
                   </p>
@@ -145,6 +136,17 @@ export default function SearchPage() {
                         <ProductCard product={product} />
                       </div>
                     ))}
+                  </div>
+
+                  {/* Bouton "Voir tous nos produits" sous la grille */}
+                  <div className="flex justify-center mt-4 mb-6">
+                    <button
+                      onClick={goToCatalog}
+                      className="inline-flex items-center space-x-2 px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:from-purple-700 hover:to-pink-700 transition-all shadow-md text-base sm:text-lg"
+                    >
+                      <BookOpenIcon className="h-5 w-5" />
+                      <span className="text-sm sm:text-base">Voir tous nos produits</span>
+                    </button>
                   </div>
 
                   {/* Pagination améliorée */}
@@ -202,7 +204,7 @@ export default function SearchPage() {
                   <h3 className="text-2xl font-bold text-gray-700 mb-4">
                     Aucun produit trouvé
                   </h3>
-                  <p className="text-gray-500 mb-8 max-w-md mx-auto">
+                  <p className="text-gray-500 mb-8 max-w-md mx-auto text-sm sm:text-base">
                     Nous n'avons trouvé aucun jouet correspondant à votre recherche. 
                     Essayez avec des mots-clés différents ou consultez notre catalogue complet.
                   </p>
@@ -210,10 +212,10 @@ export default function SearchPage() {
                   {/* Bouton vers le catalogue */}
                   <button
                     onClick={goToCatalog}
-                    className="inline-flex items-center space-x-2 px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:from-purple-700 hover:to-pink-700 transition-all shadow-md"
+                    className="inline-flex items-center space-x-2 px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:from-purple-700 hover:to-pink-700 transition-all shadow-md text-base sm:text-lg"
                   >
                     <BookOpenIcon className="h-5 w-5" />
-                    <span>Voir tous nos produits</span>
+                    <span className="text-sm sm:text-base">Voir tous nos produits</span>
                   </button>
                   
                   {/* Suggestions de recherche */}
@@ -271,7 +273,7 @@ export default function SearchPage() {
           </div>
         )}
       </div>
-<Footer />
+      <Footer />
     </div>
   );
 }

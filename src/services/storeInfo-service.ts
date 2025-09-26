@@ -1,9 +1,10 @@
-const API_BASE_URL = 'http://localhost:3001/api/store-info';
+import api from './api';
 
 interface Image {
   idImage: number;
   url: string;
   rang: number;
+  type?: 'hero' | 'promotion';
 }
 
 export interface StoreInfo {
@@ -29,6 +30,7 @@ export interface StoreInfo {
   urlYoutube?: string;
   topDescription?: string;
   heroImages?: Image[];
+  promotionImages?: Image[];
   tauxTVA?: number;
   fraisLivraison?: number;
   seuilLivraisonGratuite?: number;
@@ -57,10 +59,13 @@ export interface StoreInfoFormData {
   urlInstagram?: string;
   urlTiktok?: string;
   urlYoutube?: string;
-    topDescription?: string;
+  topDescription?: string;
   heroImages?: File[];
+  promotionImages?: File[];
   imagesToDelete?: number[];
+  promotionImagesToDelete?: number[];
   imageRangs?: { [imageId: string]: number };
+  promotionImageRangs?: { [imageId: string]: number };
   tauxTVA?: number;
   fraisLivraison?: number;
   seuilLivraisonGratuite?: number;
@@ -68,163 +73,57 @@ export interface StoreInfoFormData {
 }
 
 class StoreInfoService {
-  private getAuthHeaders(): HeadersInit {
-    const token = localStorage.getItem('token');
-    return {
-      ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
-    };
-  }
-
- 
-
   async getStoreInfo(): Promise<StoreInfo> {
-    try {
-      const response = await fetch(`${API_BASE_URL}`, {
-        method: 'GET',
-        headers: this.getAuthHeaders(),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Échec de la récupération des informations du magasin');
-      }
-
-      const data = await response.json();
-      return data;
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Une erreur inconnue s\'est produite';
-      throw new Error(`Erreur lors de la récupération des informations du magasin : ${message}`);
-    }
+    const response = await api.get<StoreInfo>('/store-info');
+    return response.data;
   }
 
-async createStoreInfo(formData: StoreInfoFormData): Promise<StoreInfo> {
-    try {
-      const form = new FormData();
-      
-      // Append all fields except special ones
-      Object.entries(formData).forEach(([key, value]) => {
-        if (!['heroImages', 'imagesToDelete', 'imageRangs', 'logo1File', 'logo2File'].includes(key) && value !== undefined) {
-          form.append(key, value.toString());
-        }
-      });
-
-      // Append logo files
-      if (formData.logo1File) {
-        form.append('logo1', formData.logo1File);
-      }
-
-      if (formData.logo2File) {
-        form.append('logo2', formData.logo2File);
-      }
-
-      // Append heroImages (files)
-      if (formData.heroImages && Array.isArray(formData.heroImages)) {
-        formData.heroImages.forEach((file) => {
-          form.append('heroImages', file);
-        });
-      }
-
-      // Append imagesToDelete as JSON string
-      if (formData.imagesToDelete && Array.isArray(formData.imagesToDelete)) {
-        form.append('imagesToDelete', JSON.stringify(formData.imagesToDelete));
-      }
-
-      // Append imageRangs as JSON string
-      if (formData.imageRangs && typeof formData.imageRangs === 'object') {
-        form.append('imageRangs', JSON.stringify(formData.imageRangs));
-      }
-
-      const response = await fetch(`${API_BASE_URL}`, {
-        method: 'POST',
-        headers: this.getAuthHeaders(),
-        body: form,
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Échec de la création des informations du magasin');
-      }
-
-      const data = await response.json();
-      return data.data;
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Une erreur inconnue s\'est produite';
-      throw new Error(`Erreur lors de la création des informations du magasin : ${message}`);
-    }
-  }
-
-  // Dans storeInfo-service.ts, dans la méthode updateStoreInfo
-async updateStoreInfo(id: number, formData: StoreInfoFormData): Promise<StoreInfo> {
-  try {
+  async createStoreInfo(formData: StoreInfoFormData): Promise<StoreInfo> {
     const form = new FormData();
-    
-    // Append all fields except special ones
     Object.entries(formData).forEach(([key, value]) => {
-      if (!['heroImages', 'imagesToDelete', 'imageRangs', 'logo1File', 'logo2File'].includes(key) && value !== undefined) {
+      if (!['heroImages', 'promotionImages', 'imagesToDelete', 'promotionImagesToDelete', 'imageRangs', 'promotionImageRangs', 'logo1File', 'logo2File'].includes(key) && value !== undefined) {
         form.append(key, value.toString());
       }
     });
+    if (formData.logo1File) form.append('logo1', formData.logo1File);
+    if (formData.logo2File) form.append('logo2', formData.logo2File);
+    if (formData.heroImages) formData.heroImages.forEach(file => form.append('heroImages', file));
+    if (formData.promotionImages) formData.promotionImages.forEach(file => form.append('promotionImages', file));
+    if (formData.imagesToDelete) form.append('imagesToDelete', JSON.stringify(formData.imagesToDelete));
+    if (formData.promotionImagesToDelete) form.append('promotionImagesToDelete', JSON.stringify(formData.promotionImagesToDelete));
+    if (formData.imageRangs) form.append('imageRangs', JSON.stringify(formData.imageRangs));
+    if (formData.promotionImageRangs) form.append('promotionImageRangs', JSON.stringify(formData.promotionImageRangs));
 
-    // Append logo files
-    if (formData.logo1File) {
-      form.append('logo1', formData.logo1File);
-    }
-
-    if (formData.logo2File) {
-      form.append('logo2', formData.logo2File);
-    }
-
-    // Append heroImages (files)
-    if (formData.heroImages && Array.isArray(formData.heroImages)) {
-      formData.heroImages.forEach((file) => {
-        form.append('heroImages', file);
-      });
-    }
-
-    // CORRECTION : S'assurer que les données sont correctement formatées
-    if (formData.imagesToDelete && Array.isArray(formData.imagesToDelete)) {
-      console.log('Sending imagesToDelete:', formData.imagesToDelete); // Debug log
-      form.append('imagesToDelete', JSON.stringify(formData.imagesToDelete));
-    }
-
-    if (formData.imageRangs && typeof formData.imageRangs === 'object') {
-      form.append('imageRangs', JSON.stringify(formData.imageRangs));
-    }
-
-    const response = await fetch(`${API_BASE_URL}/${id}`, {
-      method: 'PUT',
-      headers: this.getAuthHeaders(),
-      body: form,
+    const response = await api.post<{ data: StoreInfo }>('/store-info', form, {
+      headers: { 'Content-Type': 'multipart/form-data' }
     });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.message || 'Échec de la mise à jour des informations du magasin');
-    }
-
-    const data = await response.json();
-    return data.data;
-  } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : 'Une erreur inconnue s\'est produite';
-    throw new Error(`Erreur lors de la mise à jour des informations du magasin : ${message}`);
+    return response.data.data;
   }
-}
+
+  async updateStoreInfo(id: number, formData: StoreInfoFormData): Promise<StoreInfo> {
+    const form = new FormData();
+    Object.entries(formData).forEach(([key, value]) => {
+      if (!['heroImages', 'promotionImages', 'imagesToDelete', 'promotionImagesToDelete', 'imageRangs', 'promotionImageRangs', 'logo1File', 'logo2File'].includes(key) && value !== undefined) {
+        form.append(key, value.toString());
+      }
+    });
+    if (formData.logo1File) form.append('logo1', formData.logo1File);
+    if (formData.logo2File) form.append('logo2', formData.logo2File);
+    if (formData.heroImages) formData.heroImages.forEach(file => form.append('heroImages', file));
+    if (formData.promotionImages) formData.promotionImages.forEach(file => form.append('promotionImages', file));
+    if (formData.imagesToDelete) form.append('imagesToDelete', JSON.stringify(formData.imagesToDelete));
+    if (formData.promotionImagesToDelete) form.append('promotionImagesToDelete', JSON.stringify(formData.promotionImagesToDelete));
+    if (formData.imageRangs) form.append('imageRangs', JSON.stringify(formData.imageRangs));
+    if (formData.promotionImageRangs) form.append('promotionImageRangs', JSON.stringify(formData.promotionImageRangs));
+
+    const response = await api.put<{ data: StoreInfo }>(`/store-info/${id}`, form, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+    return response.data.data;
+  }
 
   async deleteStoreInfo(id: number): Promise<void> {
-    try {
-      const response = await fetch(`${API_BASE_URL}/${id}`, {
-        method: 'DELETE',
-        headers: this.getAuthHeaders(),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Échec de la suppression des informations du magasin');
-      }
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Une erreur inconnue s\'est produite';
-      throw new Error(`Erreur lors de la suppression des informations du magasin : ${message}`);
-    }
+    await api.delete(`/store-info/${id}`);
   }
 }
 

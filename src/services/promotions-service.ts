@@ -1,28 +1,21 @@
-// services/promotions-service.ts
-const API_BASE_URL = 'http://localhost:3001/api/jouets';
+import api from './api';
 
-// Interfaces pour les entités liées
 interface Produit {
   idProduit: number;
   nom: string;
 }
-
 interface Categorie {
   idCategorie: number;
   nom: string;
 }
-
 interface Marque {
   idMarque: number;
   nom: string;
 }
-
 interface Type {
   idType: number;
   nom: string;
 }
-
-
 
 export interface Promotion {
   idPromotion: number;
@@ -67,23 +60,19 @@ export interface PromotionFormData {
   categories?: number[];
   marques?: number[];
   types?: number[];
-  // codesPromo?: Array<{ code: string; utilisationMax: number | null; }>; // REMOVE THIS
 }
 
 interface PromotionResponse extends Promotion {
-  // codesPromo?: CodePromo[]; // REMOVE
   produits?: Produit[];
   categories?: Categorie[];
   marques?: Marque[];
   types?: Type[];
 }
-
 interface StatsUtilisation {
   totalUtilisations: number;
   totalReductions: number;
   reductionMoyenne: number;
 }
-
 interface TopPromotion {
   idPromotion: number;
   utilisations: number;
@@ -94,7 +83,6 @@ interface TopPromotion {
     typeApplication: string;
   };
 }
-
 interface RepartitionType {
   count: number;
   promotion: {
@@ -103,126 +91,31 @@ interface RepartitionType {
 }
 
 class PromotionsService {
-  // Créer une promotion
   async createPromotion(promotionData: PromotionFormData): Promise<PromotionResponse> {
-    try {
-      const response = await fetch(`${API_BASE_URL}/promotions`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(promotionData),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to create promotion');
-      }
-
-      const data = await response.json();
-      return data.data;
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Unknown error occurred';
-      throw new Error(`Error creating promotion: ${message}`);
-    }
+    const response = await api.post<{ data: PromotionResponse }>('/promotions', promotionData);
+    return response.data.data;
   }
 
-  // Obtenir toutes les promotions
   async getAllPromotions(): Promise<PromotionResponse[]> {
-    try {
-      const response = await fetch(`${API_BASE_URL}/promotions`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to fetch promotions');
-      }
-
-      const data = await response.json();
-      return data;
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Unknown error occurred';
-      throw new Error(`Error fetching promotions: ${message}`);
-    }
+    const response = await api.get<PromotionResponse[]>('/promotions');
+    return response.data;
   }
 
-  // Obtenir une promotion par ID
   async getPromotionById(id: number): Promise<PromotionResponse> {
-    try {
-      const response = await fetch(`${API_BASE_URL}/promotions/${id}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to fetch promotion');
-      }
-
-      const data = await response.json();
-      return data.data;
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Unknown error occurred';
-      throw new Error(`Error fetching promotion: ${message}`);
-    }
+    const response = await api.get<{ data: PromotionResponse }>(`/promotions/${id}`);
+    return response.data.data;
   }
 
-  // Mettre à jour une promotion
   async updatePromotion(id: number, promotionData: PromotionFormData): Promise<PromotionResponse> {
-    try {
-      const response = await fetch(`${API_BASE_URL}/promotions/${id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(promotionData),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to update promotion');
-      }
-
-      const data = await response.json();
-      return data.data;
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Unknown error occurred';
-      throw new Error(`Error updating promotion: ${message}`);
-    }
+    const response = await api.put<{ data: PromotionResponse }>(`/promotions/${id}`, promotionData);
+    return response.data.data;
   }
 
-  // Supprimer une promotion
   async deletePromotion(id: number): Promise<void> {
-    try {
-      const response = await fetch(`${API_BASE_URL}/promotions/${id}`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to delete promotion');
-      }
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Unknown error occurred';
-      throw new Error(`Error deleting promotion: ${message}`);
-    }
+    await api.delete(`/promotions/${id}`);
   }
 
-  // Appliquer une promotion
-  async appliquerPromotion(data: {
-    
-    panierData: any;
-    idUtilisateur?: number;
-  }): Promise<{
+  async appliquerPromotion(data: { panierData: any; idUtilisateur?: number }): Promise<{
     message: string;
     promotion: {
       id: number;
@@ -233,176 +126,48 @@ class PromotionsService {
       montantFinal: number;
     };
   }> {
-    try {
-      const response = await fetch(`${API_BASE_URL}/promotions/appliquer`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to apply promotion');
-      }
-
-      const result = await response.json();
-      return result;
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Unknown error occurred';
-      throw new Error(`Error applying promotion: ${message}`);
-    }
+    const response = await api.post('/promotions/appliquer', data);
+    return response.data;
   }
 
-  // Obtenir les promotions actives
   async getPromotionsActives(idProduit?: number): Promise<PromotionResponse[]> {
-    try {
-      const params = new URLSearchParams();
-      if (idProduit) {
-        params.append('idProduit', idProduit.toString());
-      }
-
-      const response = await fetch(`${API_BASE_URL}/promotions/actives/list?${params}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to fetch active promotions');
-      }
-
-      const data = await response.json();
-      return data.data;
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Unknown error occurred';
-      throw new Error(`Error fetching active promotions: ${message}`);
-    }
+    const params = new URLSearchParams();
+    if (idProduit) params.append('idProduit', idProduit.toString());
+    const response = await api.get<{ data: PromotionResponse[] }>(`/promotions/actives/list?${params}`);
+    return response.data.data;
   }
 
-  // Obtenir les statistiques d'utilisation
   async getStatsUtilisation(dateDebut?: string, dateFin?: string): Promise<{
     generales: StatsUtilisation;
     topPromotions: TopPromotion[];
     repartitionType: RepartitionType[];
   }> {
-    try {
-      const params = new URLSearchParams();
-      if (dateDebut) params.append('dateDebut', dateDebut);
-      if (dateFin) params.append('dateFin', dateFin);
-
-      const response = await fetch(`${API_BASE_URL}/promotions/stats/utilisation?${params}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to fetch stats');
-      }
-
-      const data = await response.json();
-      return data.data;
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Unknown error occurred';
-      throw new Error(`Error fetching stats: ${message}`);
-    }
+    const params = new URLSearchParams();
+    if (dateDebut) params.append('dateDebut', dateDebut);
+    if (dateFin) params.append('dateFin', dateFin);
+    const response = await api.get<{ data: { generales: StatsUtilisation; topPromotions: TopPromotion[]; repartitionType: RepartitionType[] } }>(`/promotions/stats/utilisation?${params}`);
+    return response.data.data;
   }
 
-  // Activer/Désactiver une promotion
   async togglePromotion(id: number): Promise<PromotionResponse> {
-    try {
-      const response = await fetch(`${API_BASE_URL}/promotions/${id}/toggle`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to toggle promotion');
-      }
-
-      const data = await response.json();
-      return data.data;
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Unknown error occurred';
-      throw new Error(`Error toggling promotion: ${message}`);
-    }
+    const response = await api.patch<{ data: PromotionResponse }>(`/promotions/${id}/toggle`);
+    return response.data.data;
   }
 
-  // Dupliquer une promotion
   async dupliquerPromotion(id: number): Promise<PromotionResponse> {
-    try {
-      const response = await fetch(`${API_BASE_URL}/promotions/${id}/dupliquer`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to duplicate promotion');
-      }
-
-      const data = await response.json();
-      return data.data;
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Unknown error occurred';
-      throw new Error(`Error duplicating promotion: ${message}`);
-    }
+    const response = await api.post<{ data: PromotionResponse }>(`/promotions/${id}/dupliquer`);
+    return response.data.data;
   }
-   // services/promotions-service.ts - Ajoutez cette méthode
-async getPromotionsPourProduit(idProduit: number): Promise<PromotionActive[]> {
-  try {
-    const response = await fetch(`${API_BASE_URL}/promotions/produit/${idProduit}`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
 
-    if (!response.ok) {
-      return [];
-    }
-
-    const data = await response.json();
-    return data.data || [];
-  } catch (error) {
-    console.error('Erreur lors de la récupération des promotions:', error);
-    return [];
+  async getPromotionsPourProduit(idProduit: number): Promise<PromotionActive[]> {
+    const response = await api.get<{ data: PromotionActive[] }>(`/promotions/produit/${idProduit}`);
+    return response.data.data || [];
   }
-}
 
-// Nouvelle méthode pour calculer le prix
-async calculerPrixProduit(idProduit: number, prix: number, quantite: number = 1) {
-  try {
-    const response = await fetch(`${API_BASE_URL}/promotions/calculer-prix/${idProduit}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ prix, quantite }),
-    });
-
-    if (!response.ok) {
-      throw new Error('Erreur calcul prix');
-    }
-
-    const data = await response.json();
-    return data.data;
-  } catch (error) {
-    console.error('Erreur calcul prix:', error);
-    throw error;
+  async calculerPrixProduit(idProduit: number, prix: number, quantite: number = 1) {
+    const response = await api.post<{ data: any }>(`/promotions/calculer-prix/${idProduit}`, { prix, quantite });
+    return response.data.data;
   }
-}
 }
 
 export default new PromotionsService();

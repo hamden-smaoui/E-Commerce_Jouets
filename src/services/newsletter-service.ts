@@ -1,4 +1,4 @@
-const API_BASE_URL = 'http://localhost:3001/api/jouets/newsletter';
+import api from './api';
 
 export interface NewsletterEntry {
   idNewsletter: number;
@@ -22,7 +22,6 @@ export interface NewsletterCampaign {
   createdAt: string;
   updatedAt: string;
 }
-
 export interface CampaignFormData {
   subject: string;
   content: string;
@@ -33,230 +32,60 @@ export interface CampaignFormData {
 
 class NewsletterService {
   async subscribe(newsletterData: NewsletterFormData): Promise<NewsletterEntry> {
-    try {
-      const response = await fetch(`${API_BASE_URL}/subscribe`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(newsletterData),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Échec de l\'inscription à la newsletter');
-      }
-
-      const data = await response.json();
-      return data;
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Erreur inconnue';
-      throw new Error(`Erreur inscription newsletter: ${message}`);
-    }
+    const response = await api.post<NewsletterEntry>('/newsletter/subscribe', newsletterData);
+    return response.data;
   }
 
   async getAllEntries(): Promise<NewsletterEntry[]> {
-    try {
-      const response = await fetch(`${API_BASE_URL}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Erreur récupération newsletter');
-      }
-
-      const data = await response.json();
-      return data;
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Erreur inconnue';
-      throw new Error(`Erreur récupération newsletter: ${message}`);
-    }
+    const response = await api.get<NewsletterEntry[]>('/newsletter');
+    return response.data;
   }
 
   async unsubscribe(email: string): Promise<void> {
-    try {
-      const response = await fetch(`${API_BASE_URL}/unsubscribe`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Erreur désinscription newsletter');
-      }
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Erreur inconnue';
-      throw new Error(`Erreur désinscription newsletter: ${message}`);
-    }
-  }
- async createCampaign(campaignData: CampaignFormData): Promise<NewsletterCampaign> {
-    try {
-      console.log('Données de campagne reçues:', campaignData); // Debug
-
-      const formData = new FormData();
-      formData.append('subject', campaignData.subject);
-      formData.append('content', campaignData.content);
-      
-      if (campaignData.htmlContent) {
-        formData.append('htmlContent', campaignData.htmlContent);
-      }
-      
-      if (campaignData.scheduledDate) {
-        formData.append('scheduledDate', campaignData.scheduledDate);
-      }
-      
-      // ✅ CORRECTION : Vérifier que l'image existe et l'ajouter
-      if (campaignData.image && campaignData.image instanceof File) {
-        formData.append('image', campaignData.image); // Le nom 'image' doit correspondre au backend
-        console.log('Image ajoutée au FormData:', campaignData.image); // Debug
-      } else {
-        console.log('Aucune image à envoyer:', campaignData.image); 
-      }
-
-      // Debug : Afficher le contenu du FormData
-      console.log('FormData contents:');
-      for (let [key, value] of formData.entries()) {
-        console.log(key, value);
-      }
-
-      const token = localStorage.getItem('authToken');
-      const response = await fetch(`${API_BASE_URL}/campaigns`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          // ✅ Ne pas définir Content-Type, laisse le navigateur gérer multipart/form-data
-        },
-        body: formData,
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Erreur création campagne');
-      }
-
-      const data = await response.json();
-      return data.campaign;
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Erreur inconnue';
-      throw new Error(`Erreur création campagne: ${message}`);
-    }
+    await api.post('/newsletter/unsubscribe', { email });
   }
 
-  async getCampaigns(): Promise<NewsletterCampaign[]> {
-    try {
-      const token = localStorage.getItem('authToken');
-      const response = await fetch(`${API_BASE_URL}/campaigns`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Erreur récupération campagnes');
-      }
-
-      return await response.json();
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Erreur inconnue';
-      throw new Error(`Erreur récupération campagnes: ${message}`);
-    }
-  }
-
-  async sendCampaign(campaignId: number): Promise<any> {
-    try {
-      const token = localStorage.getItem('authToken');
-      const response = await fetch(`${API_BASE_URL}/campaigns/${campaignId}/send`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Erreur envoi campagne');
-      }
-
-      return await response.json();
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Erreur inconnue';
-      throw new Error(`Erreur envoi campagne: ${message}`);
-    }
-  }
-
-  async deleteCampaign(campaignId: number): Promise<void> {
-    try {
-      const token = localStorage.getItem('authToken');
-      const response = await fetch(`${API_BASE_URL}/campaigns/${campaignId}`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Erreur suppression campagne');
-      }
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Erreur inconnue';
-      throw new Error(`Erreur suppression campagne: ${message}`);
-    }
-  }
-  async updateCampaign(campaignId: number, campaignData: CampaignFormData): Promise<NewsletterCampaign> {
-  try {
-    console.log('Données de mise à jour de campagne:', campaignData);
-
+  async createCampaign(campaignData: CampaignFormData): Promise<NewsletterCampaign> {
     const formData = new FormData();
     formData.append('subject', campaignData.subject);
     formData.append('content', campaignData.content);
-    
-    if (campaignData.htmlContent) {
-      formData.append('htmlContent', campaignData.htmlContent);
-    }
-    
-    if (campaignData.scheduledDate) {
-      formData.append('scheduledDate', campaignData.scheduledDate);
-    }
-    
-    if (campaignData.image && campaignData.image instanceof File) {
-      formData.append('image', campaignData.image);
-      console.log('Image mise à jour:', campaignData.image);
-    }
+    if (campaignData.htmlContent) formData.append('htmlContent', campaignData.htmlContent);
+    if (campaignData.scheduledDate) formData.append('scheduledDate', campaignData.scheduledDate);
+    if (campaignData.image) formData.append('image', campaignData.image);
 
-    const token = localStorage.getItem('authToken');
-    const response = await fetch(`${API_BASE_URL}/campaigns/${campaignId}`, {
-      method: 'PUT',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-      },
-      body: formData,
+    const response = await api.post<{ campaign: NewsletterCampaign }>('/newsletter/campaigns', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
     });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.message || 'Erreur mise à jour campagne');
-    }
-
-    const data = await response.json();
-    return data.campaign;
-  } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : 'Erreur inconnue';
-    throw new Error(`Erreur mise à jour campagne: ${message}`);
+    return response.data.campaign;
   }
-}
+
+  async getCampaigns(): Promise<NewsletterCampaign[]> {
+    const response = await api.get<NewsletterCampaign[]>('/newsletter/campaigns');
+    return response.data;
+  }
+
+  async sendCampaign(campaignId: number): Promise<any> {
+    const response = await api.post(`/newsletter/campaigns/${campaignId}/send`);
+    return response.data;
+  }
+
+  async deleteCampaign(campaignId: number): Promise<void> {
+    await api.delete(`/newsletter/campaigns/${campaignId}`);
+  }
+
+  async updateCampaign(campaignId: number, campaignData: CampaignFormData): Promise<NewsletterCampaign> {
+    const formData = new FormData();
+    formData.append('subject', campaignData.subject);
+    formData.append('content', campaignData.content);
+    if (campaignData.htmlContent) formData.append('htmlContent', campaignData.htmlContent);
+    if (campaignData.scheduledDate) formData.append('scheduledDate', campaignData.scheduledDate);
+    if (campaignData.image) formData.append('image', campaignData.image);
+
+    const response = await api.put<{ campaign: NewsletterCampaign }>(`/newsletter/campaigns/${campaignId}`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+    return response.data.campaign;
+  }
 }
 
 export default new NewsletterService();

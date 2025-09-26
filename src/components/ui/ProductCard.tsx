@@ -7,6 +7,7 @@ import { usePromotions } from "@/hooks/usePromotion";
 import PromotionBadge from "./PromotionBadge";
 import { useFavorites } from "@/hooks/useFavorites";
 import { ShoppingCartIcon } from "@heroicons/react/24/solid";
+import { useRouter } from "next/navigation";
 
 interface Product {
   idProduit: number;
@@ -43,6 +44,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const [touchStart, setTouchStart] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const router = useRouter();
 
   const { addToFavorites, removeFromFavorites, isFavorite } = useFavorites();
   const { calculatePriceWithPromotion, hasPromotions } = usePromotions(product.idProduit);
@@ -190,7 +192,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
 
   const isProductFavorite = isFavorite(product.idProduit);
 
-  return (
+ return (
     <Link href={`/site/products/${product.idProduit}`} className="block h-full">
       <div className="group bg-white rounded-2xl shadow-xl hover:shadow-2xl transition-all duration-300 overflow-hidden h-full flex flex-col border-2 border-white/40 hover:border-pink-300 cursor-pointer font-[Comic_Sans_MS,sans-serif]">
         {/* Image Container */}
@@ -206,14 +208,20 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
             src={imageError ? '/images/placeholder.jpg' : `http://localhost:3001${displayImage || '/images/placeholder.jpg'}`}
             alt={product.nom}
             fill
+            // Best practice for grid cards:
+            // - Mobile: 2 per row (50vw)
+            // - Tablet: 3 per row (33vw)
+            // - Desktop: 4 per row (25vw)
+            // - Fallback: 300px for larger screens
+            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, (max-width: 1400px) 25vw, 300px"
             className={`object-cover transition-all duration-500 ${
               (!isMobile && isHovering) 
                 ? 'scale-110' 
                 : 'group-hover:scale-110'
             }`}
-            sizes="(max-width: 768px) 50vw, 20vw"
             onError={() => setImageError(true)}
             draggable={false}
+            // priority={false} // Only set to true if this image is above the fold and super important
           />
           
           {/* Promotion Badge - top-left */}
@@ -334,13 +342,18 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
               </div>
               
               {/* Cart Icon Button as link */}
-              <Link
-                href={`/site/products/${product.idProduit}`}
+              <button
+                type="button"
+                onClick={e => {
+                  e.preventDefault(); // Ne pas déclencher le Link parent
+                  e.stopPropagation();
+                  router.push(`/site/products/${product.idProduit}`);
+                }}
                 className={`ml-3 btn btn-circle btn-sm bg-purple-100 hover:bg-purple-200 shadow-md hover:scale-105 transition-all flex items-center justify-center text-purple-600`}
                 title="Voir le produit"
               >
                 <ShoppingCartIcon className="h-5 w-5" />
-              </Link>
+              </button>
             </div>
           </div>
         </div>

@@ -225,7 +225,7 @@ const formatVariation = (variation: any) => {
     return phoneRegex.test(phone.replace(/\s/g, ''));
   };
 
- const handleSubmit = async (e: React.FormEvent) => {
+const handleSubmit = async (e: React.FormEvent) => {
   e.preventDefault();
 
   if (!validateForm()) return;
@@ -237,58 +237,56 @@ const formatVariation = (variation: any) => {
 
   setLoading(true);
   const toastId = toast.loading('Création de votre commande en cours...');
+  let success = false;
 
   try {
     const lignesCommandes = cartItems.map(item => ({
       idProduit: item.idProduit,
-      idProduitVariation: item.idProduitVariation as number, 
+      idProduitVariation: item.idProduitVariation as number,
       quantite: item.quantite,
       prixUnitaire: item.produit.prix,
       sousTotal: item.quantite * item.produit.prix
     }));
 
-      const montantOriginal = lignesCommandes.reduce((sum, ligne) => sum + ligne.sousTotal, 0);
+    const montantOriginal = lignesCommandes.reduce((sum, ligne) => sum + ligne.sousTotal, 0);
 
-      const commandeData: CommandeFormData & { codePromo?: string; fraisLivraison?: number; } = {
-        ...formData,
-        idClient: isAuthenticated ? user?.idUtilisateur : null,
-        montantTotal: montantOriginal,
-        statut: 'en attente' as const,
-        lignesCommandes,
-        codePromo: codePromo?.code,
-        fraisLivraison: livraison
-      };
-      console.log("Données de la commande envoyées:", commandeData);
-      const nouvelleCommande = await CommandesService.createCommande(commandeData);
-      
-      // Succès
-      toast.success('Commande créée avec succès!', {
-        id: toastId,
-        duration: 4000
-      });
+    const commandeData: CommandeFormData & { codePromo?: string; fraisLivraison?: number; } = {
+      ...formData,
+      idClient: isAuthenticated ? user?.idUtilisateur : null,
+      montantTotal: montantOriginal,
+      statut: 'en attente' as const,
+      lignesCommandes,
+      codePromo: codePromo?.code,
+      fraisLivraison: livraison
+    };
 
-      // Accès correct à l'ID de la commande
-      const commandeId = nouvelleCommande.data.idCommande;
-      router.push(`/site/confirmCmd/${commandeId}`);
-      
-    } catch (error: any) {
-      console.error('Erreur complète:', error);
-      
-      let errorMessage = 'Une erreur est survenue lors de la création de votre commande.';
-      if (error?.response?.data?.message) {
-        errorMessage = error.response.data.message;
-      } else if (error?.message) {
-        errorMessage = error.message;
-      }
+    const nouvelleCommande = await CommandesService.createCommande(commandeData);
 
-      toast.error(errorMessage, {
-        id: toastId,
-        duration: 6000
-      });
-    } finally {
-      setLoading(false);
+    toast.success('Commande créée avec succès!', {
+      id: toastId,
+      duration: 4000
+    });
+
+    const commandeId = nouvelleCommande.data.idCommande;
+    success = true;
+    router.push(`/site/confirmCmd/${commandeId}`);
+    return; // Empêche l'exécution du finally
+  } catch (error: any) {
+    let errorMessage = 'Une erreur est survenue lors de la création de votre commande.';
+    if (error?.response?.data?.message) {
+      errorMessage = error.response.data.message;
+    } else if (error?.message) {
+      errorMessage = error.message;
     }
-  };
+
+    toast.error(errorMessage, {
+      id: toastId,
+      duration: 6000
+    });
+  } finally {
+    if (!success) setLoading(false); // On ne repasse pas loading à false si on redirige
+  }
+};
 const handleCodeApplique = (data: { code: string; valeurPourcentage: number }) => {
   setCodePromo(data); // data is correct shape
   toast.success(`Code promo "${data.code}" appliqué avec succès!`);

@@ -1,40 +1,49 @@
-// services/api.ts
 import axios from 'axios';
+import { toast } from 'react-hot-toast';
 
-const API_BASE_URL = 'http://localhost:3001/api';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
-// Créer une instance axios
 const api = axios.create({
   baseURL: API_BASE_URL,
   timeout: 10000,
+  headers: {
+    'Accept': 'application/json',
+  },
 });
 
-// Intercepteur pour ajouter automatiquement le token
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+    if (typeof window !== "undefined") {
+      const token = localStorage.getItem('token');
+      if (token) {
+        config.headers = config.headers ?? {};
+        (config.headers as any).Authorization = `Bearer ${token}`;
+      }
     }
     return config;
   },
-  (error) => {
-    return Promise.reject(error);
-  }
+  (error) => Promise.reject(error)
 );
 
-// Intercepteur pour gérer les erreurs de réponse
 api.interceptors.response.use(
-  (response) => {
-    return response;
-  },
+  (response) => response,
   (error) => {
+    // 1. Déconnexion globale sur 401
     if (error.response?.status === 401) {
-      // Token expiré ou invalide
-      localStorage.removeItem('token');
-      // Rediriger vers la page de connexion si nécessaire
-      window.location.href = '/signin';
+      if (typeof window !== "undefined") {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        toast.error('Session expirée, veuillez vous reconnecter.');
+        window.location.href = '/signIn';
+      }
     }
+
+    // 2. Toast global pour toutes les autres erreurs
+    const errorMsg = error.response?.data?.message || error.message || 'Erreur inconnue';
+    if (typeof window !== "undefined") {
+      toast.error(errorMsg);
+    }
+
     return Promise.reject(error);
   }
 );

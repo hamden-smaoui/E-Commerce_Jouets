@@ -1,20 +1,17 @@
-const API_BASE_URL = 'http://localhost:3001/api/jouets';
+import api from './api';
 
 interface Categorie {
   idCategorie: number;
   nom: string;
 }
-
 interface Marque {
   idMarque: number;
   nom: string;
 }
-
 interface Fournisseur {
   idFournisseur: number;
   nom: string;
 }
-
 interface Type {
   idType: number;
   nom: string;
@@ -25,12 +22,10 @@ export interface Couleur {
   idCouleur: number;
   nom: string;
 }
-
 export interface Taille {
   idTaille: number;
   nom: string;
 }
-
 export interface Age {
   idAge: number;
   minAge: number;
@@ -38,7 +33,6 @@ export interface Age {
   typeAge: 'mois' | 'ans';
   label: string;
 }
-
 export interface ProduitVariation {
   idProduitVariation: number;
   idProduit: number;
@@ -97,223 +91,76 @@ export interface BestSellingProduit extends ProduitResponse {
 }
 
 export interface ProduitResponse extends Produit {
-  categorie?: {
-    idCategorie: number;
-    nom: string;
-  };
-  marque?: {
-    idMarque: number;
-    nom: string;
-  };
-  fournisseur?: {
-    idFournisseur: number;
-    nom: string;
-  };
-  type?: {
-    idType: number;
-    nom: string;
-  };
+  categorie?: Categorie;
+  marque?: Marque;
+  fournisseur?: Fournisseur;
+  type?: Type;
   images?: ImageData[];
   variations?: ProduitVariation[];
 }
 
 class ProduitsService {
   async createProduit(produitData: ProduitFormData): Promise<ProduitResponse> {
-    try {
-      const formData = new FormData();
+    const formData = new FormData();
+    formData.append('nom', produitData.nom);
+    formData.append('description', produitData.description);
+    formData.append('prix', produitData.prix.toString());
+    formData.append('quantiteStock', produitData.quantiteStock.toString());
+    formData.append('idCategorie', produitData.idCategorie.toString());
+    formData.append('idMarque', produitData.idMarque.toString());
+    formData.append('idFournisseur', produitData.idFournisseur.toString());
+    if (produitData.idType) formData.append('idType', produitData.idType.toString());
+    formData.append('genre', produitData.genre);
+    if (produitData.variants?.length) formData.append('variants', JSON.stringify(produitData.variants));
+    if (produitData.images?.length) produitData.images.forEach(img => formData.append('images', img));
 
-      formData.append('nom', produitData.nom);
-      formData.append('description', produitData.description);
-      formData.append('prix', produitData.prix.toString());
-      formData.append('quantiteStock', produitData.quantiteStock.toString());
-      formData.append('idCategorie', produitData.idCategorie.toString());
-      formData.append('idMarque', produitData.idMarque.toString());
-      formData.append('idFournisseur', produitData.idFournisseur.toString());
-      
-      if (produitData.idType) {
-        formData.append('idType', produitData.idType.toString());
-      }
-      
-      formData.append('genre', produitData.genre);
-
-      // Ajout des variations
-      if (produitData.variants && produitData.variants.length > 0) {
-        formData.append('variants', JSON.stringify(produitData.variants));
-      }
-
-      if (produitData.images && produitData.images.length > 0) {
-        produitData.images.forEach((image) => {
-          formData.append('images', image);
-        });
-      }
-
-      const response = await fetch(`${API_BASE_URL}/produits`, {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to create produit');
-      }
-
-      const data = await response.json();
-      return data.data;
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Unknown error occurred';
-      throw new Error(`Error creating produit: ${message}`);
-    }
+    const response = await api.post<{ data: ProduitResponse }>('/produits', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+    return response.data.data;
   }
 
   async getAllProduits(): Promise<ProduitResponse[]> {
-    try {
-      const response = await fetch(`${API_BASE_URL}/produits`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to fetch produits');
-      }
-
-      const data = await response.json();
-      return data;
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Unknown error occurred';
-      throw new Error(`Error fetching produits: ${message}`);
-    }
+    const response = await api.get<ProduitResponse[]>('/produits');
+    return response.data;
   }
 
   async getProduitById(id: number): Promise<ProduitResponse> {
-    try {
-      const response = await fetch(`${API_BASE_URL}/produits/${id}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to fetch produit');
-      }
-
-      const data = await response.json();
-      return data;
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Unknown error occurred';
-      throw new Error(`Error fetching produit: ${message}`);
-    }
+    const response = await api.get<ProduitResponse>(`/produits/${id}`);
+    return response.data;
   }
 
   async updateProduit(id: number, produitData: ProduitFormData): Promise<ProduitResponse> {
-    try {
-      const formData = new FormData();
+    const formData = new FormData();
+    formData.append('nom', produitData.nom);
+    formData.append('description', produitData.description);
+    formData.append('prix', produitData.prix.toString());
+    formData.append('quantiteStock', produitData.quantiteStock.toString());
+    formData.append('idCategorie', produitData.idCategorie.toString());
+    formData.append('idMarque', produitData.idMarque.toString());
+    formData.append('idFournisseur', produitData.idFournisseur.toString());
+    if (produitData.idType) formData.append('idType', produitData.idType.toString());
+    formData.append('genre', produitData.genre);
+    if (produitData.variants?.length) formData.append('variants', JSON.stringify(produitData.variants));
+    if (produitData.images?.length) produitData.images.forEach(img => formData.append('images', img));
 
-      formData.append('nom', produitData.nom);
-      formData.append('description', produitData.description);
-      formData.append('prix', produitData.prix.toString());
-      formData.append('quantiteStock', produitData.quantiteStock.toString());
-      formData.append('idCategorie', produitData.idCategorie.toString());
-      formData.append('idMarque', produitData.idMarque.toString());
-      formData.append('idFournisseur', produitData.idFournisseur.toString());
-      
-      if (produitData.idType) {
-        formData.append('idType', produitData.idType.toString());
-      }
-      
-      formData.append('genre', produitData.genre);
-
-      // Ajout des variations pour la mise à jour
-      if (produitData.variants && produitData.variants.length > 0) {
-        formData.append('variants', JSON.stringify(produitData.variants));
-      }
-
-      if (produitData.images && produitData.images.length > 0) {
-        produitData.images.forEach((image) => {
-          formData.append('images', image);
-        });
-      }
-
-      const response = await fetch(`${API_BASE_URL}/produits/${id}`, {
-        method: 'PUT',
-        body: formData,
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to update produit');
-      }
-
-      const data = await response.json();
-      return data.data;
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Unknown error occurred';
-      throw new Error(`Error updating produit: ${message}`);
-    }
+    const response = await api.put<{ data: ProduitResponse }>(`/produits/${id}`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+    return response.data.data;
   }
 
   async deleteProduit(id: number): Promise<void> {
-    try {
-      const response = await fetch(`${API_BASE_URL}/produits/${id}`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to delete produit');
-      }
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Unknown error occurred';
-      throw new Error(`Error deleting produit: ${message}`);
-    }
+    await api.delete(`/produits/${id}`);
   }
 
   async getTop10BestSellingProduits(): Promise<BestSellingProduit[]> {
-    try {
-      const response = await fetch(`${API_BASE_URL}/best-sellers`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to fetch best selling products');
-      }
-
-      const data = await response.json();
-      return data.data;
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Unknown error occurred';
-      throw new Error(`Error fetching best selling products: ${message}`);
-    }
+    const response = await api.get<{ data: BestSellingProduit[] }>('/produits/best-sellers');
+    return response.data.data;
   }
 
   async deleteImage(imageId: number): Promise<void> {
-    try {
-      const response = await fetch(`${API_BASE_URL}/produits/images/${imageId}`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to delete image');
-      }
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Unknown error occurred';
-      throw new Error(`Error deleting image: ${message}`);
-    }
+    await api.delete(`/produits/images/${imageId}`);
   }
 }
 

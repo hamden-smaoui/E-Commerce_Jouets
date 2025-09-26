@@ -34,15 +34,21 @@ const StoreInfoPage: NextPage = () => {
     urlTiktok: '',
     urlYoutube: '',
     heroImages: [],
+    promotionImages: [],
     imagesToDelete: [],
+    promotionImagesToDelete: [],
     imageRangs: {},
+    promotionImageRangs: {},
     tauxTVA:19,
     fraisLivraison:7,
     seuilLivraisonGratuite:100,
     entrepriseSiret: '',
   });
+  // Ajout pour images promotion
   const [newImages, setNewImages] = useState<File[]>([]);
   const [imagesToDelete, setImagesToDelete] = useState<number[]>([]);
+  const [newPromotionImages, setNewPromotionImages] = useState<File[]>([]);
+  const [promotionImagesToDelete, setPromotionImagesToDelete] = useState<number[]>([]);
   const [logo1File, setLogo1File] = useState<File | undefined>(undefined);
   const [logo2File, setLogo2File] = useState<File | undefined>(undefined);
 
@@ -77,8 +83,11 @@ const StoreInfoPage: NextPage = () => {
         urlTiktok: data.urlTiktok || '',
         urlYoutube: data.urlYoutube || '',
         heroImages: [],
+        promotionImages: [],
         imagesToDelete: [],
+        promotionImagesToDelete: [],
         imageRangs: {},
+        promotionImageRangs: {},
         tauxTVA: data.tauxTVA || 19,
         fraisLivraison: data.fraisLivraison || 7,
         seuilLivraisonGratuite: data.seuilLivraisonGratuite || 100,
@@ -102,10 +111,19 @@ const StoreInfoPage: NextPage = () => {
     }));
   };
 
+  // HERO
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       const files = Array.from(e.target.files);
       setNewImages(prev => [...prev, ...files]);
+    }
+  };
+
+  // PROMOTION
+  const handlePromotionImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      const files = Array.from(e.target.files);
+      setNewPromotionImages(prev => [...prev, ...files]);
     }
   };
 
@@ -123,23 +141,34 @@ const StoreInfoPage: NextPage = () => {
   const removeNewImage = (index: number) => {
     setNewImages(prev => prev.filter((_, i) => i !== index));
   };
+  const removeNewPromotionImage = (index: number) => {
+    setNewPromotionImages(prev => prev.filter((_, i) => i !== index));
+  };
 
   const markImageForDeletion = (imageId: number) => {
     setImagesToDelete(prev => [...prev, imageId]);
+  };
+  const markPromotionImageForDeletion = (imageId: number) => {
+    setPromotionImagesToDelete(prev => [...prev, imageId]);
   };
 
   const unmarkImageForDeletion = (imageId: number) => {
     setImagesToDelete(prev => prev.filter(id => id !== imageId));
   };
+  const unmarkPromotionImageForDeletion = (imageId: number) => {
+    setPromotionImagesToDelete(prev => prev.filter(id => id !== imageId));
+  };
 
   const handleSave = async () => {
     try {
       setIsLoading(true);
-      
+
       const submitData: StoreInfoFormData = {
         ...formData,
         heroImages: newImages,
+        promotionImages: newPromotionImages,
         imagesToDelete: imagesToDelete,
+        promotionImagesToDelete: promotionImagesToDelete,
         logo1File: logo1File,
         logo2File: logo2File,
       };
@@ -154,7 +183,9 @@ const StoreInfoPage: NextPage = () => {
       setStoreInfo(result);
       setIsEditing(false);
       setNewImages([]);
+      setNewPromotionImages([]);
       setImagesToDelete([]);
+      setPromotionImagesToDelete([]);
       setLogo1File(undefined);
       setLogo2File(undefined);
       setNotification({
@@ -174,11 +205,14 @@ const StoreInfoPage: NextPage = () => {
   const handleCancel = () => {
     setIsEditing(false);
     setNewImages([]);
+    setNewPromotionImages([]);
     setImagesToDelete([]);
+    setPromotionImagesToDelete([]);
     setLogo1File(undefined);
     setLogo2File(undefined);
     loadStoreInfo();
   };
+
 
 if (isLoading && !storeInfo) {
   return (
@@ -999,6 +1033,147 @@ if (isLoading && !storeInfo) {
               )}
             </div>
           </div>
+           {/* Promotion Images Section */}
+        <div className="card bg-base-100 shadow-xl">
+          <div className="card-body">
+            <h2 className="card-title text-xl lg:text-2xl flex items-center gap-2 mb-6">
+              <Upload className="w-5 h-5 lg:w-6 lg:h-6" />
+              Images Promotionnelles
+            </h2>
+            {/* Existing Promotion Images */}
+            {storeInfo?.promotionImages && storeInfo.promotionImages.length > 0 && (
+              <div className="mb-6">
+                <h3 className="text-lg font-semibold mb-4">Images promotionnelles actuelles</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                  {storeInfo.promotionImages
+                    .filter(img => !promotionImagesToDelete.includes(img.idImage))
+                    .map((image) => (
+                    <div key={image.idImage} className="relative group">
+                      <div className="aspect-video relative rounded-lg overflow-hidden bg-base-300">
+                        <Image
+                          src={`http://localhost:3001${image.url}`}
+                          alt={`Promotion image ${image.rang}`}
+                          fill
+                          className="object-cover"
+                        />
+                        {isEditing && (
+                          <div className="absolute inset-0 bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                            <button
+                              onClick={() => markPromotionImageForDeletion(image.idImage)}
+                              className="btn btn-error btn-sm gap-2"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                              Supprimer
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                      <div className="badge badge-primary mt-2">Rang: {image.rang}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Promotion Images marked for deletion */}
+            {promotionImagesToDelete.length > 0 && isEditing && (
+              <div className="mb-6">
+                <h3 className="text-lg font-semibold mb-3 text-error">Images à supprimer:</h3>
+                <div className="flex flex-wrap gap-3">
+                  {promotionImagesToDelete.map(imageId => {
+                    const image = storeInfo?.promotionImages?.find(img => img.idImage === imageId);
+                    return image ? (
+                      <div key={imageId} className="relative">
+                        <div className="aspect-video w-24 relative rounded-lg overflow-hidden opacity-50 bg-base-300">
+                          <Image
+                            src={`http://localhost:3001${image.url}`}
+                            alt={`Promotion to delete ${image.rang}`}
+                            fill
+                            className="object-cover"
+                          />
+                        </div>
+                        <button
+                          onClick={() => unmarkPromotionImageForDeletion(imageId)}
+                          className="absolute -top-2 -right-2 btn btn-xs btn-circle btn-primary"
+                          title="Annuler la suppression"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    ) : null;
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* New Promotion Images */}
+            {newPromotionImages.length > 0 && (
+              <div className="mb-6">
+                <h3 className="text-lg font-semibold mb-3 text-success">Nouvelles images promotion à ajouter:</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                  {newPromotionImages.map((file, index) => (
+                    <div key={index} className="relative group">
+                      <div className="aspect-video relative rounded-lg overflow-hidden bg-base-300">
+                        <Image
+                          src={URL.createObjectURL(file)}
+                          alt={`New promo image ${index + 1}`}
+                          fill
+                          className="object-cover"
+                        />
+                        <div className="absolute top-2 right-2">
+                          <button
+                            onClick={() => removeNewPromotionImage(index)}
+                            className="btn btn-error btn-xs btn-circle"
+                            title="Retirer cette image"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </div>
+                      </div>
+                      <div className="badge badge-success mt-2">Nouvelle image</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Upload new promotion images */}
+            {isEditing && (
+              <div className="form-control">
+                <label className="label">
+                  <span className="label-text font-semibold">Ajouter des images promotion</span>
+                </label>
+                <input
+                  type="file"
+                  multiple
+                  accept="image/*"
+                  onChange={handlePromotionImageUpload}
+                  className="file-input file-input-bordered file-input-primary w-full"
+                />
+                <div className="label">
+                  <span className="label-text-alt">
+                    Formats acceptés: JPG, PNG, WebP. Taille recommandée: 1920x1080px ou ratio 16:9
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {/* Info message when no promo images */}
+            {(!storeInfo?.promotionImages || storeInfo.promotionImages.length === 0) && newPromotionImages.length === 0 && (
+              <div className="text-center py-8">
+                <div className="w-24 h-24 mx-auto mb-4 rounded-full bg-base-300 flex items-center justify-center">
+                  <Upload className="w-12 h-12 text-base-content opacity-50" />
+                </div>
+                <p className="text-base-content opacity-70">
+                  {isEditing ? 
+                    "Ajoutez des images promotion pour personnaliser votre page d'accueil" : 
+                    "Aucune image promotion configurée"
+                  }
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
         </div>
 
         {/* Fixed action buttons for mobile */}

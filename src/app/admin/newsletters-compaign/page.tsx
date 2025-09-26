@@ -464,7 +464,7 @@ const handleCloseEditModal = () => {
   ];
 
   return (
-    <div className="p-6 w-full min-h-[80vh] flex flex-col relative">
+    <div className="p-6 w-full h-screen flex flex-col relative">
       <Notification notification={notification} onClose={() => setNotification(null)} />
       
       <HeaderCardComponent

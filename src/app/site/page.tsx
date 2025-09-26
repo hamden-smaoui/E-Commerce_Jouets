@@ -9,6 +9,7 @@ import { useStoreInfo } from "@/hooks/useStoreInfo";
 import ProduitsService, { BestSellingProduit } from "@/services/produits-service";
 import CategoriesService, { Categorie } from "@/services/categories-service";
 import KidsCornerLoader from "@/components/ui/KidsCornerLoader";
+import PromotionsSection from "@/components/ui/PromotionsSection";
 import {
   ShieldCheckIcon,
   CubeIcon,
@@ -92,8 +93,12 @@ export default function Home() {
             buttonLink="/site/products"
           />
           <BestOffers offers={bestOffers} />
+        {/* Nouvelle section promotions */}
+  {storeInfo?.promotionImages && storeInfo.promotionImages.length > 0 && (
+    <PromotionsSection images={storeInfo.promotionImages} />
+  )}
           <FeaturedSection title={`Pourquoi choisir ${storeInfo?.nom || 'Toy Universe'} ?`} features={features} />
-          <Footer />
+          <Footer/>
         </>
       )}
     </div>

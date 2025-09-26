@@ -1,9 +1,7 @@
-// app/(site)/layout.tsx
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "../globals.css";
-import TopBarWrapper from "@/components/layout/TopBarWrapper";
-import Navbar from "@/components/layout/Navbar";
+import SiteShell from "./SiteShell";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -14,15 +12,11 @@ export const metadata: Metadata = {
 
 export default function RootLayout({
   children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+}: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="fr" data-theme="light">
       <body className={inter.className}>
-        <TopBarWrapper />
-        <Navbar />
-        <main className="min-h-[calc(100vh-120px)]">{children}</main>
+        <SiteShell>{children}</SiteShell>
       </body>
     </html>
   );

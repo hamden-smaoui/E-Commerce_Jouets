@@ -9,14 +9,14 @@ import Notification from '@/components/layout/Notification';
 import ConfirmDeleteModal from '@/components/layout/ConfirmDeleteModal';
 import UsersService from '@/services/users-service';
 
-// Define TypeScript interface for Commande (Order) from the backend
+// Commande (Order) interface
 interface Commande {
   idCommande: number;
   dateCommande: string;
   statut: string;
 }
 
-// Define TypeScript interface matching the Sequelize Utilisateur model
+// User interface (all nullable fields are string | null for strict typing)
 interface User {
   idUtilisateur: number;
   prenom: string;
@@ -32,22 +32,22 @@ interface User {
   commandes?: Commande[];
 }
 
-// Define FormData interface for form handling
+// FormData interface
 interface FormData {
   idUtilisateur: number | null;
   prenom: string;
   nom: string;
-  email: string | null;
+  email?: string | null;
   motDePasse?: string;
   telephone: string;
-  adresseRue: string | null;
-  adresseVille: string | null;
-  adresseCodePostal: string | null;
-  adressePays: string | null;
+  adresseRue?: string | null;
+  adresseVille?: string | null;
+  adresseCodePostal?: string | null;
+  adressePays?: string | null;
   role: 'admin' | 'client' | null;
 }
 
-// Define Field interface for FormModal
+// Field interface for form modal
 interface Field<T> {
   name: keyof T;
   label: string;
@@ -71,6 +71,18 @@ interface Field<T> {
   disabled?: boolean;
 }
 
+// Utility to normalize backend user data
+function normalizeUser(u: any): User {
+  return {
+    ...u,
+    email: u.email ?? null,
+    adresseRue: u.adresseRue ?? null,
+    adresseVille: u.adresseVille ?? null,
+    adresseCodePostal: u.adresseCodePostal ?? null,
+    adressePays: u.adressePays ?? null,
+  };
+}
+
 // Users component
 const Users: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
@@ -91,17 +103,17 @@ const Users: React.FC = () => {
     adresseVille: '',
     adresseCodePostal: '',
     adressePays: 'Tunisie',
-    role: null,
+    role: 'client',
   });
   const [selectedUsers, setSelectedUsers] = useState<number[]>([]);
   const [notification, setNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
-  // Fetch users on component mount
+  // Fetch users on mount
   useEffect(() => {
     const fetchUsers = async () => {
       try {
         const fetchedUsers = await UsersService.getAllUsers();
-        setUsers(fetchedUsers);
+        setUsers(fetchedUsers.map(normalizeUser));
         setLoading(false);
       } catch (error: unknown) {
         const message = error instanceof Error ? error.message : 'Unknown error occurred';
@@ -273,33 +285,41 @@ const Users: React.FC = () => {
       hint: 'Pays (par défaut: Tunisie)',
     },
     {
-      name: 'role',
-      label: 'Rôle',
-      type: 'custom',
-      render: ({ value, onChange }) => (
-        <div>
-          <Select
-            options={[
-              { value: 'admin', label: 'Administrateur' },
-              { value: 'client', label: 'Client' },
-            ]}
-            value={
-              value.role
-                ? { value: value.role, label: value.role === 'admin' ? 'Administrateur' : 'Client' }
-                : null
-            }
-            onChange={(selectedOption) =>
-              onChange({ role: selectedOption ? selectedOption.value as 'admin' | 'client' : null })
-            }
-            placeholder="Sélectionnez un rôle"
-            className="w-full"
-            isClearable
-          />
-        </div>
-      ),
-      validation: { required: true, title: 'Sélectionnez un rôle' },
-      hint: "Choisissez un rôle pour l'utilisateur",
-    },
+  name: 'role',
+  label: 'Rôle',
+  type: 'custom',
+  render: ({ value, onChange }) => {
+    // value can be the whole formData object or a single field
+    // so we need to support both cases safely
+    let currentRole: 'admin' | 'client' | null = null;
+    if (typeof value === "string") {
+      currentRole = value as 'admin' | 'client' | null;
+    } else if (value && typeof value === "object" && 'role' in value) {
+      currentRole = value.role;
+    }
+    return (
+      <Select
+        options={[
+          { value: 'admin', label: 'Administrateur' },
+          { value: 'client', label: 'Client' },
+        ]}
+        value={
+          currentRole
+            ? { value: currentRole, label: currentRole === 'admin' ? 'Administrateur' : 'Client' }
+            : null
+        }
+        onChange={(selectedOption) =>
+          onChange(selectedOption ? selectedOption.value as 'admin' | 'client' : null)
+        }
+        placeholder="Sélectionnez un rôle"
+        className="w-full"
+        isClearable
+      />
+    );
+  },
+  validation: { required: true, title: 'Sélectionnez un rôle' },
+  hint: "Choisissez un rôle pour l'utilisateur",
+},
   ];
 
   const handleAddSubmit = async (data: FormData) => {
@@ -310,7 +330,7 @@ const Users: React.FC = () => {
         delete payload.motDePasse;
       }
       const newUser = await UsersService.createUser(payload);
-      setUsers([...users, newUser]);
+      setUsers([...users, normalizeUser(newUser)]);
       setIsAddModalOpen(false);
       setNotification({
         type: 'success',
@@ -340,7 +360,7 @@ const Users: React.FC = () => {
         delete payload.motDePasse;
       }
       const updatedUser = await UsersService.updateUser(data.idUtilisateur, payload);
-      setUsers(users.map((user) => (user.idUtilisateur === data.idUtilisateur ? updatedUser : user)));
+      setUsers(users.map((user) => (user.idUtilisateur === data.idUtilisateur ? normalizeUser(updatedUser) : user)));
       setIsEditModalOpen(false);
       setNotification({
         type: 'success',
@@ -396,48 +416,48 @@ const Users: React.FC = () => {
     }
   };
 
-  const handleAdd = () => {
-    setFormData({
-      idUtilisateur: null,
-      prenom: '',
-      nom: '',
-      email: '',
-      motDePasse: '',
-      telephone: '',
-      adresseRue: '',
-      adresseVille: '',
-      adresseCodePostal: '',
-      adressePays: 'Tunisie',
-      role: null,
-    });
-    setIsAddModalOpen(true);
-  };
+const handleAdd = () => {
+  setFormData({
+    idUtilisateur: null,
+    prenom: '',
+    nom: '',
+    email: '',
+    motDePasse: '',
+    telephone: '',
+    adresseRue: '',
+    adresseVille: '',
+    adresseCodePostal: '',
+    adressePays: 'Tunisie',
+    role: 'client', // <-- default to client
+  });
+  setIsAddModalOpen(true);
+};
 
-  const handleEdit = async (user: User) => {
-    try {
-      const fetchedUser = await UsersService.getUserById(user.idUtilisateur);
-      setFormData({
-        idUtilisateur: fetchedUser.idUtilisateur,
-        prenom: fetchedUser.prenom || '',
-        nom: fetchedUser.nom || '',
-        email: fetchedUser.email || '',
-        motDePasse: '',
-        telephone: fetchedUser.telephone || '',
-        adresseRue: fetchedUser.adresseRue || '',
-        adresseVille: fetchedUser.adresseVille || '',
-        adresseCodePostal: fetchedUser.adresseCodePostal || '',
-        adressePays: fetchedUser.adressePays || 'Tunisie',
-        role: fetchedUser.role,
-      });
-      setIsEditModalOpen(true);
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Erreur inconnue';
-      setNotification({
-        type: 'error',
-        message: `Erreur lors du chargement des données de l'utilisateur: ${message}`,
-      });
-    }
-  };
+ const handleEdit = async (user: User) => {
+  try {
+    const fetchedUser = await UsersService.getUserById(user.idUtilisateur);
+    setFormData({
+      idUtilisateur: fetchedUser.idUtilisateur,
+      prenom: fetchedUser.prenom || '',
+      nom: fetchedUser.nom || '',
+      email: fetchedUser.email ?? '',
+      motDePasse: '',
+      telephone: fetchedUser.telephone || '',
+      adresseRue: fetchedUser.adresseRue ?? '',
+      adresseVille: fetchedUser.adresseVille ?? '',
+      adresseCodePostal: fetchedUser.adresseCodePostal ?? '',
+      adressePays: fetchedUser.adressePays ?? 'Tunisie',
+      role: fetchedUser.role || 'client', // fallback to client
+    });
+    setIsEditModalOpen(true);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Erreur inconnue';
+    setNotification({
+      type: 'error',
+      message: `Erreur lors du chargement des données de l'utilisateur: ${message}`,
+    });
+  }
+};
 
   if (loading) {
     return (

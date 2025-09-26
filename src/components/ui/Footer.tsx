@@ -1,24 +1,32 @@
 "use client";
-import React from "react";
+import React, { useEffect, useState } from "react";
 import Image from "next/image";
 import { useStoreInfo } from "@/hooks/useStoreInfo";
 import NewsletterSubscribe from '@/components/layout/NewsletterSubscribe';
-import { 
-  MapPinIcon, 
-  PhoneIcon, 
+import {
+  MapPinIcon,
+  PhoneIcon,
   EnvelopeIcon,
-  ClockIcon 
+  ClockIcon
 } from '@heroicons/react/24/outline';
+import CategoriesService, { Categorie } from "@/services/categories-service";
 
 export default function Footer() {
   const { storeInfo } = useStoreInfo();
+  const [categories, setCategories] = useState<Categorie[]>([]);
+
+  useEffect(() => {
+    CategoriesService.getAllCategories()
+      .then(setCategories)
+      .catch(() => setCategories([]));
+  }, []);
 
   return (
     <footer className="bg-gray-800 text-white font-[Comic_Sans_MS,sans-serif] pt-12">
       {/* Main Footer Content */}
       <div className="max-w-7xl mx-auto px-4 pb-10">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-12 text-center md:text-left">
-          
+
           {/* Company Info */}
           <div className="lg:col-span-1">
             <div className="mb-6 flex justify-center md:justify-start">
@@ -45,8 +53,8 @@ export default function Footer() {
               <div className="flex items-center justify-center md:justify-start text-purple-200">
                 <MapPinIcon className="w-5 h-5 mr-3 text-pink-300" />
                 <span className="text-sm font-semibold">
-                  {storeInfo?.adresse ? 
-                    `${storeInfo.adresse}, ${storeInfo.ville || ''}` : 
+                  {storeInfo?.adresse ?
+                    `${storeInfo.adresse}, ${storeInfo.ville || ''}` :
                     '123 Avenue des Jouets, Tunis'
                   }
                 </span>
@@ -87,18 +95,22 @@ export default function Footer() {
             </ul>
           </div>
 
-          {/* Categories */}
+          {/* Categories dynamiques */}
           <div>
             <h3 className="text-xl font-extrabold mb-6 text-yellow-300 drop-shadow-lg">
               Catégories
             </h3>
             <ul className="space-y-3">
-              <li><a href="/category/puericulture" className="text-purple-100 hover:text-yellow-300 font-semibold transition-colors duration-300">Puériculture</a></li>
-              <li><a href="/category/0-2" className="text-purple-100 hover:text-yellow-300 font-semibold transition-colors duration-300">Jouets 0-2 ans</a></li>
-              <li><a href="/category/2-4" className="text-purple-100 hover:text-yellow-300 font-semibold transition-colors duration-300">Jouets 2-4 ans</a></li>
-              <li><a href="/category/5-7" className="text-purple-100 hover:text-yellow-300 font-semibold transition-colors duration-300">Jouets 5-7 ans</a></li>
-              <li><a href="/category/8-11" className="text-purple-100 hover:text-yellow-300 font-semibold transition-colors duration-300">Jouets 8-11 ans</a></li>
-              <li><a href="/category/12+" className="text-purple-100 hover:text-yellow-300 font-semibold transition-colors duration-300">Jouets +12 ans</a></li>
+              {categories.map((cat) => (
+                <li key={cat.idCategorie}>
+                  <a
+                    href={`/site/products?categories=${cat.idCategorie}`}
+                    className="text-purple-100 hover:text-yellow-300 font-semibold transition-colors duration-300"
+                  >
+                    {cat.nom}
+                  </a>
+                </li>
+              ))}
             </ul>
           </div>
 
@@ -110,14 +122,14 @@ export default function Footer() {
             <p className="text-purple-100 mb-4 text-base">
               Inscrivez-vous pour recevoir nos dernières offres et nouveautés.
             </p>
-           <NewsletterSubscribe />
+            <NewsletterSubscribe />
             {/* Social Media */}
             <div>
               <h4 className="text-md font-bold mb-4 text-purple-300 drop-shadow-lg">Suivez-nous</h4>
               <div className="flex space-x-4 justify-center md:justify-start">
-                {storeInfo?.urlFacebook && (
-                  <a 
-                    href={storeInfo.urlFacebook} 
+                {storeInfo?.urlFacebook && !!storeInfo.urlFacebook.trim() && (
+                  <a
+                    href={storeInfo.urlFacebook}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="w-10 h-10 bg-pink-400 hover:bg-pink-500 rounded-full flex items-center justify-center transition-all duration-300 group shadow"
@@ -128,8 +140,8 @@ export default function Footer() {
                     </svg>
                   </a>
                 )}
-                {storeInfo?.urlInstagram && (
-                  <a 
+                {storeInfo?.urlInstagram && !!storeInfo.urlInstagram.trim() && (
+                  <a
                     href={storeInfo.urlInstagram}
                     target="_blank"
                     rel="noopener noreferrer"
@@ -141,8 +153,8 @@ export default function Footer() {
                     </svg>
                   </a>
                 )}
-                {storeInfo?.urlYoutube && (
-                  <a 
+                {storeInfo?.urlYoutube && !!storeInfo.urlYoutube.trim() && (
+                  <a
                     href={storeInfo.urlYoutube}
                     target="_blank"
                     rel="noopener noreferrer"
@@ -151,6 +163,20 @@ export default function Footer() {
                   >
                     <svg className="w-5 h-5 text-white group-hover:text-white" fill="currentColor" viewBox="0 0 24 24">
                       <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+                    </svg>
+                  </a>
+                )}
+                {storeInfo?.urlTiktok && !!storeInfo.urlTiktok.trim() && (
+                  <a
+                    href={storeInfo.urlTiktok}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-10 h-10 bg-black hover:bg-gray-900 rounded-full flex items-center justify-center transition-all duration-300 group shadow"
+                    aria-label="TikTok"
+                  >
+                    {/* TikTok SVG */}
+                    <svg className="w-5 h-5 text-white group-hover:text-pink-400" viewBox="0 0 32 32" fill="currentColor">
+                      <path d="M20.4 2h-4.35v19.12c0 1.41-1.15 2.56-2.56 2.56s-2.56-1.15-2.56-2.56 1.15-2.56 2.56-2.56c.2 0 .4.03.59.07v-4.37c-.19-.03-.39-.05-.59-.05-3.81 0-6.9 3.09-6.9 6.9s3.09 6.9 6.9 6.9 6.9-3.09 6.9-6.9V10.48c1.24.77 2.69 1.22 4.25 1.22v-4.04c-.65 0-1.28-.1-1.87-.29-.82-.27-1.56-.69-2.18-1.25-.62-.56-1.12-1.23-1.45-2.01-.22-.48-.37-.99-.45-1.51z"/>
                     </svg>
                   </a>
                 )}
