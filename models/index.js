@@ -55,6 +55,7 @@ Produit.hasMany(Image, { foreignKey: 'idProduit', as: 'images' });
 Image.belongsTo(Produit, { foreignKey: 'idProduit', as: 'produit' });
 
 StoreInfo.hasMany(Image, { foreignKey: 'idStoreInfo', as: 'heroImages' });
+StoreInfo.hasMany(Image, { foreignKey: 'idStoreInfo', as: 'promotionImages' });
 Image.belongsTo(StoreInfo, { foreignKey: 'idStoreInfo', as: 'storeInfo' });
 
 Utilisateur.hasOne(Panier, { foreignKey: 'idUtilisateur', as: 'panier' });

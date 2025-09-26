@@ -76,30 +76,22 @@ const StoreInfo = sequelize.define('StoreInfo', {
     urlFacebook: {
         type: DataTypes.TEXT,
         allowNull: true,
-        validate: {
-            isUrl: true,
-        },
+        
     },
     urlInstagram: {
         type: DataTypes.TEXT,
         allowNull: true,
-        validate: {
-            isUrl: true,
-        },
+        
     },
     urlTiktok: {
         type: DataTypes.TEXT,
         allowNull: true,
-        validate: {
-            isUrl: true,
-        },
+        
     },
     urlYoutube: {
         type: DataTypes.TEXT,
         allowNull: true,
-        validate: {
-            isUrl: true,
-        },
+        
     },
     topDescription: {
         type: DataTypes.TEXT,

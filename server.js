@@ -13,6 +13,19 @@ const storeInfoRoutes = require('./routes/storeInfo');
 const avisRoutes = require('./routes/avis');
 const commentaireRoutes = require('./routes/commentaire');
 const factureRoutes = require('./routes/facture');
+const fournisseurRoutes = require('./routes/fournisseur');
+const codePromoRoutes = require('./routes/code-promo');
+const ageRoutes = require('./routes/age');
+const tailleRoutes = require('./routes/taille');
+const couleurRoutes = require('./routes/couleur');
+const typeRoutes = require('./routes/type');
+const marqueRoutes = require('./routes/marque');
+const categorieRoutes = require('./routes/categorie');
+const produitRoutes = require('./routes/produit');
+const commandeRoutes = require('./routes/commande');
+const promotionRoutes = require('./routes/promotion');
+const newsletterRoutes = require('./routes/newsletter');
+const utilisateurRoutes = require('./routes/utilisateur');       
 
 const app = express();
 const server = http.createServer(app);
@@ -27,7 +40,6 @@ app.use((req, res, next) => {
 });
 
 // Routes
-app.use('/api/jouets', jouetsRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/panier', panierRoutes);
 app.use('/api/favoris', favoriRoutes);
@@ -36,6 +48,21 @@ app.use('/api/store-info', storeInfoRoutes);
 app.use('/api/avis', avisRoutes);
 app.use('/api/commentaires', commentaireRoutes);
 app.use('/api/factures', factureRoutes);
+app.use('/api/ages', ageRoutes);
+app.use('/api/tailles', tailleRoutes);
+app.use('/api/couleurs', couleurRoutes);
+app.use('/api/types', typeRoutes);
+app.use('/api/marques', marqueRoutes);
+app.use('/api/categories', categorieRoutes);
+app.use('/api/produits', produitRoutes);
+app.use('/api/commandes', commandeRoutes);
+app.use('/api/promotions', promotionRoutes);
+app.use('/api/newsletter', newsletterRoutes);
+app.use('/api/utilisateurs', utilisateurRoutes);
+app.use('/api/fournisseurs', fournisseurRoutes);
+app.use('/api/codes-promo', codePromoRoutes);
+
+
 
 
 app.get('/', (req, res) => {

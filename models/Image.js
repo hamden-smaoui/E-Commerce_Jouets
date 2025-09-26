@@ -30,6 +30,11 @@ const Image = sequelize.define('Image', {
             key: 'idStoreInfo',
         },
     },
+    type: {
+        type: DataTypes.ENUM('hero', 'promotion'),
+        allowNull: true,
+        defaultValue: 'hero'
+    }
 }, {
     timestamps: true,
     tableName: 'images',

@@ -5,6 +5,7 @@ const FactureController = require('../controllers/factureController');
 
 // Routes Facture
 router.post('/', FactureController.createFacture);
+router.get('/statsfactures', FactureController.getFactureStats);
 router.get('/', FactureController.getAllFactures);
 router.get('/:id', FactureController.getFactureById);
 router.put('/:id', FactureController.updateFacture);
@@ -13,9 +14,7 @@ router.delete('/:id', FactureController.deleteFacture);
 router.get('/:id/pdf', FactureController.generatePDF);
 
 // Récupérer les statistiques des factures
-router.get('/statsfactures', FactureController.getFactureStats);
-// Dans ton fichier de routes
-router.post('/commandes/:idCommande/facture', FactureController.createFactureFromCommande);
+router.post('/commandes/:idCommande/facture', FactureController.createFactureFromCommande.bind(FactureController));
 
 module.exports = router;
 
