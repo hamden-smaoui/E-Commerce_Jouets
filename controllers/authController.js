@@ -151,29 +151,19 @@ async login(req, res) {
 }
 
     // Profil utilisateur (nécessite authentification)
+   
     async getProfile(req, res) {
         try {
-            const user = await Utilisateur.findByPk(req.user.userId, {
+            const user = await Utilisateur.findByPk(req.user.idUtilisateur, {
                 attributes: { exclude: ['motDePasse'] }
             });
-
-            if (!user) {
-                return res.status(404).json({
-                    message: 'Utilisateur non trouvé'
-                });
-            }
-
-            res.status(200).json({
-                user
-            });
-
+            if (!user) return res.status(404).json({ message: "Utilisateur non trouvé" });
+            res.status(200).json({ user });
         } catch (error) {
-            res.status(500).json({
-                message: 'Erreur lors de la récupération du profil',
-                error: error.message
-            });
+            res.status(500).json({ message: "Erreur lors de la récupération du profil", error: error.message });
         }
     }
+
 
     // Mise à jour du profil
     async updateProfile(req, res) {

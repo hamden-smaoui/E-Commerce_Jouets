@@ -1,14 +1,14 @@
 const express = require('express');
 const router = express.Router();
-const { authMiddleware } = require('../middlewares/auth');
+const { authMiddleware ,adminMiddleware } = require('../middlewares/auth');
 const MarqueController = require('../controllers/marqueController');
 
 
 // Routes Marque
-router.post('/', MarqueController.createMarque);
-router.get('/', MarqueController.getAllMarques);
-router.get('/:id', MarqueController.getMarqueById);
-router.put('/:id', MarqueController.updateMarque);
-router.delete('/:id', MarqueController.deleteMarque);
+router.post('/',authMiddleware ,adminMiddleware, MarqueController.createMarque);
+router.get('/' , MarqueController.getAllMarques);
+router.get('/:id',authMiddleware ,adminMiddleware, MarqueController.getMarqueById);
+router.put('/:id',authMiddleware ,adminMiddleware, MarqueController.updateMarque);
+router.delete('/:id',authMiddleware ,adminMiddleware, MarqueController.deleteMarque);
 
 module.exports = router;

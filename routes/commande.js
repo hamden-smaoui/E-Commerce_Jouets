@@ -1,19 +1,19 @@
 const express = require('express');
 const router = express.Router();
-const { authMiddleware } = require('../middlewares/auth');
+const { authMiddleware,adminMiddleware } = require('../middlewares/auth');
 const CommandeController = require('../controllers/commandeController');
 
 // Routes Commande
-router.get('/stats', CommandeController.getCommandeStats);
+router.get('/stats',authMiddleware,adminMiddleware, CommandeController.getCommandeStats);
+router.get('/client',authMiddleware, CommandeController.getCommandesByClient);
 
-router.post('/', CommandeController.createCommande);
-router.get('/', CommandeController.getAllCommandes);
-router.get('/:id', CommandeController.getCommandeById);
-router.put('/:id', CommandeController.updateCommande);
-router.delete('/:id', CommandeController.deleteCommande);
-router.get('/client/:id', CommandeController.getCommandesByClient);
+router.post('/',authMiddleware, CommandeController.createCommande);
+router.get('/',authMiddleware,adminMiddleware, CommandeController.getAllCommandes);
+router.get('/:id',authMiddleware, CommandeController.getCommandeById);
+router.put('/:id',authMiddleware, CommandeController.updateCommande);
+router.delete('/:id',authMiddleware,adminMiddleware, CommandeController.deleteCommande);
 // Nouvelles routes pour les commandes avec promotions
-router.post('/calculer-panier', CommandeController.calculerPanier);
-router.post('/valider-code-promo', CommandeController.validerCodePromo);
+router.post('/calculer-panier', authMiddleware,CommandeController.calculerPanier);
+router.post('/valider-code-promo',authMiddleware, CommandeController.validerCodePromo);
 
 module.exports = router;

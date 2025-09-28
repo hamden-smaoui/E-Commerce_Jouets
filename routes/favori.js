@@ -7,5 +7,5 @@ const { authMiddleware } = require('../middlewares/auth');
 router.get('/user/:idUtilisateur', authMiddleware, FavoriController.getAllFavorisByUser);
 router.post('/', authMiddleware, FavoriController.addFavori);
 router.delete('/:idFavori', authMiddleware, FavoriController.deleteFavori);
-router.delete('/user/:idUtilisateur', FavoriController.deleteAllFavorisByUser);
+router.delete('/user/:idUtilisateur',authMiddleware, FavoriController.deleteAllFavorisByUser);
 module.exports = router;

@@ -11,4 +11,4 @@ router.delete('/retirer/:idPanierProduit', authMiddleware, PanierController.reti
 router.delete('/vider', authMiddleware, PanierController.viderPanier);
 router.get('/count', authMiddleware, PanierController.getNombreProduits);
 
-module.exports = router;
+module.exports = router; 

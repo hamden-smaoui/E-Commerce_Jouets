@@ -435,37 +435,40 @@ async getCommandeById(req, res) {
     }
 
     async getCommandesByClient(req, res) {
-        try {
-            const idClient = req.params.id;
-            const commandes = await Commande.findAll({
-                where: { idClient },
-                order: [['dateCommande', 'DESC']],
-                include: [
-                    {
-                        model: LigneCommande,
-                        as: 'lignesCommandes',
-                        include: [{
-                            model: Produit,
-                            as: 'produit',
-                            attributes: ['idProduit', 'nom']
-                        }]
-                    },
-                    {
-                        model: Facture,
-                        as: 'facture',
-                        attributes: ['idFacture', 'statut']
-                    }
-                ]
-            });
-            res.status(200).json(commandes);
-        } catch (error) {
-            console.error('Get commandes by client error:', error);
-            res.status(500).json({
-                message: 'Erreur lors de la récupération des commandes par client',
-                error: error.message
-            });
-        }
+    try {
+        console.log('User from token:', req.user);
+        const idClient = req.user.idUtilisateur;
+
+        const commandes = await Commande.findAll({
+            where: { idClient },
+            order: [['dateCommande', 'DESC']],
+            include: [
+                {
+                    model: LigneCommande,
+                    as: 'lignesCommandes',
+                    include: [{
+                        model: Produit,
+                        as: 'produit',
+                        attributes: ['idProduit', 'nom']
+                    }]
+                },
+                {
+                    model: Facture,
+                    as: 'facture',
+                    attributes: ['idFacture', 'statut']
+                }
+            ]
+        });
+
+        res.status(200).json(commandes);
+    } catch (error) {
+        console.error('Get commandes by client error:', error);
+        res.status(500).json({
+            message: 'Erreur lors de la récupération des commandes par client',
+            error: error.message
+        });
     }
+}
 
     // Nouvelle méthode pour obtenir les statistiques des commandes
     async getCommandeStats(req, res) {

@@ -8,7 +8,7 @@ const { authMiddleware } = require('../middlewares/auth');
 router.post('/register', AuthController.register);
 router.post('/login', AuthController.login);
 
-// Routes protégées (nécessitent authentification)
+
 router.get('/profile', authMiddleware, AuthController.getProfile);
 router.put('/profile', authMiddleware, AuthController.updateProfile);
 router.put('/change-password', authMiddleware, AuthController.changePassword);

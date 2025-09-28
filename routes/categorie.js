@@ -1,14 +1,14 @@
 const express = require('express');
 const router = express.Router();
 const CategorieController = require('../controllers/categorieController');
-const { authMiddleware } = require('../middlewares/auth');
+const { authMiddleware,adminMiddleware } = require('../middlewares/auth');
 
 // Routes Catégorie
-router.post('/', CategorieController.createCategorie);
+router.post('/', authMiddleware,adminMiddleware, CategorieController.createCategorie);
 router.get('/', CategorieController.getAllCategories);
-router.get('/:id', CategorieController.getCategorieById);
-router.put('/:id', CategorieController.updateCategorie);
-router.delete('/:id', CategorieController.deleteCategorie);
+router.get('/:id', authMiddleware,adminMiddleware,CategorieController.getCategorieById);
+router.put('/:id', authMiddleware,adminMiddleware, CategorieController.updateCategorie);
+router.delete('/:id', authMiddleware,adminMiddleware, CategorieController.deleteCategorie);
 
 
 module.exports = router;

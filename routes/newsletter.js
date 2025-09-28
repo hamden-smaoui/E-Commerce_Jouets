@@ -1,19 +1,19 @@
 const express = require('express');
 const router = express.Router();
 const NewsletterController = require('../controllers/newsLetterController');
-const { authMiddleware } = require('../middlewares/auth');
+const { authMiddleware ,adminMiddleware } = require('../middlewares/auth');
 
 
 
 router.post('/subscribe', NewsletterController.subscribe);
 
-router.get('/', NewsletterController.getAll);
+router.get('/',authMiddleware , NewsletterController.getAll);
 
-router.post('/unsubscribe', NewsletterController.unsubscribe);
-router.post('/campaigns', NewsletterController.createCampaign);
-router.get('/campaigns', NewsletterController.getCampaigns);
-router.post('/campaigns/:campaignId/send', NewsletterController.sendCampaign);
-router.delete('/campaigns/:campaignId', NewsletterController.deleteCampaign);
-router.put('/campaigns/:campaignId', NewsletterController.updateCampaign);
+router.post('/unsubscribe',authMiddleware, NewsletterController.unsubscribe);
+router.post('/campaigns',authMiddleware ,adminMiddleware, NewsletterController.createCampaign);
+router.get('/campaigns',authMiddleware ,adminMiddleware, NewsletterController.getCampaigns);
+router.post('/campaigns/:campaignId/send',authMiddleware ,adminMiddleware, NewsletterController.sendCampaign);
+router.delete('/campaigns/:campaignId',authMiddleware ,adminMiddleware, NewsletterController.deleteCampaign);
+router.put('/campaigns/:campaignId',authMiddleware ,adminMiddleware, NewsletterController.updateCampaign);
 
 module.exports = router;

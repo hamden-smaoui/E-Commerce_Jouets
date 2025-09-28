@@ -45,6 +45,7 @@ console.log(req.body);
             data: reclamation,
         });
     } catch (error) {
+        console.error('Erreur lors de la création de la réclamation:', error);
         res.status(500).json({
             message: 'Erreur lors de la création de la réclamation',
             error: error.message,
