@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect } from 'react';
-import { useAuth } from '@/hooks/useAuth';
+import { useSession } from "next-auth/react";
 import AvisService, { Avis, AvisStatistiques } from '@/services/avis-service';
 import { PlusIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/solid';
 import { toast } from 'react-hot-toast';
@@ -41,7 +41,6 @@ const ConfirmDeleteModal = ({ isOpen, onClose, onConfirm }: {
   );
 };
 
-// Helper function to format time ago
 const formatTimeAgo = (dateString: string): string => {
   const now = new Date();
   const date = new Date(dateString);
@@ -77,7 +76,7 @@ const StarRating = ({ rating, size = 'md', interactive = false, onRatingChange }
   onRatingChange?: (rating: number) => void;
 }) => {
   const [hoverRating, setHoverRating] = useState(0);
-  
+
   const sizeClasses = {
     sm: 'w-4 h-4',
     md: 'w-5 h-5',
@@ -126,7 +125,10 @@ const ProgressBar = ({ value, max, className = "" }: { value: number; max: numbe
 );
 
 export default function AvisComponent({ idProduit }: AvisComponentProps) {
-  const { user, isAuthenticated } = useAuth();
+  const { data: session, status } = useSession();
+  const user = session?.userData;
+  const token = session?.customToken;
+  const isAuthenticated = status === "authenticated";
   const [avis, setAvis] = useState<Avis[]>([]);
   const [statistiques, setStatistiques] = useState<AvisStatistiques | null>(null);
   const [monAvis, setMonAvis] = useState<Avis | null>(null);
@@ -139,7 +141,8 @@ export default function AvisComponent({ idProduit }: AvisComponentProps) {
 
   useEffect(() => {
     fetchData();
-  }, [idProduit, isAuthenticated]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [idProduit, isAuthenticated, token]);
 
   const fetchData = async () => {
     try {
@@ -148,13 +151,12 @@ export default function AvisComponent({ idProduit }: AvisComponentProps) {
         AvisService.getAvisByProduit(idProduit),
         AvisService.getAvisStatistiques(idProduit)
       ]);
-      
       setAvis(avisData);
       setStatistiques(statsData);
 
-      if (isAuthenticated) {
+      if (isAuthenticated && token) {
         try {
-          const monAvisData = await AvisService.getMonAvis(idProduit);
+          const monAvisData = await AvisService.getMonAvis(idProduit, token);
           setMonAvis(monAvisData);
           if (monAvisData) {
             setSelectedRating(monAvisData.note);
@@ -173,15 +175,15 @@ export default function AvisComponent({ idProduit }: AvisComponentProps) {
   };
 
   const handleSubmitAvis = async () => {
-    if (!selectedRating || !isAuthenticated) return;
+    if (!selectedRating || !isAuthenticated || !token) return;
 
     try {
       setSubmitting(true);
       const newAvis = await AvisService.createOrUpdateAvis({
         idProduit,
         note: selectedRating
-      });
-      
+      }, token);
+
       setMonAvis(newAvis);
       setShowForm(false);
       toast.success(monAvis ? 'Avis modifié avec succès' : 'Avis ajouté avec succès');
@@ -195,10 +197,10 @@ export default function AvisComponent({ idProduit }: AvisComponentProps) {
   };
 
   const handleDeleteAvis = async () => {
-    if (!monAvis || !isAuthenticated) return;
+    if (!monAvis || !isAuthenticated || !token) return;
 
     try {
-      await AvisService.deleteAvis(monAvis.idAvis);
+      await AvisService.deleteAvis(monAvis.idAvis, token);
       setMonAvis(null);
       setSelectedRating(0);
       setShowDeleteModal(false);
@@ -356,13 +358,16 @@ export default function AvisComponent({ idProduit }: AvisComponentProps) {
             </div>
           )}
 
-          {!isAuthenticated && (
+         {!isAuthenticated && (
             <div className="border-b border-gray-200 pb-6">
               <div className="bg-gray-50 rounded-xl p-4 text-center">
                 <p className="text-gray-600 mb-3">
                   Connectez-vous pour donner votre avis sur ce produit
                 </p>
-                <button className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                <button
+                  className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  onClick={() => window.location.href = "/signIn"}
+                >
                   Se connecter
                 </button>
               </div>

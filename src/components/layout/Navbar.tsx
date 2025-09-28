@@ -17,18 +17,13 @@ import {
   ShoppingCartIcon,
   UserCircleIcon,
 } from "@heroicons/react/24/solid";
-import { useAuth } from "../../hooks/useAuth";
 import CartDropdown from "./CartDropdown";
-
-interface User {
-  prenom?: string;
-  nom?: string;
-  email?: string;
-  role?: string;
-}
+import { useSession, signOut } from "next-auth/react";
 
 export default function Navbar() {
-  const { user, logout, isAuthenticated } = useAuth();
+  const { data: session, status } = useSession();
+  const user = session?.userData;
+  const isAuthenticated = status === "authenticated";
   const { storeInfo } = useStoreInfo();
   const [isDropdownOpen, setIsDropdownOpen] = useState<boolean>(false);
   const [searchQuery, setSearchQuery] = useState<string>("");
@@ -59,8 +54,8 @@ export default function Navbar() {
     setIsDropdownOpen((prev) => !prev);
   };
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await signOut({ redirect: false });
     setIsDropdownOpen(false);
     router.push("/signIn");
   };

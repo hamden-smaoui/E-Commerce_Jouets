@@ -10,28 +10,33 @@ export interface TailleFormData {
 }
 
 class TaillesService {
-  async createTaille(tailleData: TailleFormData): Promise<Taille> {
-    const response = await api.post<Taille>('/tailles', tailleData);
+  async createTaille(tailleData: TailleFormData, token?: string): Promise<Taille> {
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    const response = await api.post<Taille>('/tailles', tailleData, { headers });
     return response.data;
   }
 
-  async getAllTailles(): Promise<Taille[]> {
-    const response = await api.get<Taille[]>('/tailles');
+  async getAllTailles(token?: string): Promise<Taille[]> {
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    const response = await api.get<Taille[]>('/tailles', { headers });
     return response.data;
   }
 
-  async getTailleById(id: number): Promise<Taille> {
-    const response = await api.get<Taille>(`/tailles/${id}`);
+  async getTailleById(id: number, token?: string): Promise<Taille> {
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    const response = await api.get<Taille>(`/tailles/${id}`, { headers });
     return response.data;
   }
 
-  async updateTaille(id: number, tailleData: TailleFormData): Promise<Taille> {
-    const response = await api.put<Taille>(`/tailles/${id}`, tailleData);
+  async updateTaille(id: number, tailleData: TailleFormData, token?: string): Promise<Taille> {
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    const response = await api.put<Taille>(`/tailles/${id}`, tailleData, { headers });
     return response.data;
   }
 
-  async deleteTaille(id: number): Promise<void> {
-    await api.delete(`/tailles/${id}`);
+  async deleteTaille(id: number, token?: string): Promise<void> {
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    await api.delete(`/tailles/${id}`, { headers });
   }
 }
 

@@ -8,7 +8,7 @@ import FormModal from '@/components/layout/FormModal';
 import Notification from '@/components/layout/Notification';
 import ConfirmDeleteModal from '@/components/layout/ConfirmDeleteModal';
 import UsersService from '@/services/users-service';
-
+import {useSession} from 'next-auth/react';
 // Commande (Order) interface
 interface Commande {
   idCommande: number;
@@ -107,12 +107,13 @@ const Users: React.FC = () => {
   });
   const [selectedUsers, setSelectedUsers] = useState<number[]>([]);
   const [notification, setNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
-
+const { data: session, status } = useSession();
+      const token = session?.customToken; 
   // Fetch users on mount
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-        const fetchedUsers = await UsersService.getAllUsers();
+        const fetchedUsers = await UsersService.getAllUsers(token);
         setUsers(fetchedUsers.map(normalizeUser));
         setLoading(false);
       } catch (error: unknown) {
@@ -329,7 +330,7 @@ const Users: React.FC = () => {
       if (!payload.motDePasse) {
         delete payload.motDePasse;
       }
-      const newUser = await UsersService.createUser(payload);
+      const newUser = await UsersService.createUser(payload,token);
       setUsers([...users, normalizeUser(newUser)]);
       setIsAddModalOpen(false);
       setNotification({
@@ -359,7 +360,7 @@ const Users: React.FC = () => {
       if (!payload.motDePasse) {
         delete payload.motDePasse;
       }
-      const updatedUser = await UsersService.updateUser(data.idUtilisateur, payload);
+      const updatedUser = await UsersService.updateUser(data.idUtilisateur, payload,token);
       setUsers(users.map((user) => (user.idUtilisateur === data.idUtilisateur ? normalizeUser(updatedUser) : user)));
       setIsEditModalOpen(false);
       setNotification({
@@ -382,7 +383,7 @@ const Users: React.FC = () => {
   const confirmDelete = async () => {
     try {
       for (const id of selectedUsers) {
-        await UsersService.deleteUser(id);
+        await UsersService.deleteUser(id,token);
       }
       setUsers(users.filter((user) => !selectedUsers.includes(user.idUtilisateur)));
       setSelectedUsers([]);
@@ -435,7 +436,7 @@ const handleAdd = () => {
 
  const handleEdit = async (user: User) => {
   try {
-    const fetchedUser = await UsersService.getUserById(user.idUtilisateur);
+    const fetchedUser = await UsersService.getUserById(user.idUtilisateur,token);
     setFormData({
       idUtilisateur: fetchedUser.idUtilisateur,
       prenom: fetchedUser.prenom || '',

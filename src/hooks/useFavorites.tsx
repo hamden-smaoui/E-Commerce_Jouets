@@ -1,8 +1,9 @@
 "use client";
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import FavoriService, { FavoriResponse } from "@/services/favoris-service";
-import { useAuth } from "./useAuth";
+import { useSession } from "next-auth/react";
 import { toast } from "react-hot-toast";
+import { useRouter } from "next/navigation";
 
 interface FavoritesContextType {
   favorites: FavoriResponse[];
@@ -20,24 +21,27 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
   const [favorites, setFavorites] = useState<FavoriResponse[]>([]);
   const [loading, setLoading] = useState(false);
   const [mounted, setMounted] = useState(false);
-  const { isAuthenticated, user } = useAuth();
+  const router = useRouter();
+
+  const { data: session, status } = useSession();
+  const isAuthenticated = status === "authenticated";
+  const user = session?.userData;
+  const token = session?.customToken;
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
   const refreshFavorites = async () => {
-    if (!mounted || !isAuthenticated || !user) {
+    if (!mounted || !isAuthenticated || !user || !token) {
       setFavorites([]);
       return;
     }
-
     try {
       setLoading(true);
-      // Use the correct user ID property from your auth system
-      const userId = user.idUtilisateur ;
+      const userId = user.idUtilisateur;
       if (userId) {
-        const favoritesData = await FavoriService.getAllFavorisByUser(userId);
+        const favoritesData = await FavoriService.getAllFavorisByUser(userId, token);
         setFavorites(favoritesData);
       }
     } catch (error) {
@@ -49,22 +53,18 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
   };
 
   const addToFavorites = async (idProduit: number) => {
-    if (!isAuthenticated || !user) {
+    if (!isAuthenticated || !user || !token) {
       toast.error("Vous devez être connecté pour ajouter aux favoris");
+      router.push("/signIn");
       return;
     }
-
     try {
-      const userId = user.idUtilisateur ;
+      const userId = user.idUtilisateur;
       if (!userId) {
         toast.error("Erreur d'authentification");
         return;
       }
-
-      await FavoriService.addFavori({
-        idUtilisateur: userId,
-        idProduit: idProduit
-      });
+      await FavoriService.addFavori({ idUtilisateur: userId, idProduit }, token);
       await refreshFavorites();
       toast.success("Produit ajouté aux favoris");
     } catch (error: any) {
@@ -75,10 +75,15 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
   };
 
   const removeFromFavorites = async (idProduit: number) => {
+    if (!isAuthenticated || !user || !token) {
+      toast.error("Vous devez être connecté pour retirer des favoris");
+      router.push("/signIn");
+      return;
+    }
     try {
       const favoriteItem = favorites.find(fav => fav.idProduit === idProduit);
       if (favoriteItem) {
-        await FavoriService.deleteFavori(favoriteItem.idFavori);
+        await FavoriService.deleteFavori(favoriteItem.idFavori, token);
         await refreshFavorites();
         toast.success("Produit retiré des favoris");
       }
@@ -94,12 +99,15 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
   };
 
   const clearFavorites = async () => {
-    if (!user) return;
-    
+    if (!isAuthenticated || !user || !token) {
+      toast.error("Vous devez être connecté pour vider les favoris");
+      router.push("/signIn");
+      return;
+    }
     try {
-      const userId = user.idUtilisateur ;
+      const userId = user.idUtilisateur;
       if (userId) {
-        await FavoriService.deleteAllFavorisByUser(userId);
+        await FavoriService.deleteAllFavorisByUser(userId, token);
         await refreshFavorites();
         toast.success("Favoris vidés");
       }
@@ -110,12 +118,12 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
-    if (mounted && isAuthenticated && user) {
+    if (mounted && isAuthenticated && user && token) {
       refreshFavorites();
     } else if (mounted && !isAuthenticated) {
       setFavorites([]);
     }
-  }, [mounted, isAuthenticated, user]);
+  }, [mounted, isAuthenticated, user, token]);
 
   return (
     <FavoritesContext.Provider

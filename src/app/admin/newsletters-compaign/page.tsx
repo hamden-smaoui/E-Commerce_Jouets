@@ -7,7 +7,7 @@ import HeaderCardComponent from '@/components/layout/HeaderCardComponent';
 import Notification from '@/components/layout/Notification';
 import FormModal from '@/components/layout/FormModal';
 import ConfirmDeleteModal from '@/components/layout/ConfirmDeleteModal';
-
+import { useSession } from "next-auth/react";
 interface Field<T> {
   name: keyof T;
   label: string;
@@ -101,7 +101,8 @@ const NewsletterCampaigns: React.FC = () => {
 const [campaignToEdit, setCampaignToEdit] = useState<NewsletterCampaign | null>(null);
 
   const [imagePreview, setImagePreview] = useState<string | null>(null);
-
+const { data: session, status } = useSession();
+  const token = session?.customToken;
   const handleImageChange = (file: File | null) => {
     if (file) {
       if (imagePreview) {
@@ -230,7 +231,7 @@ const [campaignToEdit, setCampaignToEdit] = useState<NewsletterCampaign | null>(
   const fetchCampaigns = async () => {
     try {
       setLoading(true);
-      const data = await NewsletterService.getCampaigns();
+      const data = await NewsletterService.getCampaigns(token);
       setCampaigns(data);
     } catch (error: any) {
       setNotification({ type: 'error', message: error.message });
@@ -284,7 +285,7 @@ const handleEditSubmit = async (data: CampaignFormData) => {
   try {
     console.log('Données de modification:', data);
     
-    await NewsletterService.updateCampaign(campaignToEdit.idCampaign, data);
+    await NewsletterService.updateCampaign(campaignToEdit.idCampaign, data,token);
     await fetchCampaigns();
     setIsEditModalOpen(false);
     setCampaignToEdit(null);
@@ -323,7 +324,7 @@ const handleCloseEditModal = () => {
       setSendingId(campaignToSend.idCampaign);
       setIsSendModalOpen(false);
       
-      const result = await NewsletterService.sendCampaign(campaignToSend.idCampaign);
+      const result = await NewsletterService.sendCampaign(campaignToSend.idCampaign,token);
       await fetchCampaigns();
       
       setNotification({ 
@@ -345,7 +346,7 @@ const handleCloseEditModal = () => {
   const confirmDelete = async () => {
     try {
       for (const id of selected) {
-        await NewsletterService.deleteCampaign(id);
+        await NewsletterService.deleteCampaign(id,token);
       }
       setCampaigns(campaigns.filter(c => !selected.includes(c.idCampaign)));
       setSelected([]);
@@ -361,7 +362,7 @@ const handleCloseEditModal = () => {
       console.log('Données avant envoi:', data);
       console.log('Type de l\'image:', typeof data.image, data.image);
       
-      await NewsletterService.createCampaign(data);
+      await NewsletterService.createCampaign(data,token);
       await fetchCampaigns();
       setIsAddModalOpen(false);
       

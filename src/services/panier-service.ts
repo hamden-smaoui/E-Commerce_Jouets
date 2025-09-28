@@ -1,7 +1,5 @@
 import api from './api';
 
-const API_BASE_URL = 'http://localhost:3001/api';
-
 export interface Produit {
   idProduit: number;
   nom: string;
@@ -22,21 +20,9 @@ export interface ProduitVariation {
   idTaille?: number;
   idAge?: number;
   quantiteStock: number;
-  couleur?: {
-    idCouleur: number;
-    nom: string;
-  };
-  taille?: {
-    idTaille: number;
-    nom: string;
-  };
-  age?: {
-    idAge: number;
-    minAge: number;
-    maxAge: number;
-    typeAge: 'mois' | 'ans';
-    label: string;
-  };
+  couleur?: { idCouleur: number; nom: string };
+  taille?: { idTaille: number; nom: string };
+  age?: { idAge: number; minAge: number; maxAge: number; typeAge: 'mois' | 'ans'; label: string };
 }
 
 export interface CartItem {
@@ -56,63 +42,52 @@ export interface Cart {
 }
 
 class PanierService {
-  async getPanier(): Promise<Cart> {
-    try {
-      const response = await api.get('/panier');
-      return response.data.data;
-    } catch (error: any) {
-      throw new Error(error.response?.data?.message || 'Erreur lors de la récupération du panier');
-    }
+  async getPanier(token?: string): Promise<Cart> {
+    if (!token) throw new Error('Utilisateur non authentifié');
+    const response = await api.get('/panier', {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    return response.data.data;
   }
 
-  async ajouterProduit(idProduit: number, quantite: number = 1, idProduitVariation?: number): Promise<void> {
-    try {
-      const payload: any = { idProduit, quantite };
-      if (idProduitVariation) {
-        payload.idProduitVariation = idProduitVariation;
-      }
-      await api.post('/panier/ajouter', payload);
-    } catch (error: any) {
-      throw new Error(error.response?.data?.message || 'Erreur lors de l\'ajout au panier');
-    }
+  async ajouterProduit(idProduit: number, quantite: number = 1, idProduitVariation?: number, token?: string): Promise<void> {
+    if (!token) throw new Error('Utilisateur non authentifié');
+    const payload: any = { idProduit, quantite };
+    if (idProduitVariation) payload.idProduitVariation = idProduitVariation;
+    await api.post('/panier/ajouter', payload, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
   }
 
-  async modifierQuantite(idProduit: number, quantite: number, idProduitVariation?: number): Promise<void> {
-    try {
-      const payload: any = { idProduit, quantite };
-      if (idProduitVariation) {
-        payload.idProduitVariation = idProduitVariation;
-      }
-      await api.put('/panier/modifier', payload);
-    } catch (error: any) {
-      throw new Error(error.response?.data?.message || 'Erreur lors de la modification');
-    }
+  async modifierQuantite(idProduit: number, quantite: number, idProduitVariation?: number, token?: string): Promise<void> {
+    if (!token) throw new Error('Utilisateur non authentifié');
+    const payload: any = { idProduit, quantite };
+    if (idProduitVariation) payload.idProduitVariation = idProduitVariation;
+    await api.put('/panier/modifier', payload, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
   }
 
-  async retirerProduit(idPanierProduit: number): Promise<void> {
-    console.log("Retirer produit avec idPanierProduit:", idPanierProduit);
-    try {
-      await api.delete(`/panier/retirer/${idPanierProduit}`);
-    } catch (error: any) {
-      throw new Error(error.response?.data?.message || 'Erreur lors de la suppression');
-    }
+  async retirerProduit(idPanierProduit: number, token?: string): Promise<void> {
+    if (!token) throw new Error('Utilisateur non authentifié');
+    await api.delete(`/panier/retirer/${idPanierProduit}`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
   }
 
-  async viderPanier(): Promise<void> {
-    try {
-      await api.delete('/panier/vider');
-    } catch (error: any) {
-      throw new Error(error.response?.data?.message || 'Erreur lors du vidage du panier');
-    }
+  async viderPanier(token?: string): Promise<void> {
+    if (!token) throw new Error('Utilisateur non authentifié');
+    await api.delete('/panier/vider', {
+      headers: { Authorization: `Bearer ${token}` }
+    });
   }
 
-  async getNombreProduits(): Promise<number> {
-    try {
-      const response = await api.get('/panier/count');
-      return response.data.count;
-    } catch (error: any) {
-      throw new Error(error.response?.data?.message || 'Erreur lors du comptage');
-    }
+  async getNombreProduits(token?: string): Promise<number> {
+    if (!token) throw new Error('Utilisateur non authentifié');
+    const response = await api.get('/panier/count', {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    return response.data.count;
   }
 }
 

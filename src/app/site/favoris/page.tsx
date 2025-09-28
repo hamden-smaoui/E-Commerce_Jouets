@@ -10,12 +10,23 @@ import {
   XMarkIcon,
   ArrowLeftIcon
 } from '@heroicons/react/24/solid';
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
+
 
 export default function Favoris() {
   const [sortBy, setSortBy] = useState("");
   const { favorites, loading, removeFromFavorites, clearFavorites } = useFavorites();
+  const { data: session, status } = useSession();
+  const router = useRouter();
+  useEffect(() => {
+    // Si pas connecté, redirige vers /signIn
+    if (status === "unauthenticated") {
+      router.replace("/signIn");
+    }
+  }, [status, router]);
 
-  // Map favorites to products for ProductCard
+  // Map favorites to products for ProductCard  
   const products = favorites.map(fav => ({
     idProduit: fav.idProduit,
     nom: fav.produit?.nom || "Produit inconnu",

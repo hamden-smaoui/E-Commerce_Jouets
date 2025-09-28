@@ -37,22 +37,34 @@ export interface FavoriResponse extends Favori {
 }
 
 class FavoriService {
-  async addFavori(favoriData: FavoriFormData): Promise<FavoriResponse> {
-    const response = await api.post<{ data: FavoriResponse }>('/favoris', favoriData);
+  async addFavori(favoriData: FavoriFormData, token?: string): Promise<FavoriResponse> {
+    if (!token) throw new Error("Utilisateur non authentifié");
+    const response = await api.post<{ data: FavoriResponse }>('/favoris', favoriData, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
     return response.data.data;
   }
 
-  async getAllFavorisByUser(idUtilisateur: number): Promise<FavoriResponse[]> {
-    const response = await api.get<FavoriResponse[]>(`/favoris/user/${idUtilisateur}`);
+  async getAllFavorisByUser(idUtilisateur: number, token?: string): Promise<FavoriResponse[]> {
+    if (!token) throw new Error("Utilisateur non authentifié");
+    const response = await api.get<FavoriResponse[]>(`/favoris/user/${idUtilisateur}`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
     return response.data;
   }
 
-  async deleteFavori(idFavori: number): Promise<void> {
-    await api.delete(`/favoris/${idFavori}`);
+  async deleteFavori(idFavori: number, token?: string): Promise<void> {
+    if (!token) throw new Error("Utilisateur non authentifié");
+    await api.delete(`/favoris/${idFavori}`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
   }
 
-  async deleteAllFavorisByUser(idUtilisateur: number): Promise<void> {
-    await api.delete(`/favoris/user/${idUtilisateur}`);
+  async deleteAllFavorisByUser(idUtilisateur: number, token?: string): Promise<void> {
+    if (!token) throw new Error("Utilisateur non authentifié");
+    await api.delete(`/favoris/user/${idUtilisateur}`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
   }
 }
 

@@ -10,6 +10,7 @@ import ConfirmDeleteModal from '@/components/layout/ConfirmDeleteModal';
 import FactureStatsCards from '@/components/layout/FactureStatsCards';
 import FactureViewModal from '@/components/layout/FacturesViewModal';
 import FacturesService, { FactureResponse, FactureFormData, FactureStats } from '@/services/facture-service';
+import { useSession } from "next-auth/react";
 
 interface FormData {
   idFacture?: number;
@@ -92,6 +93,8 @@ const Factures: React.FC = () => {
   const [selectedFactures, setSelectedFactures] = useState<number[]>([]);
   const [notification, setNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
+const { data: session, status } = useSession();
+const token = session?.customToken;
   useEffect(() => {
     fetchData();
   }, []);
@@ -99,8 +102,8 @@ const Factures: React.FC = () => {
   const fetchData = async () => {
     try {
       const [fetchedFactures, fetchedStats] = await Promise.all([
-        FacturesService.getAllFactures(),
-        FacturesService.getFactureStats(),
+        FacturesService.getAllFactures(token),
+        FacturesService.getFactureStats(token),
       ]);
       setFactures(fetchedFactures);
       setStats(fetchedStats);
@@ -451,7 +454,7 @@ const Factures: React.FC = () => {
   const confirmDelete = async () => {
     try {
       for (const id of selectedFactures) {
-        await FacturesService.deleteFacture(id);
+        await FacturesService.deleteFacture(id,token);
       }
       setFactures(factures.filter((f) => !selectedFactures.includes(f.idFacture)));
       setSelectedFactures([]);
@@ -472,7 +475,7 @@ const Factures: React.FC = () => {
 
   const handleView = async (facture: FactureResponse) => {
     try {
-      const fullFacture = await FacturesService.getFactureById(facture.idFacture);
+      const fullFacture = await FacturesService.getFactureById(facture.idFacture,token);
       setSelectedFacture(fullFacture);
       setIsViewModalOpen(true);
     } catch (error: unknown) {
@@ -486,7 +489,7 @@ const Factures: React.FC = () => {
 
   const handleDownloadPDF = async (id: number, numeroFacture: string) => {
     try {
-      const blob = await FacturesService.downloadFacturePDF(id);
+      const blob = await FacturesService.downloadFacturePDF(id,token);
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.style.display = 'none';
@@ -559,7 +562,7 @@ const Factures: React.FC = () => {
         notes: data.notes || '',
       };
 
-      const updatedFacture = await FacturesService.updateFacture(data.idFacture, updatePayload);
+      const updatedFacture = await FacturesService.updateFacture(data.idFacture, updatePayload,token);
       setFactures(factures.map((f) => (f.idFacture === data.idFacture ? updatedFacture : f)));
       setIsEditModalOpen(false);
       await fetchData();

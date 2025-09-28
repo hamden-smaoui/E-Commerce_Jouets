@@ -7,7 +7,7 @@ import FormModal from '@/components/layout/FormModal';
 import Notification from '@/components/layout/Notification';
 import ConfirmDeleteModal from '@/components/layout/ConfirmDeleteModal';
 import TaillesService, { Taille, TailleFormData } from '@/services/tailles-service';
-
+import {useSession} from "next-auth/react";
 interface FormData {
   idTaille: number | null;
   nom: string;
@@ -51,13 +51,14 @@ const Tailles: React.FC = () => {
   const [selectedTailles, setSelectedTailles] = useState<number[]>([]);
   const [notification, setNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [formKey, setFormKey] = useState(0);
-
+ const { data: session, status } = useSession();
+    const token = session?.customToken; 
   // Fetch tailles on component mount
   useEffect(() => {
     const fetchTailles = async () => {
       try {
         setLoading(true);
-        const fetchedTailles = await TaillesService.getAllTailles();
+        const fetchedTailles = await TaillesService.getAllTailles(token);
         setTailles(fetchedTailles);
         setError(null);
       } catch (error: unknown) {
@@ -115,7 +116,7 @@ const Tailles: React.FC = () => {
   const handleAddSubmit = async (data: FormData) => {
     try {
       const tailleData: TailleFormData = { nom: data.nom };
-      const newTaille = await TaillesService.createTaille(tailleData);
+      const newTaille = await TaillesService.createTaille(tailleData,token);
       setTailles([...tailles, newTaille]);
       setIsAddModalOpen(false);
 
@@ -150,7 +151,7 @@ const Tailles: React.FC = () => {
       }
 
       const tailleData: TailleFormData = { nom: data.nom };
-      const updatedTaille = await TaillesService.updateTaille(data.idTaille, tailleData);
+      const updatedTaille = await TaillesService.updateTaille(data.idTaille, tailleData,token);
 
       setTailles(tailles.map((taille) => (taille.idTaille === data.idTaille ? updatedTaille : taille)));
       setIsEditModalOpen(false);
@@ -177,7 +178,7 @@ const Tailles: React.FC = () => {
   const confirmDelete = async () => {
     try {
       for (const id of selectedTailles) {
-        await TaillesService.deleteTaille(id);
+        await TaillesService.deleteTaille(id,token);
       }
       setTailles(tailles.filter((taille) => !selectedTailles.includes(taille.idTaille)));
       setSelectedTailles([]);
@@ -223,7 +224,7 @@ const Tailles: React.FC = () => {
 
   const handleEdit = async (taille: Taille) => {
     try {
-      const fetchedTaille = await TaillesService.getTailleById(taille.idTaille);
+      const fetchedTaille = await TaillesService.getTailleById(taille.idTaille,token);
 
       setFormData({
         idTaille: fetchedTaille.idTaille,

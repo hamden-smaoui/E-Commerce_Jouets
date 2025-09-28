@@ -9,6 +9,8 @@ import Notification from '@/components/layout/Notification';
 import ConfirmDeleteModal from '@/components/layout/ConfirmDeleteModal';
 import CategoriesService from '@/services/categories-service';
 import TypesService from '@/services/types-service';
+import { useSession } from "next-auth/react";
+
 
 interface Produit {
   idProduit: number;
@@ -77,12 +79,14 @@ const Categories: React.FC = () => {
   const [selectedCategories, setSelectedCategories] = useState<number[]>([]);
   const [notification, setNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
+const { data: session, status } = useSession();
+const token = session?.customToken;
   useEffect(() => {
     const fetchData = async () => {
       try {
         const [fetchedCategories, fetchedTypes] = await Promise.all([
-          CategoriesService.getAllCategories(),
-          TypesService.getAllTypes(),
+          CategoriesService.getAllCategories(token),
+          TypesService.getAllTypes(token),
         ]);
         console.log('Données récupérées:', { fetchedCategories, fetchedTypes });
         setCategories(fetchedCategories);
@@ -282,9 +286,9 @@ const Categories: React.FC = () => {
   const handleAddSubmit = async (data: FormData) => {
     console.log('Données à soumettre pour ajout catégorie:', data);
     try {
-      const newCategorie = await CategoriesService.createCategorie(data);
+      const newCategorie = await CategoriesService.createCategorie(data,token);
       
-      const updatedCategories = await CategoriesService.getAllCategories();
+      const updatedCategories = await CategoriesService.getAllCategories(token);
       setCategories(updatedCategories);
       
       setIsAddModalOpen(false);
@@ -312,9 +316,9 @@ const Categories: React.FC = () => {
         return;
       }
       
-      await CategoriesService.updateCategorie(data.idCategorie, data);
+      await CategoriesService.updateCategorie(data.idCategorie, data,token);
       
-      const updatedCategories = await CategoriesService.getAllCategories();
+      const updatedCategories = await CategoriesService.getAllCategories(token);
       setCategories(updatedCategories);
       
       setIsEditModalOpen(false);
@@ -338,7 +342,7 @@ const Categories: React.FC = () => {
   const confirmDelete = async () => {
     try {
       for (const id of selectedCategories) {
-        await CategoriesService.deleteCategorie(id);
+        await CategoriesService.deleteCategorie(id,token);
       }
       setCategories(categories.filter((categorie) => !selectedCategories.includes(categorie.idCategorie)));
       setSelectedCategories([]);
@@ -386,7 +390,7 @@ const Categories: React.FC = () => {
 
   const handleEdit = async (categorie: Categorie) => {
     try {
-      const fetchedCategorie = await CategoriesService.getCategorieById(categorie.idCategorie);
+      const fetchedCategorie = await CategoriesService.getCategorieById(categorie.idCategorie,token);
       console.log('Catégorie récupérée pour édition:', fetchedCategorie);
       
       const editFormData = {

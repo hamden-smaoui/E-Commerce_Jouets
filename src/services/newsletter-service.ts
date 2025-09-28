@@ -36,16 +36,20 @@ class NewsletterService {
     return response.data;
   }
 
-  async getAllEntries(): Promise<NewsletterEntry[]> {
-    const response = await api.get<NewsletterEntry[]>('/newsletter');
+  async getAllEntries(token?: string): Promise<NewsletterEntry[]> {
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    const response = await api.get<NewsletterEntry[]>('/newsletter', { headers });
     return response.data;
   }
 
-  async unsubscribe(email: string): Promise<void> {
-    await api.post('/newsletter/unsubscribe', { email });
+  async unsubscribe(email: string, token?: string): Promise<void> {
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    await api.post('/newsletter/unsubscribe', { email }, { headers });
   }
 
-  async createCampaign(campaignData: CampaignFormData): Promise<NewsletterCampaign> {
+  async createCampaign(campaignData: CampaignFormData, token?: string): Promise<NewsletterCampaign> {
+    const headers: any = { 'Content-Type': 'multipart/form-data' };
+    if (token) headers.Authorization = `Bearer ${token}`;
     const formData = new FormData();
     formData.append('subject', campaignData.subject);
     formData.append('content', campaignData.content);
@@ -53,27 +57,30 @@ class NewsletterService {
     if (campaignData.scheduledDate) formData.append('scheduledDate', campaignData.scheduledDate);
     if (campaignData.image) formData.append('image', campaignData.image);
 
-    const response = await api.post<{ campaign: NewsletterCampaign }>('/newsletter/campaigns', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' }
-    });
+    const response = await api.post<{ campaign: NewsletterCampaign }>('/newsletter/campaigns', formData, { headers });
     return response.data.campaign;
   }
 
-  async getCampaigns(): Promise<NewsletterCampaign[]> {
-    const response = await api.get<NewsletterCampaign[]>('/newsletter/campaigns');
+  async getCampaigns(token?: string): Promise<NewsletterCampaign[]> {
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    const response = await api.get<NewsletterCampaign[]>('/newsletter/campaigns', { headers });
     return response.data;
   }
 
-  async sendCampaign(campaignId: number): Promise<any> {
-    const response = await api.post(`/newsletter/campaigns/${campaignId}/send`);
+  async sendCampaign(campaignId: number, token?: string): Promise<any> {
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    const response = await api.post(`/newsletter/campaigns/${campaignId}/send`, {}, { headers });
     return response.data;
   }
 
-  async deleteCampaign(campaignId: number): Promise<void> {
-    await api.delete(`/newsletter/campaigns/${campaignId}`);
+  async deleteCampaign(campaignId: number, token?: string): Promise<void> {
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    await api.delete(`/newsletter/campaigns/${campaignId}`, { headers });
   }
 
-  async updateCampaign(campaignId: number, campaignData: CampaignFormData): Promise<NewsletterCampaign> {
+  async updateCampaign(campaignId: number, campaignData: CampaignFormData, token?: string): Promise<NewsletterCampaign> {
+    const headers: any = { 'Content-Type': 'multipart/form-data' };
+    if (token) headers.Authorization = `Bearer ${token}`;
     const formData = new FormData();
     formData.append('subject', campaignData.subject);
     formData.append('content', campaignData.content);
@@ -81,9 +88,7 @@ class NewsletterService {
     if (campaignData.scheduledDate) formData.append('scheduledDate', campaignData.scheduledDate);
     if (campaignData.image) formData.append('image', campaignData.image);
 
-    const response = await api.put<{ campaign: NewsletterCampaign }>(`/newsletter/campaigns/${campaignId}`, formData, {
-      headers: { 'Content-Type': 'multipart/form-data' }
-    });
+    const response = await api.put<{ campaign: NewsletterCampaign }>(`/newsletter/campaigns/${campaignId}`, formData, { headers });
     return response.data.campaign;
   }
 }

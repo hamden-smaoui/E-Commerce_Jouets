@@ -7,6 +7,7 @@ import FormModal from '@/components/layout/FormModal';
 import Notification from '@/components/layout/Notification';
 import ConfirmDeleteModal from '@/components/layout/ConfirmDeleteModal';
 import CouleursService, { Couleur, CouleurFormData } from '@/services/couleurs-service';
+import { useSession } from "next-auth/react";
 
 interface FormData {
   idCouleur: number | null;
@@ -52,12 +53,14 @@ const Couleurs: React.FC = () => {
   const [notification, setNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [formKey, setFormKey] = useState(0);
 
+const { data: session, status } = useSession();
+const token = session?.customToken;
   // Fetch couleurs on component mount
   useEffect(() => {
     const fetchCouleurs = async () => {
       try {
         setLoading(true);
-        const fetchedCouleurs = await CouleursService.getAllCouleurs();
+        const fetchedCouleurs = await CouleursService.getAllCouleurs(token);
         setCouleurs(fetchedCouleurs);
         setError(null);
       } catch (error: unknown) {
@@ -115,7 +118,7 @@ const Couleurs: React.FC = () => {
   const handleAddSubmit = async (data: FormData) => {
     try {
       const couleurData: CouleurFormData = { nom: data.nom };
-      const newCouleur = await CouleursService.createCouleur(couleurData);
+      const newCouleur = await CouleursService.createCouleur(couleurData,token);
       setCouleurs([...couleurs, newCouleur]);
       setIsAddModalOpen(false);
 
@@ -150,7 +153,7 @@ const Couleurs: React.FC = () => {
       }
 
       const couleurData: CouleurFormData = { nom: data.nom };
-      const updatedCouleur = await CouleursService.updateCouleur(data.idCouleur, couleurData);
+      const updatedCouleur = await CouleursService.updateCouleur(data.idCouleur, couleurData,token);
 
       setCouleurs(couleurs.map((couleur) => (couleur.idCouleur === data.idCouleur ? updatedCouleur : couleur)));
       setIsEditModalOpen(false);
@@ -177,7 +180,7 @@ const Couleurs: React.FC = () => {
   const confirmDelete = async () => {
     try {
       for (const id of selectedCouleurs) {
-        await CouleursService.deleteCouleur(id);
+        await CouleursService.deleteCouleur(id,token);
       }
       setCouleurs(couleurs.filter((couleur) => !selectedCouleurs.includes(couleur.idCouleur)));
       setSelectedCouleurs([]);
@@ -223,7 +226,7 @@ const Couleurs: React.FC = () => {
 
   const handleEdit = async (couleur: Couleur) => {
     try {
-      const fetchedCouleur = await CouleursService.getCouleurById(couleur.idCouleur);
+      const fetchedCouleur = await CouleursService.getCouleurById(couleur.idCouleur,token);
 
       setFormData({
         idCouleur: fetchedCouleur.idCouleur,

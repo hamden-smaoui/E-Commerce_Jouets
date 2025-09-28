@@ -39,28 +39,33 @@ interface UserResponse extends User {
 }
 
 class UsersService {
-  async createUser(userData: FormData): Promise<UserResponse> {
-    const response = await api.post<{ data: UserResponse }>('/utilisateurs', userData);
+  async createUser(userData: FormData, token?: string): Promise<UserResponse> {
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    const response = await api.post<{ data: UserResponse }>('/utilisateurs', userData, { headers });
     return response.data.data;
   }
 
-  async getAllUsers(): Promise<UserResponse[]> {
-    const response = await api.get<UserResponse[]>('/utilisateurs');
+  async getAllUsers(token?: string): Promise<UserResponse[]> {
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    const response = await api.get<UserResponse[]>('/utilisateurs', { headers });
     return response.data;
   }
 
-  async getUserById(id: number): Promise<UserResponse> {
-    const response = await api.get<UserResponse>(`/utilisateurs/${id}`);
+  async getUserById(id: number, token?: string): Promise<UserResponse> {
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    const response = await api.get<UserResponse>(`/utilisateurs/${id}`, { headers });
     return response.data;
   }
 
-  async updateUser(id: number, userData: FormData): Promise<UserResponse> {
-    const response = await api.put<{ data: UserResponse }>(`/utilisateurs/${id}`, userData);
+  async updateUser(id: number, userData: FormData, token?: string): Promise<UserResponse> {
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    const response = await api.put<{ data: UserResponse }>(`/utilisateurs/${id}`, userData, { headers });
     return response.data.data;
   }
 
-  async deleteUser(id: number): Promise<void> {
-    await api.delete(`/utilisateurs/${id}`);
+  async deleteUser(id: number, token?: string): Promise<void> {
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    await api.delete(`/utilisateurs/${id}`, { headers });
   }
 }
 

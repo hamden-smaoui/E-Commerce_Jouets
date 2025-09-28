@@ -1,6 +1,6 @@
-'use client';
-
+"use client";
 import React, { useState, useEffect } from 'react';
+import { useSession } from "next-auth/react";
 import Select from 'react-select';
 import TableComponent from '@/components/layout/TableComponent';
 import HeaderCardComponent from '@/components/layout/HeaderCardComponent';
@@ -65,6 +65,9 @@ interface ReclamationStats {
 }
 
 const Reclamations: React.FC = () => {
+  const { data: session, status } = useSession();
+  const token = session?.customToken;
+
   const [reclamations, setReclamations] = useState<ReclamationResponse[]>([]);
   const [stats, setStats] = useState<ReclamationStats[]>([]);
   const [loading, setLoading] = useState(true);
@@ -88,19 +91,17 @@ const Reclamations: React.FC = () => {
 
   useEffect(() => {
     fetchData();
-  }, [currentPage, statutFilter]);
+  }, [currentPage, statutFilter, token]); // <-- dépend du token
 
   useEffect(() => {
     fetchStats();
-  }, []);
+  }, [token]); // <-- dépend du token
 
   const fetchData = async () => {
     try {
       setLoading(true);
-      const response = await ReclamationService.getAllReclamations();
+      const response = await ReclamationService.getAllReclamations(token);
       setReclamations(response);
-      
-      // Simple pagination calculation (you might want to implement server-side pagination)
       const itemsPerPage = 10;
       setTotalPages(Math.ceil(response.length / itemsPerPage));
       setLoading(false);
@@ -113,19 +114,15 @@ const Reclamations: React.FC = () => {
 
   const fetchStats = async () => {
     try {
-      const response = await ReclamationService.getAllReclamations();
-      
-      // Calculate stats from the data
+      const response = await ReclamationService.getAllReclamations(token);
       const statsMap = response.reduce((acc: { [key: string]: number }, reclamation) => {
         acc[reclamation.statut] = (acc[reclamation.statut] || 0) + 1;
         return acc;
       }, {});
-
       const statsData: ReclamationStats[] = Object.entries(statsMap).map(([statut, count]) => ({
         statut,
         count,
       }));
-
       setStats(statsData);
     } catch (error: unknown) {
       console.error('Error fetching stats:', error);
@@ -173,7 +170,6 @@ const Reclamations: React.FC = () => {
       (statutFilter === '' || reclamation.statut === statutFilter)
   );
 
-  // Paginate filtered results
   const itemsPerPage = 10;
   const paginatedReclamations = filteredReclamations.slice(
     (currentPage - 1) * itemsPerPage,
@@ -239,7 +235,7 @@ const Reclamations: React.FC = () => {
         title: 'Le sujet doit contenir entre 5 et 100 caractères',
       },
       hint: '5-100 caractères',
-      disabled: true, // Admin can't modify subject
+      disabled: true,
     },
     {
       name: 'message',
@@ -253,7 +249,7 @@ const Reclamations: React.FC = () => {
         title: 'Le message doit contenir entre 10 et 1000 caractères',
       },
       hint: '10-1000 caractères',
-      disabled: true, // Admin can't modify message
+      disabled: true,
     },
     {
       name: 'statut',
@@ -261,7 +257,6 @@ const Reclamations: React.FC = () => {
       type: 'custom',
       render: ({ value, onChange }) => {
         const selectedOption = statutOptions.find(option => option.value === value);
-        
         return (
           <Select
             options={statutOptions.filter(option => option.value !== '')}
@@ -293,20 +288,18 @@ const Reclamations: React.FC = () => {
         });
         return;
       }
-
       const updatedReclamation = await ReclamationService.updateReclamation(data.idReclamation, {
         sujet: data.sujet,
         message: data.message,
         statut: data.statut,
-      });
-      
+      }, token);
       setReclamations(
         reclamations.map((reclamation) =>
           reclamation.idReclamation === data.idReclamation ? { ...reclamation, ...updatedReclamation } : reclamation
         )
       );
       setIsEditModalOpen(false);
-      fetchStats(); // Refresh stats
+      fetchStats();
       setNotification({
         type: 'success',
         message: 'Réclamation modifiée avec succès !',
@@ -327,12 +320,12 @@ const Reclamations: React.FC = () => {
   const confirmDelete = async () => {
     try {
       for (const id of selectedReclamations) {
-        await ReclamationService.deleteReclamation(id);
+        await ReclamationService.deleteReclamation(id, token);
       }
       setReclamations(reclamations.filter((reclamation) => !selectedReclamations.includes(reclamation.idReclamation)));
       setSelectedReclamations([]);
       setIsDeleteModalOpen(false);
-      fetchStats(); // Refresh stats
+      fetchStats();
       setNotification({
         type: 'success',
         message: 'Réclamation(s) supprimée(s) avec succès !',
@@ -364,7 +357,7 @@ const Reclamations: React.FC = () => {
 
   const handleEdit = async (reclamation: ReclamationResponse) => {
     try {
-      const fetchedReclamation = await ReclamationService.getReclamationById(reclamation.idReclamation);
+      const fetchedReclamation = await ReclamationService.getReclamationById(reclamation.idReclamation, token);
       const newFormData = {
         idReclamation: fetchedReclamation.idReclamation,
         sujet: fetchedReclamation.sujet || '',
@@ -384,7 +377,7 @@ const Reclamations: React.FC = () => {
 
   const handleViewDetails = async (reclamation: ReclamationResponse) => {
     try {
-      const fetchedReclamation = await ReclamationService.getReclamationById(reclamation.idReclamation);
+      const fetchedReclamation = await ReclamationService.getReclamationById(reclamation.idReclamation, token);
       setSelectedReclamationDetail(fetchedReclamation);
       setIsDetailModalOpen(true);
     } catch (error: unknown) {

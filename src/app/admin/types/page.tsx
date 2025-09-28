@@ -7,7 +7,7 @@ import FormModal from '@/components/layout/FormModal';
 import Notification from '@/components/layout/Notification';
 import ConfirmDeleteModal from '@/components/layout/ConfirmDeleteModal';
 import TypesService from '@/services/types-service';
-
+import { useSession } from 'next-auth/react';
 interface Categorie {
   idCategorie: number;
   nom: string;
@@ -64,11 +64,12 @@ const Types: React.FC = () => {
   });
   const [selectedTypes, setSelectedTypes] = useState<number[]>([]);
   const [notification, setNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
-
+  const { data: session, status } = useSession();
+      const token = session?.customToken; 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const fetchedTypes = await TypesService.getAllTypes();
+        const fetchedTypes = await TypesService.getAllTypes(token);
         console.log('Types récupérés:', fetchedTypes);
         setTypes(fetchedTypes);
         setLoading(false);
@@ -143,7 +144,7 @@ const Types: React.FC = () => {
   const handleAddSubmit = async (data: FormData) => {
     console.log('Données à soumettre pour ajout:', data);
     try {
-      const newType = await TypesService.createType(data);
+      const newType = await TypesService.createType(data,token);
       setTypes([...types, newType]);
       setIsAddModalOpen(false);
       setNotification({
@@ -169,7 +170,7 @@ const Types: React.FC = () => {
         });
         return;
       }
-      const updatedType = await TypesService.updateType(data.idType, data);
+      const updatedType = await TypesService.updateType(data.idType, data,token);
       setTypes(types.map((type) => (type.idType === data.idType ? updatedType : type)));
       setIsEditModalOpen(false);
       setNotification({
@@ -192,7 +193,7 @@ const Types: React.FC = () => {
   const confirmDelete = async () => {
     try {
       for (const id of selectedTypes) {
-        await TypesService.deleteType(id);
+        await TypesService.deleteType(id,token);
       }
       setTypes(types.filter((type) => !selectedTypes.includes(type.idType)));
       setSelectedTypes([]);
@@ -239,7 +240,7 @@ const Types: React.FC = () => {
 
   const handleEdit = async (type: Type) => {
     try {
-      const fetchedType = await TypesService.getTypeById(type.idType);
+      const fetchedType = await TypesService.getTypeById(type.idType,token);
       console.log('Type récupéré pour édition:', fetchedType);
       
       const editFormData = {

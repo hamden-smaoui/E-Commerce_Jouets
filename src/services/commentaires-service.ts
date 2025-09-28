@@ -32,8 +32,10 @@ export interface UpdateCommentaireData {
 }
 
 class CommentaireService {
-  async createCommentaire(commentaireData: CreateCommentaireData): Promise<Commentaire> {
-    const response = await api.post<{ data: Commentaire }>('/commentaires', commentaireData);
+  async createCommentaire(commentaireData: CreateCommentaireData, token?: string): Promise<Commentaire> {
+    const response = await api.post<{ data: Commentaire }>('/commentaires', commentaireData, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
     return response.data.data;
   }
 
@@ -42,17 +44,23 @@ class CommentaireService {
     return response.data;
   }
 
-  async updateCommentaire(idCommentaire: number, updateData: UpdateCommentaireData): Promise<Commentaire> {
-    const response = await api.put<{ data: Commentaire }>(`/commentaires/${idCommentaire}`, updateData);
+  async updateCommentaire(idCommentaire: number, updateData: UpdateCommentaireData, token?: string): Promise<Commentaire> {
+    const response = await api.put<{ data: Commentaire }>(`/commentaires/${idCommentaire}`, updateData, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
     return response.data.data;
   }
 
-  async deleteCommentaire(idCommentaire: number): Promise<void> {
-    await api.delete(`/commentaires/${idCommentaire}`);
+  async deleteCommentaire(idCommentaire: number, token?: string): Promise<void> {
+    await api.delete(`/commentaires/${idCommentaire}`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
   }
 
-  async getCommentairesByUtilisateur(page: number = 1, limit: number = 10): Promise<CommentairePagination> {
-    const response = await api.get<CommentairePagination>(`/commentaires/mes-commentaires?page=${page}&limit=${limit}`);
+  async getCommentairesByUtilisateur(page: number = 1, limit: number = 10, token?: string): Promise<CommentairePagination> {
+    const response = await api.get<CommentairePagination>(`/commentaires/mes-commentaires?page=${page}&limit=${limit}`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
     return response.data;
   }
 }

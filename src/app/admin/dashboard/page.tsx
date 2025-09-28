@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import commandesService, { CommandeStats } from '@/services/commandes-service';
 import produitsService, { BestSellingProduit } from '@/services/produits-service';
 import usersService from '@/services/users-service';
+import { useSession } from "next-auth/react";
 
 
 // Interface pour les données du dashboard
@@ -41,6 +42,8 @@ const Dashboard: NextPage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+const { data: session, status } = useSession();
+const token = session?.customToken;
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
@@ -54,11 +57,11 @@ const Dashboard: NextPage = () => {
           allUsers,
           bestSellers
         ] = await Promise.all([
-          commandesService.getCommandeStats(),
-          commandesService.getAllCommandes({ limit: 1000 }), // Ajustez selon vos besoins
-          produitsService.getAllProduits(),
-          usersService.getAllUsers(),
-          produitsService.getTop10BestSellingProduits()
+          commandesService.getCommandeStats(token),
+          commandesService.getAllCommandes({ limit: 1000 },token), // Ajustez selon vos besoins
+          produitsService.getAllProduits(token),
+          usersService.getAllUsers(token),
+          produitsService.getTop10BestSellingProduits(token)
         ]);
 
         // Calcul des statistiques des commandes

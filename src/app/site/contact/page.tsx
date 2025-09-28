@@ -3,7 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import Footer from "@/components/ui/Footer";
 import { useState, useEffect } from "react";
-import { useAuth } from "@/hooks/useAuth";
+import { useSession } from "next-auth/react";
 import { useStoreInfo } from "@/hooks/useStoreInfo";
 import ReclamationService, { ReclamationFormData } from "@/services/reclamations-service";
 import KidsCornerLoader from '@/components/ui/KidsCornerLoader';
@@ -22,9 +22,15 @@ import {
 } from '@heroicons/react/24/solid';
 
 export default function Contact() {
-  const { user, isAuthenticated } = useAuth();
+  const { data: session, status } = useSession();
+  const user = session?.userData;
+  const token = session?.customToken;
+  const isAuthenticated = status === "authenticated";
   const { storeInfo } = useStoreInfo();
-  
+
+  // Loader de page
+  const [pageLoading, setPageLoading] = useState(true);
+
   const [formData, setFormData] = useState({
     nom: '',
     prenom: '',
@@ -38,7 +44,13 @@ export default function Contact() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
 
-  // Pré-remplir les champs si l'utilisateur est connecté
+  // Loader initial page
+  useEffect(() => {
+    setPageLoading(true);
+    const timer = setTimeout(() => setPageLoading(false), 400);
+    return () => clearTimeout(timer);
+  }, []);
+
   useEffect(() => {
     if (isAuthenticated && user) {
       setFormData(prev => ({
@@ -57,7 +69,6 @@ export default function Contact() {
       ...prev,
       [name]: value
     }));
-    // Clear error when user starts typing
     if (errors[name]) {
       setErrors(prev => ({
         ...prev,
@@ -68,47 +79,30 @@ export default function Contact() {
 
   const validateForm = () => {
     const newErrors: {[key: string]: string} = {};
-
-    if (!formData.nom.trim()) {
-      newErrors.nom = 'Le nom est requis';
-    }
-
-    if (!formData.prenom.trim()) {
-      newErrors.prenom = 'Le prénom est requis';
-    }
-
+    if (!formData.nom.trim()) newErrors.nom = 'Le nom est requis';
+    if (!formData.prenom.trim()) newErrors.prenom = 'Le prénom est requis';
     if (!formData.email.trim()) {
       newErrors.email = 'L\'email est requis';
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
       newErrors.email = 'Format d\'email invalide';
     }
-
-    if (!formData.telephone.trim()) {
-      newErrors.telephone = 'Le téléphone est requis';
-    }
-
-    if (!formData.sujet.trim()) {
-      newErrors.sujet = 'Le sujet est requis';
-    }
-
+    if (!formData.telephone.trim()) newErrors.telephone = 'Le téléphone est requis';
+    if (!formData.sujet.trim()) newErrors.sujet = 'Le sujet est requis';
     if (!formData.message.trim()) {
       newErrors.message = 'Le message est requis';
     } else if (formData.message.trim().length < 10) {
       newErrors.message = 'Le message doit contenir au moins 10 caractères';
     }
-
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
     if (!validateForm()) {
       toast.error("Veuillez corriger les erreurs dans le formulaire");
       return;
     }
-
     setIsSubmitting(true);
 
     try {
@@ -116,23 +110,17 @@ export default function Contact() {
         sujet: formData.sujet,
         message: formData.message,
       };
-
-      // Si l'utilisateur est connecté, utiliser son ID
       if (isAuthenticated && user) {
         reclamationData.idUtilisateur = user.idUtilisateur;
       } else {
-        // Sinon, inclure les informations personnelles
         reclamationData.nom = formData.nom;
         reclamationData.prenom = formData.prenom;
         reclamationData.email = formData.email;
         reclamationData.telephone = formData.telephone;
       }
-
-      await ReclamationService.createReclamation(reclamationData);
+      await ReclamationService.createReclamation(reclamationData, token);
       setIsSubmitted(true);
       toast.success("Message envoyé avec succès !");
-
-      // Reset form after success (only message and subject)
       setTimeout(() => {
         setFormData(prev => ({
           ...prev,
@@ -141,7 +129,6 @@ export default function Contact() {
         }));
         setIsSubmitted(false);
       }, 5000);
-
     } catch (error) {
       console.error('Erreur lors de l\'envoi:', error);
       const message = error instanceof Error ? error.message : 'Une erreur est survenue';
@@ -152,27 +139,36 @@ export default function Contact() {
     }
   };
 
+  // Affiche le loader uniquement lors du chargement de la page
+  if (pageLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <KidsCornerLoader message="Chargement de la page contact..." size="lg" showMessage={true} />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="container mx-auto px-4 py-8 max-w-7xl">
         {/* Header */}
         <div className="flex items-center justify-between mb-8 w-full">
-  <div className="flex items-center gap-2 sm:gap-3">
-    <div className="w-8 h-8 sm:w-10 sm:h-10 bg-purple-100 rounded-full flex items-center justify-center flex-shrink-0">
-      <ChatBubbleLeftRightIcon className="w-5 h-5 sm:w-6 sm:h-6 text-purple-600" />
-    </div>
-    <div>
-      <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 truncate">
-        Contactez-nous
-      </h1>
-      {isAuthenticated && user && (
-        <p className="text-xs sm:text-sm text-gray-600 mt-1 truncate">
-          Connecté en tant que {user.prenom} {user.nom}
-        </p>
-      )}
-    </div>
-  </div>
-</div>
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-purple-100 rounded-full flex items-center justify-center flex-shrink-0">
+              <ChatBubbleLeftRightIcon className="w-5 h-5 sm:w-6 sm:h-6 text-purple-600" />
+            </div>
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 truncate">
+                Contactez-nous
+              </h1>
+              {isAuthenticated && user && (
+                <p className="text-xs sm:text-sm text-gray-600 mt-1 truncate">
+                  Connecté en tant que {user.prenom} {user.nom}
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
 
         {/* Grid responsive */}
         <div className="grid grid-cols-1 xl:grid-cols-4 gap-8">
@@ -358,11 +354,13 @@ export default function Contact() {
                       className="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white py-4 rounded-xl hover:from-purple-700 hover:to-blue-700 font-semibold transition-all transform hover:scale-105 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center gap-2"
                     >
                       {isSubmitting ? (
-                        <KidsCornerLoader 
-                          message="Envoi en cours..."
-                          size="sm"
-                          showMessage={true}
-                        />
+                        <>
+                          <svg className="animate-spin h-5 w-5 text-white" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"/>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+                          </svg>
+                          <span>Envoi en cours...</span>
+                        </>
                       ) : (
                         <>
                           <PaperAirplaneIcon className="w-5 h-5" />
@@ -413,7 +411,7 @@ export default function Contact() {
 
                     <div className="flex items-start gap-3">
                       <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
-                        <EnvelopeIcon className="w-5 h-5 text-blue-600" />
+                        <EnvelopeIcon className="h-5 w-5 text-blue-600" />
                       </div>
                       <div>
                         <h4 className="font-medium text-gray-900">Email</h4>
@@ -431,7 +429,7 @@ export default function Contact() {
 
                     <div className="flex items-start gap-3">
                       <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center flex-shrink-0">
-                        <MapPinIcon className="w-5 h-5 text-purple-600" />
+                        <MapPinIcon className="h-5 w-5 text-purple-600" />
                       </div>
                       <div>
                         <h4 className="font-medium text-gray-900">Adresse</h4>
@@ -454,7 +452,7 @@ export default function Contact() {
 
                     <div className="flex items-start gap-3">
                       <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center flex-shrink-0">
-                        <ClockIcon className="w-5 h-5 text-orange-600" />
+                        <ClockIcon className="h-5 w-5 text-orange-600" />
                       </div>
                       <div>
                         <h4 className="font-medium text-gray-900">Heures d'ouverture</h4>

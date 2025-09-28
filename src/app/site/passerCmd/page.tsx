@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { useState, useEffect, useMemo } from "react";
 import { toast } from "react-hot-toast";
 import { useStoreInfo } from "@/hooks/useStoreInfo";
+import {User}from "@/services/users-service";
+import UsersService from "@/services/users-service";
 import { 
   ShieldCheckIcon, 
   TruckIcon, 
@@ -14,7 +16,7 @@ import {
   ShoppingCartIcon
 } from '@heroicons/react/24/solid';
 import { useCart } from "@/hooks/useCart";
-import { useAuth } from "@/hooks/useAuth";
+import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import CommandesService from "@/services/commandes-service";
 import { CommandeFormData } from "@/services/commandes-service";
@@ -22,6 +24,7 @@ import { CartPromotionProvider, useCartPromotionContext } from '@/contexts/CartP
 import CartItemPromotion from '@/components/ui/CartItemPromotion';
 import CodePromoInput from "@/components/layout/CodePromo";
 import KidsCornerLoader from '@/components/ui/KidsCornerLoader';
+
 
 interface FormData {
   clientPrenom: string;
@@ -39,17 +42,13 @@ interface FormErrors {
   [key: string]: boolean;
 }
 
-// Composant pour afficher le total par item
 const CheckoutItemTotalDisplay = ({ idProduit, quantite }: { idProduit: number, quantite: number }) => {
   const { itemTotals } = useCartPromotionContext();
   const itemData = itemTotals[idProduit];
-
   if (!itemData) {
     return <div className="text-base font-bold min-w-[80px] text-right text-gray-500">-</div>;
   }
-
   const hasPromotion = itemData.final < itemData.original;
-
   return (
     <div className="text-right min-w-[80px]">
       {hasPromotion ? (
@@ -69,13 +68,17 @@ const CheckoutItemTotalDisplay = ({ idProduit, quantite }: { idProduit: number, 
 
 function Checkout() {
   const { cartItems, totalPrice, loading: cartLoading, clearCart } = useCart();
-  const { user, isAuthenticated } = useAuth();
+  const { data: session, status } = useSession();
+  const user = session?.userData;
+  const isAuthenticated = status === "authenticated";
+  const [fullUser, setFullUser] = useState<User | null>(null);
+  const token = session?.customToken;
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [mounted, setMounted] = useState(false);
-const [codePromo, setCodePromo] = useState<{ code: string; valeurPourcentage: number } | null>(null);
+  const [codePromo, setCodePromo] = useState<{ code: string; valeurPourcentage: number } | null>(null);
   const [errors, setErrors] = useState<FormErrors>({});
-const { storeInfo, loading: storeLoading } = useStoreInfo();
+  const { storeInfo, loading: storeLoading } = useStoreInfo();
   const { getTotals, clearTotals, itemTotals } = useCartPromotionContext();
 
   const [formData, setFormData] = useState<FormData>({
@@ -89,27 +92,44 @@ const { storeInfo, loading: storeLoading } = useStoreInfo();
     clientAdressePays: 'Tunisie',
     notesLivraison: ''
   });
-
-  // Remplir le formulaire avec les données utilisateur si connecté
-  useEffect(() => {
-    if (isAuthenticated && user) {
-      setFormData(prev => ({
-        ...prev,
-        clientPrenom: user.prenom || '',
-        clientNom: user.nom || '',
-        clientEmail: user.email || '',
-        clientTelephone: user.telephone || '',
-        clientAdresseRue: user.adresseRue || '',
-        clientAdresseVille: user.adresseVille || '',
-        clientAdresseCodePostal: user.adresseCodePostal || '',
-        clientAdressePays: user.adressePays || 'Tunisie',
-      }));
-      console.log("User data pre-filled in form:", user);
+ useEffect(() => {
+    // Si pas connecté, redirige vers /signIn
+    if (status === "unauthenticated") {
+      router.replace("/signIn");
     }
-    setMounted(true);
-  }, [user, isAuthenticated]);
+  }, [status, router]);
 
-  // Rediriger si le panier est vide
+ useEffect(() => {
+  async function fetchFullUser() {
+    if (isAuthenticated && user?.idUtilisateur) {
+      try {
+        const fetchedUser = await UsersService.getUserById(user.idUtilisateur,token);
+        setFullUser(fetchedUser);
+      } catch (err) {
+        setFullUser(null);
+      }
+    }
+  }
+  fetchFullUser();
+  setMounted(true);
+}, [user, isAuthenticated]);
+
+useEffect(() => {
+  if (isAuthenticated && fullUser) {
+    setFormData(prev => ({
+      ...prev,
+      clientPrenom: fullUser.prenom || '',
+      clientNom: fullUser.nom || '',
+      clientEmail: fullUser.email || '',
+      clientTelephone: fullUser.telephone || '',
+      clientAdresseRue: fullUser.adresseRue || '',
+      clientAdresseVille: fullUser.adresseVille || '',
+      clientAdresseCodePostal: fullUser.adresseCodePostal || '',
+      clientAdressePays: fullUser.adressePays || 'Tunisie',
+    }));
+  }
+}, [fullUser, isAuthenticated]);
+
   useEffect(() => {
     if (mounted && !cartLoading && cartItems.length === 0 && !loading) {
       router.push('/site/cart');
@@ -118,29 +138,27 @@ const { storeInfo, loading: storeLoading } = useStoreInfo();
 
   const totalArticles = cartItems.reduce((sum, item) => sum + item.quantite, 0);
 
-  // Calculer les totaux avec les promotions des produits
   const { totalOriginal, totalFinal, totalSavings } = getTotals();
 
-  // Appliquer le code promo sur le total final des produits
-const totalPriceWithPromotions = useMemo(() => {
-  if (!mounted) return 0;
-  let total = totalFinal;
-  if (codePromo?.valeurPourcentage) {
-    total *= (1 - codePromo.valeurPourcentage / 100);
-  }
-  return total;
-}, [mounted, totalFinal, codePromo]);
+  const totalPriceWithPromotions = useMemo(() => {
+    if (!mounted) return 0;
+    let total = totalFinal;
+    if (codePromo?.valeurPourcentage) {
+      total *= (1 - codePromo.valeurPourcentage / 100);
+    }
+    return total;
+  }, [mounted, totalFinal, codePromo]);
 
   const fraisLivraison = storeInfo?.fraisLivraison ?? 7.9;
-const seuilLivraisonGratuite = storeInfo?.seuilLivraisonGratuite ?? 100;
+  const seuilLivraisonGratuite = storeInfo?.seuilLivraisonGratuite ?? 100;
 
-const livraison = useMemo(() => {
-  return totalPriceWithPromotions >= seuilLivraisonGratuite ? 0 : fraisLivraison;
-}, [totalPriceWithPromotions, seuilLivraisonGratuite, fraisLivraison]);
+  const livraison = useMemo(() => {
+    return totalPriceWithPromotions >= seuilLivraisonGratuite ? 0 : fraisLivraison;
+  }, [totalPriceWithPromotions, seuilLivraisonGratuite, fraisLivraison]);
 
- const totalTTC = useMemo(() => {
-  return totalPriceWithPromotions + livraison;
-}, [totalPriceWithPromotions, livraison]);
+  const totalTTC = useMemo(() => {
+    return totalPriceWithPromotions + livraison;
+  }, [totalPriceWithPromotions, livraison]);
 
   const totalEconomiesCodePromo = totalFinal - totalPriceWithPromotions;
   const totalEconomiesGlobal = totalOriginal - totalPriceWithPromotions;
@@ -151,8 +169,6 @@ const livraison = useMemo(() => {
       ...prev,
       [name]: value
     }));
-
-    // Supprimer l'erreur si le champ est maintenant rempli
     if (value.trim() && errors[name]) {
       setErrors(prev => ({
         ...prev,
@@ -170,39 +186,31 @@ const livraison = useMemo(() => {
       { key: 'clientAdresseVille', label: 'Ville' },
       { key: 'clientAdresseCodePostal', label: 'Code postal' }
     ];
-    
     const newErrors: FormErrors = {};
     const missingFields: string[] = [];
-
     for (const field of requiredFields) {
       if (!formData[field.key as keyof FormData].trim()) {
         newErrors[field.key] = true;
         missingFields.push(field.label);
       }
     }
-
-    // Validation email si rempli
     if (formData.clientEmail && !isValidEmail(formData.clientEmail)) {
       newErrors.clientEmail = true;
       toast.error("L'adresse email n'est pas valide");
       setErrors(newErrors);
       return false;
     }
-
-    // Validation téléphone
     if (formData.clientTelephone && !isValidPhone(formData.clientTelephone)) {
       newErrors.clientTelephone = true;
       toast.error("Le numéro de téléphone n'est pas valide");
       setErrors(newErrors);
       return false;
     }
-
     if (missingFields.length > 0) {
       setErrors(newErrors);
       toast.error(`Veuillez remplir les champs obligatoires: ${missingFields.join(', ')}`);
       return false;
     }
-
     setErrors({});
     return true;
   };
@@ -211,87 +219,77 @@ const livraison = useMemo(() => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email);
   };
-const formatVariation = (variation: any) => {
-  if (!variation) return '';
-  const { couleur, taille, age } = variation;
-  const parts = [];
-  if (couleur) parts.push(couleur.nom);
-  if (taille) parts.push(taille.nom);
-  if (age) parts.push(age.label);
-  return parts.length > 0 ? parts.join(' / ') : '';
-};
+  const formatVariation = (variation: any) => {
+    if (!variation) return '';
+    const { couleur, taille, age } = variation;
+    const parts = [];
+    if (couleur) parts.push(couleur.nom);
+    if (taille) parts.push(taille.nom);
+    if (age) parts.push(age.label);
+    return parts.length > 0 ? parts.join(' / ') : '';
+  };
   const isValidPhone = (phone: string): boolean => {
     const phoneRegex = /^[0-9\s\-\+\(\)]{8,}$/;
     return phoneRegex.test(phone.replace(/\s/g, ''));
   };
 
-const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
-
-  if (!validateForm()) return;
-
-  if (cartItems.some(item => !item.idProduitVariation)) {
-    toast.error("Merci de choisir la couleur/taille pour tous les produits du panier.");
-    return;
-  }
-
-  setLoading(true);
-  const toastId = toast.loading('Création de votre commande en cours...');
-  let success = false;
-
-  try {
-    const lignesCommandes = cartItems.map(item => ({
-      idProduit: item.idProduit,
-      idProduitVariation: item.idProduitVariation as number,
-      quantite: item.quantite,
-      prixUnitaire: item.produit.prix,
-      sousTotal: item.quantite * item.produit.prix
-    }));
-
-    const montantOriginal = lignesCommandes.reduce((sum, ligne) => sum + ligne.sousTotal, 0);
-
-    const commandeData: CommandeFormData & { codePromo?: string; fraisLivraison?: number; } = {
-      ...formData,
-      idClient: isAuthenticated ? user?.idUtilisateur : null,
-      montantTotal: montantOriginal,
-      statut: 'en attente' as const,
-      lignesCommandes,
-      codePromo: codePromo?.code,
-      fraisLivraison: livraison
-    };
-
-    const nouvelleCommande = await CommandesService.createCommande(commandeData);
-
-    toast.success('Commande créée avec succès!', {
-      id: toastId,
-      duration: 4000
-    });
-
-    const commandeId = nouvelleCommande.data.idCommande;
-    success = true;
-    router.push(`/site/confirmCmd/${commandeId}`);
-    return; // Empêche l'exécution du finally
-  } catch (error: any) {
-    let errorMessage = 'Une erreur est survenue lors de la création de votre commande.';
-    if (error?.response?.data?.message) {
-      errorMessage = error.response.data.message;
-    } else if (error?.message) {
-      errorMessage = error.message;
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!validateForm()) return;
+    if (cartItems.some(item => !item.idProduitVariation)) {
+      toast.error("Merci de choisir la couleur/taille pour tous les produits du panier.");
+      return;
     }
+    setLoading(true);
+    const toastId = toast.loading('Création de votre commande en cours...');
+    let success = false;
+    try {
+      const lignesCommandes = cartItems.map(item => ({
+        idProduit: item.idProduit,
+        idProduitVariation: item.idProduitVariation as number,
+        quantite: item.quantite,
+        prixUnitaire: item.produit.prix,
+        sousTotal: item.quantite * item.produit.prix
+      }));
+      const montantOriginal = lignesCommandes.reduce((sum, ligne) => sum + ligne.sousTotal, 0);
 
-    toast.error(errorMessage, {
-      id: toastId,
-      duration: 6000
-    });
-  } finally {
-    if (!success) setLoading(false); // On ne repasse pas loading à false si on redirige
-  }
-};
-const handleCodeApplique = (data: { code: string; valeurPourcentage: number }) => {
-  setCodePromo(data); // data is correct shape
-  toast.success(`Code promo "${data.code}" appliqué avec succès!`);
-};
-
+      const commandeData: CommandeFormData & { codePromo?: string; fraisLivraison?: number; } = {
+        ...formData,
+        idClient: isAuthenticated ? user?.idUtilisateur : null,
+        montantTotal: montantOriginal,
+        statut: 'en attente' as const,
+        lignesCommandes,
+        codePromo: codePromo?.code,
+        fraisLivraison: livraison
+      };
+      const nouvelleCommande = await CommandesService.createCommande(commandeData, session?.customToken);
+      toast.success('Commande créée avec succès!', {
+        id: toastId,
+        duration: 4000
+      });
+      const commandeId = nouvelleCommande.data.idCommande;
+      success = true;
+      router.push(`/site/confirmCmd/${commandeId}`);
+      return;
+    } catch (error: any) {
+      let errorMessage = 'Une erreur est survenue lors de la création de votre commande.';
+      if (error?.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error?.message) {
+        errorMessage = error.message;
+      }
+      toast.error(errorMessage, {
+        id: toastId,
+        duration: 6000
+      });
+    } finally {
+      if (!success) setLoading(false);
+    }
+  };
+  const handleCodeApplique = (data: { code: string; valeurPourcentage: number }) => {
+    setCodePromo(data);
+    toast.success(`Code promo "${data.code}" appliqué avec succès!`);
+  };
   const handleCodeSupprime = () => {
     setCodePromo(null);
     toast.success('Code promo supprimé');
@@ -302,7 +300,6 @@ const handleCodeApplique = (data: { code: string; valeurPourcentage: number }) =
     const errorClass = errors[fieldName] 
       ? "border-red-500 focus:ring-red-500 bg-red-50" 
       : "border-gray-200 focus:ring-purple-500";
-    
     return `${baseClass} ${errorClass}`;
   };
 
@@ -317,9 +314,8 @@ const handleCodeApplique = (data: { code: string; valeurPourcentage: number }) =
       </div>
     );
   }
-
   if (cartItems.length === 0) {
-    return null; // Le useEffect va rediriger
+    return null;
   }
 
   return (
@@ -336,7 +332,6 @@ const handleCodeApplique = (data: { code: string; valeurPourcentage: number }) =
             </h1>
           </div>
         </div>
-
         {/* Grid responsive */}
         <div className="grid grid-cols-1 xl:grid-cols-4 gap-8">
           {/* Colonne gauche : Formulaire de commande */}
@@ -408,7 +403,6 @@ const handleCodeApplique = (data: { code: string; valeurPourcentage: number }) =
                       </div>
                     </div>
                   </div>
-
                   {/* Adresse de livraison */}
                   <div>
                     <h3 className="text-lg font-semibold mb-3 text-gray-900">Adresse de livraison</h3>
@@ -472,7 +466,6 @@ const handleCodeApplique = (data: { code: string; valeurPourcentage: number }) =
                       </div>
                     </div>
                   </div>
-
                   {/* Mode de paiement */}
                   <div>
                     <h3 className="text-lg font-semibold mb-3 text-gray-900">Mode de paiement</h3>
@@ -488,7 +481,6 @@ const handleCodeApplique = (data: { code: string; valeurPourcentage: number }) =
                       </div>
                     </div>
                   </div>
-
                   {/* Notes additionnelles */}
                   <div>
                     <h3 className="text-lg font-semibold mb-3 text-gray-900">Notes de livraison</h3>
@@ -504,8 +496,6 @@ const handleCodeApplique = (data: { code: string; valeurPourcentage: number }) =
                 </form>
               </div>
             </div>
-
-            {/* Bouton Retour au panier */}
             <div className="mt-6">
               <Link href="/site/cart" className="inline-flex items-center gap-2 text-purple-600 hover:text-purple-800 transition-colors font-medium">
                 <ArrowLeftIcon className="w-5 h-5" />
@@ -513,7 +503,6 @@ const handleCodeApplique = (data: { code: string; valeurPourcentage: number }) =
               </Link>
             </div>
           </div>
-
           {/* Colonne droite : Résumé panier avec promotions */}
           <div className="xl:col-span-1">
             <div className="sticky top-6 space-y-6">
@@ -527,53 +516,49 @@ const handleCodeApplique = (data: { code: string; valeurPourcentage: number }) =
                   </div>
                 </div>
                 <div className={`p-4 ${cartItems.length > 4 ? 'max-h-[300px] overflow-y-auto' : ''}`}>
-
-{cartItems.map((item, index) => {
-  const imageUrl = item.produit.images && item.produit.images.length > 0
-    ? `http://localhost:3001${item.produit.images.sort((a:any, b:any) => a.rang - b.rang)[0].url}`
-    : '/images/placeholder.jpg';
-
-  return (
-    <div
-      key={`${item.idProduit}-${item.idProduitVariation || 'no-var'}`}
-      className={`flex items-start gap-3 py-3 border-b border-gray-100 last:border-b-0 ${
-        index !== 0 ? 'border-t-0' : ''
-      }`}
-    >
-      <Image
-        src={imageUrl}
-        alt={item.produit.nom}
-        width={60}
-        height={60}
-        className="rounded-lg object-cover border"
-      />
-      <div className="flex-1 min-w-0">
-        <p className="text-xs font-semibold text-gray-900 line-clamp-2 mb-1">{item.produit.nom}</p>
-        
-         {item.variation && (
-          <div className="mb-2 space-y-1 text-xs">
-            {formatVariation(item.variation) && (
-              <div className="flex items-center gap-1 italic text-gray-600">
-                {formatVariation(item.variation)}
-              </div>
-            )}
-          </div>
-        )}
-        
-        <CartItemPromotion
-          idProduit={item.idProduit}
-          prixOriginal={item.produit.prix}
-          quantite={item.quantite}
-        />
-        <p className="text-xs text-gray-500 mt-1">Qté: {item.quantite}</p>
-      </div>
-      <CheckoutItemTotalDisplay 
-        idProduit={item.idProduit}
-        quantite={item.quantite}
-      />
-    </div>
-  );
-})}
+                  {cartItems.map((item, index) => {
+                    const imageUrl = item.produit.images && item.produit.images.length > 0
+                      ? `http://localhost:3001${item.produit.images.sort((a:any, b:any) => a.rang - b.rang)[0].url}`
+                      : '/images/placeholder.jpg';
+                    return (
+                      <div
+                        key={`${item.idProduit}-${item.idProduitVariation || 'no-var'}`}
+                        className={`flex items-start gap-3 py-3 border-b border-gray-100 last:border-b-0 ${
+                          index !== 0 ? 'border-t-0' : ''
+                        }`}
+                      >
+                        <Image
+                          src={imageUrl}
+                          alt={item.produit.nom}
+                          width={60}
+                          height={60}
+                          className="rounded-lg object-cover border"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-semibold text-gray-900 line-clamp-2 mb-1">{item.produit.nom}</p>
+                          {item.variation && (
+                            <div className="mb-2 space-y-1 text-xs">
+                              {formatVariation(item.variation) && (
+                                <div className="flex items-center gap-1 italic text-gray-600">
+                                  {formatVariation(item.variation)}
+                                </div>
+                              )}
+                            </div>
+                          )}
+                          <CartItemPromotion
+                            idProduit={item.idProduit}
+                            prixOriginal={item.produit.prix}
+                            quantite={item.quantite}
+                          />
+                          <p className="text-xs text-gray-500 mt-1">Qté: {item.quantite}</p>
+                        </div>
+                        <CheckoutItemTotalDisplay 
+                          idProduit={item.idProduit}
+                          quantite={item.quantite}
+                        />
+                      </div>
+                    );
+                  })}
                 </div>
                 <div className="p-6 border-t border-gray-100">
                   <div className="space-y-4 text-sm">
@@ -624,18 +609,18 @@ const handleCodeApplique = (data: { code: string; valeurPourcentage: number }) =
                   </div>
                   <div className="mt-6">
                     <CodePromoInput
-  montantPanier={totalFinal}
-  idUtilisateur={isAuthenticated ? user?.idUtilisateur : undefined}
-  onCodeApplique={({ code, valeurPourcentage }) => {
-    setCodePromo({ code, valeurPourcentage });
-    toast.success(`Code promo "${code}" appliqué avec succès!`);
-  }}
-  onCodeSupprime={() => {
-    setCodePromo(null);
-    toast.success('Code promo supprimé');
-  }}
-  codeActuel={codePromo?.code}
-/>
+                      montantPanier={totalFinal}
+                      idUtilisateur={isAuthenticated ? user?.idUtilisateur : undefined}
+                      onCodeApplique={({ code, valeurPourcentage }) => {
+                        setCodePromo({ code, valeurPourcentage });
+                        toast.success(`Code promo "${code}" appliqué avec succès!`);
+                      }}
+                      onCodeSupprime={() => {
+                        setCodePromo(null);
+                        toast.success('Code promo supprimé');
+                      }}
+                      codeActuel={codePromo?.code}
+                    />
                   </div>
                   <button 
                     onClick={handleSubmit}
@@ -653,8 +638,6 @@ const handleCodeApplique = (data: { code: string; valeurPourcentage: number }) =
                   </button>
                 </div>
               </div>
-
-             
             </div>
           </div>
         </div>
@@ -664,7 +647,6 @@ const handleCodeApplique = (data: { code: string; valeurPourcentage: number }) =
   );
 }
 
-// Wrapper avec le Provider comme dans Cart
 const CheckoutWithProvider = () => {
   return (
     <CartPromotionProvider>

@@ -1,4 +1,3 @@
-// hooks/useStoreInfo.ts
 "use client";
 import { useState, useEffect } from 'react';
 import StoreInfoService, { StoreInfo } from '@/services/storeInfo-service';
@@ -13,8 +12,6 @@ export const useStoreInfo = () => {
       try {
         setLoading(true);
         const data = await StoreInfoService.getStoreInfo();
-        console.log("storeInfo", data);
-console.log("promotionImages", data?.promotionImages);
         setStoreInfo(data);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Erreur lors du chargement');

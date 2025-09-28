@@ -2,13 +2,12 @@
 
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { useAuth } from '@/hooks/useAuth';
+import { useSession } from "next-auth/react";
+import AuthService from '@/services/auth-service';
 import CommandesService, { CommandeResponse } from '@/services/commandes-service';
-import UsersService, { User, FormData } from '@/services/users-service';
 import NewsletterService from '@/services/newsletter-service';
 import KidsCornerLoader from '@/components/ui/KidsCornerLoader';
 import { toast } from 'react-hot-toast';
-
 import {
   UserCircleIcon,
   PencilIcon,
@@ -20,26 +19,25 @@ import {
   CheckCircleIcon,
   XCircleIcon,
   ClockIcon,
-  TruckIcon,
-  ExclamationTriangleIcon,
-  XMarkIcon,
   MagnifyingGlassIcon,
   EnvelopeOpenIcon as MailIcon
 } from '@heroicons/react/24/outline';
+import { useRouter } from "next/navigation";
 
 export default function ProfilePage() {
-  const { user, updateUser } = useAuth();
+  const { data: session, status } = useSession();
+  const token = session?.customToken;
   const searchParams = useSearchParams();
   const initialTab = searchParams.get('tab') === 'orders' ? 'orders' : 'profile';
   const [activeTab, setActiveTab] = useState<'profile' | 'orders'>(initialTab);
   const [isEditing, setIsEditing] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(false); // only for profile edit
+  const [globalLoading, setGlobalLoading] = useState(true); // for global/page loading
   const [orders, setOrders] = useState<CommandeResponse[]>([]);
   const [filteredOrders, setFilteredOrders] = useState<CommandeResponse[]>([]);
   const [ordersLoading, setOrdersLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [profileData, setProfileData] = useState<FormData>({
-    idUtilisateur: null,
+  const [profileData, setProfileData] = useState<any>({
     prenom: '',
     nom: '',
     email: '',
@@ -48,38 +46,58 @@ export default function ProfilePage() {
     adresseVille: '',
     adresseCodePostal: '',
     adressePays: 'Tunisie',
-    role: 'client',
   });
+  const router = useRouter();
 
   // Newsletter state
   const [newsletterStatus, setNewsletterStatus] = useState<'unknown' | 'subscribed' | 'not_subscribed' | 'loading'>('unknown');
-  const [newsletterEmail, setNewsletterEmail] = useState(user?.email || '');
+  const [newsletterEmail, setNewsletterEmail] = useState('');
   const [newsletterMsg, setNewsletterMsg] = useState<string | null>(null);
 
+  // Charger le profil utilisateur avec token dès que status est authenticated
   useEffect(() => {
-    if (user) {
-      setProfileData({
-        idUtilisateur: user.idUtilisateur,
-        prenom: user.prenom || '',
-        nom: user.nom || '',
-        email: user.email || '',
-        telephone: user.telephone || '',
-        adresseRue: user.adresseRue || '',
-        adresseVille: user.adresseVille || '',
-        adresseCodePostal: user.adresseCodePostal || '',
-        adressePays: user.adressePays || 'Tunisie',
-        role: user.role || 'client',
-      });
-      setNewsletterEmail(user.email || '');
+    if (status === "unauthenticated") {
+      router.replace("/signIn");
+      setGlobalLoading(false);
+      return;
     }
-  }, [user]);
+    if (status !== "authenticated" || !token) return;
 
+    // Charger le profil
+    async function fetchProfile() {
+      setGlobalLoading(true);
+      try {
+        const response = await AuthService.getProfile(token!);
+        const profile = response.user || response;
+        setProfileData({
+          prenom: profile.prenom || '',
+          nom: profile.nom || '',
+          email: profile.email || '',
+          telephone: profile.telephone || '',
+          adresseRue: profile.adresseRue || '',
+          adresseVille: profile.adresseVille || '',
+          adresseCodePostal: profile.adresseCodePostal || '',
+          adressePays: profile.adressePays || 'Tunisie',
+        });
+        setNewsletterEmail(profile.email || '');
+      } catch (err) {
+        toast.error("Impossible de charger le profil.");
+      } finally {
+        setGlobalLoading(false);
+      }
+    }
+    fetchProfile();
+  }, [status, router, token]);
+
+  // Loader lors du changement d'onglet
   useEffect(() => {
-    if (activeTab === 'orders' && user?.idUtilisateur) {
-      fetchUserOrders();
+    if (activeTab === 'orders' && status === "authenticated" && token) {
+      setGlobalLoading(true);
+      fetchUserOrders().finally(() => setGlobalLoading(false));
     }
-  }, [activeTab, user]);
+  }, [activeTab, status, token]);
 
+  // Filtrer les commandes selon la recherche
   useEffect(() => {
     const filtered = orders.filter((order) => {
       const searchLower = searchQuery.toLowerCase();
@@ -95,98 +113,86 @@ export default function ProfilePage() {
   // Newsletter effect
   useEffect(() => {
     const checkNewsletter = async () => {
-      if (!user?.email) {
+      if (!profileData.email) {
         setNewsletterStatus('not_subscribed');
         return;
       }
       try {
         setNewsletterStatus('loading');
-        const all = await NewsletterService.getAllEntries();
-        const found = all.some(entry => entry.email === user.email);
+        const all = await NewsletterService.getAllEntries(token);
+        const found = all.some(entry => entry.email === profileData.email);
         setNewsletterStatus(found ? 'subscribed' : 'not_subscribed');
       } catch {
         setNewsletterStatus('not_subscribed');
       }
     };
     checkNewsletter();
-  }, [user]);
+  }, [profileData.email]);
 
+  // Charger les commandes du client
   const fetchUserOrders = async () => {
-    if (!user?.idUtilisateur) return;
-
     try {
       setOrdersLoading(true);
-      const userOrders = await CommandesService.getCommandesByClient(user.idUtilisateur);
+      console.log('Fetching orders with token:', token);
+      const userOrders = await CommandesService.getCommandesByClient(token!);
       setOrders(userOrders);
       setFilteredOrders(userOrders.slice(0, 5));
     } catch (error) {
-      console.error('Error fetching orders:', error);
       toast.error('Erreur lors du chargement des commandes');
     } finally {
       setOrdersLoading(false);
     }
   };
 
+  // Sauvegarder le profil
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user?.idUtilisateur) return;
-
     try {
       setLoading(true);
-      const updatedUser = await UsersService.updateUser(user.idUtilisateur, profileData);
-
-      await updateUser({
-        prenom: profileData.prenom,
-        nom: profileData.nom,
-        email: profileData.email,
-        telephone: profileData.telephone,
-        adresseRue: profileData.adresseRue,
-        adresseVille: profileData.adresseVille,
-        adresseCodePostal: profileData.adresseCodePostal,
-        adressePays: profileData.adressePays,
-      });
-
-      setIsEditing(false);
+      const updateData = { ...profileData };
+      // Ne jamais permettre la modification de l'email ici !
+      delete updateData.email;
+      await AuthService.updateProfile(updateData, token!);
       toast.success('Profil mis à jour avec succès!');
+      setIsEditing(false);
+      // Recharger le profil
+      const response = await AuthService.getProfile(token!);
+      const profile = response.user || response;
+      setProfileData({
+        prenom: profile.prenom || '',
+        nom: profile.nom || '',
+        email: profile.email || '',
+        telephone: profile.telephone || '',
+        adresseRue: profile.adresseRue || '',
+        adresseVille: profile.adresseVille || '',
+        adresseCodePostal: profile.adresseCodePostal || '',
+        adressePays: profile.adressePays || 'Tunisie',
+      });
     } catch (error) {
-      console.error('Error updating profile:', error);
       toast.error('Erreur lors de la mise à jour du profil');
     } finally {
       setLoading(false);
     }
   };
 
+  // Annuler la modification
   const handleCancelEdit = () => {
-    if (user) {
-      setProfileData({
-        idUtilisateur: user.idUtilisateur,
-        prenom: user.prenom || '',
-        nom: user.nom || '',
-        email: user.email || '',
-        telephone: user.telephone || '',
-        adresseRue: user.adresseRue || '',
-        adresseVille: user.adresseVille || '',
-        adresseCodePostal: user.adresseCodePostal || '',
-        adressePays: user.adressePays || 'Tunisie',
-        role: user.role || 'client',
-      });
-    }
     setIsEditing(false);
-  };
-
-  const handleCancelOrder = async (orderId: number) => {
-    try {
-      const updatedOrder = await CommandesService.updateCommande(orderId, { statut: 'annulée' });
-      setOrders(orders.map((order) =>
-        order.idCommande === orderId ? { ...order, statut: updatedOrder.statut } : order
-      ));
-      setFilteredOrders(filteredOrders.map((order) =>
-        order.idCommande === orderId ? { ...order, statut: updatedOrder.statut } : order
-      ));
-      toast.success('Commande annulée avec succès!');
-    } catch (error) {
-      console.error('Error canceling order:', error);
-      toast.error('Erreur lors de l\'annulation de la commande');
+    // Recharger les données du profil
+    if (token) {
+      AuthService.getProfile(token).then(response => {
+        const profile = response.user || response;
+        setProfileData({
+          prenom: profile.prenom || '',
+          nom: profile.nom || '',
+          email: profile.email || '',
+          telephone: profile.telephone || '',
+          adresseRue: profile.adresseRue || '',
+          adresseVille: profile.adresseVille || '',
+          adresseCodePostal: profile.adresseCodePostal || '',
+          adressePays: profile.adressePays || 'Tunisie',
+        });
+      });
     }
   };
 
@@ -203,12 +209,11 @@ export default function ProfilePage() {
       setNewsletterMsg(e.message || "Erreur lors de l'inscription.");
     }
   };
-
   const handleNewsletterUnsubscribe = async () => {
     setNewsletterMsg(null);
     try {
       setNewsletterStatus('loading');
-      await NewsletterService.unsubscribe(newsletterEmail);
+      await NewsletterService.unsubscribe(newsletterEmail, token);
       setNewsletterStatus('not_subscribed');
       setNewsletterMsg("Vous avez été désinscrit de la newsletter.");
     } catch (e: any) {
@@ -217,61 +222,14 @@ export default function ProfilePage() {
     }
   };
 
-  const isRecentOrder = (createdAt: string) => {
-    const orderDate = new Date(createdAt);
-    const now = new Date();
-    const twoHoursInMs = 2 * 60 * 60 * 1000;
-    return now.getTime() - orderDate.getTime() < twoHoursInMs;
-  };
-
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'en attente':
-        return <ClockIcon className="h-5 w-5 text-yellow-500" />;
-      case 'en traitement':
-        return <ClockIcon className="h-5 w-5 text-blue-500" />;
-      case 'expédiée':
-        return <TruckIcon className="h-5 w-5 text-purple-500" />;
-      case 'livrée':
-        return <CheckCircleIcon className="h-5 w-5 text-green-500" />;
-      case 'annulée':
-        return <XCircleIcon className="h-5 w-5 text-red-500" />;
-      default:
-        return <ClockIcon className="h-5 w-5 text-gray-500" />;
-    }
-  };
-
-  const getStatusColor = (status: string) => {
-    const colors = {
-      'en attente': 'bg-yellow-100 text-yellow-800 border-yellow-200',
-      'en traitement': 'bg-blue-100 text-blue-800 border-blue-200',
-      'expédiée': 'bg-purple-100 text-purple-800 border-purple-200',
-      'livrée': 'bg-green-100 text-green-800 border-green-200',
-      'annulée': 'bg-red-100 text-red-800 border-red-200',
-    };
-    return colors[status as keyof typeof colors] || 'bg-gray-100 text-gray-800 border-gray-200';
-  };
-
-  const formatPrice = (price: number) => {
-    return `${price.toFixed(2)} TND`;
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('fr-FR', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    });
-  };
-
-  if (!user) {
+  if (globalLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-        <div className="text-center">
-          <ExclamationTriangleIcon className="h-12 w-12 text-yellow-500 mx-auto mb-4" />
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">Accès non autorisé</h2>
-          <p className="text-gray-600">Vous devez être connecté pour accéder à cette page.</p>
-        </div>
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <KidsCornerLoader 
+          message="Chargement de votre profil..."
+          size="lg"
+          showMessage={true}
+        />
       </div>
     );
   }
@@ -285,18 +243,17 @@ export default function ProfilePage() {
             <div className="flex items-center space-x-4">
               <div className="h-12 w-12 bg-purple-100 rounded-full flex items-center justify-center">
                 <span className="text-xl font-bold text-purple-600">
-                  {user.prenom?.[0]}{user.nom?.[0]}
+                  {profileData.prenom?.[0]}{profileData.nom?.[0]}
                 </span>
               </div>
               <div>
                 <h1 className="text-lg font-semibold text-gray-900">
-                  {user.prenom} {user.nom}
+                  {profileData.prenom} {profileData.nom}
                 </h1>
-                <p className="text-sm text-gray-500">{user.email || user.telephone}</p>
+                <p className="text-sm text-gray-500">{profileData.email || profileData.telephone}</p>
               </div>
             </div>
           </div>
-
           {/* Navigation Tabs */}
           <div className="px-4 sm:px-6">
             <nav className="flex space-x-4 border-b border-gray-200">
@@ -325,7 +282,6 @@ export default function ProfilePage() {
             </nav>
           </div>
         </div>
-
         {/* Content */}
         {activeTab === 'profile' ? (
           <div className="bg-white shadow-sm rounded-lg">
@@ -341,7 +297,6 @@ export default function ProfilePage() {
                 <span>{isEditing ? 'Annuler' : 'Modifier'}</span>
               </button>
             </div>
-
             <div className="px-4 sm:px-6 py-6">
               {isEditing ? (
                 <form onSubmit={handleSaveProfile}>
@@ -358,7 +313,6 @@ export default function ProfilePage() {
                         required
                       />
                     </div>
-
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         Nom *
@@ -371,7 +325,6 @@ export default function ProfilePage() {
                         required
                       />
                     </div>
-
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         Email
@@ -379,24 +332,22 @@ export default function ProfilePage() {
                       <input
                         type="email"
                         value={profileData.email || ''}
-                        onChange={(e) => setProfileData({ ...profileData, email: e.target.value })}
-                        className="input input-bordered w-full text-sm focus:ring-purple-500 focus:border-purple-500"
+                        disabled
+                        className="input input-bordered w-full bg-gray-100 text-gray-500"
                       />
                     </div>
-
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         Téléphone *
                       </label>
                       <input
                         type="tel"
-                        value={profileData.telephone}
-                        onChange={(e => setProfileData({ ...profileData, telephone: e.target.value }))}
+                        value={profileData.telephone || ''}
+                        onChange={(e) => setProfileData({ ...profileData, telephone: e.target.value })}
                         className="input input-bordered w-full text-sm focus:ring-purple-500 focus:border-purple-500"
                         required
                       />
                     </div>
-
                     <div className="sm:col-span-2">
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         Adresse
@@ -409,7 +360,6 @@ export default function ProfilePage() {
                         placeholder="Rue et numéro"
                       />
                     </div>
-
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         Ville
@@ -421,7 +371,6 @@ export default function ProfilePage() {
                         className="input input-bordered w-full text-sm focus:ring-purple-500 focus:border-purple-500"
                       />
                     </div>
-
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         Code postal
@@ -433,7 +382,6 @@ export default function ProfilePage() {
                         className="input input-bordered w-full text-sm focus:ring-purple-500 focus:border-purple-500"
                       />
                     </div>
-
                     <div className="sm:col-span-2">
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         Pays
@@ -446,12 +394,12 @@ export default function ProfilePage() {
                       />
                     </div>
                   </div>
-
                   <div className="mt-6 flex justify-end space-x-3">
                     <button
                       type="button"
                       onClick={handleCancelEdit}
                       className="btn btn-ghost text-sm text-gray-600 hover:bg-gray-100"
+                      disabled={loading}
                     >
                       Annuler
                     </button>
@@ -460,15 +408,7 @@ export default function ProfilePage() {
                       className="btn btn-primary text-sm bg-purple-600 hover:bg-purple-700 text-white flex items-center space-x-2"
                       disabled={loading}
                     >
-                      {loading ? (
-                        <KidsCornerLoader
-                          message="Sauvegarde en cours..."
-                          size="sm"
-                          showMessage={true}
-                        />
-                      ) : (
-                        'Sauvegarder'
-                      )}
+                      Sauvegarder
                     </button>
                   </div>
                 </form>
@@ -482,7 +422,6 @@ export default function ProfilePage() {
                         <p className="font-medium text-sm sm:text-base text-gray-900">{profileData.prenom} {profileData.nom}</p>
                       </div>
                     </div>
-
                     <div className="flex items-center space-x-3">
                       <EnvelopeIcon className="h-5 w-5 text-gray-400" />
                       <div>
@@ -490,7 +429,6 @@ export default function ProfilePage() {
                         <p className="font-medium text-sm sm:text-base text-gray-900">{profileData.email || 'Non renseigné'}</p>
                       </div>
                     </div>
-
                     <div className="flex items-center space-x-3">
                       <PhoneIcon className="h-5 w-5 text-gray-400" />
                       <div>
@@ -498,7 +436,6 @@ export default function ProfilePage() {
                         <p className="font-medium text-sm sm:text-base text-gray-900">{profileData.telephone}</p>
                       </div>
                     </div>
-
                     <div className="flex items-center space-x-3">
                       <MapPinIcon className="h-5 w-5 text-gray-400" />
                       <div>
@@ -518,7 +455,6 @@ export default function ProfilePage() {
                       </div>
                     </div>
                   </div>
-
                   {/* SECTION NEWSLETTER */}
                   <div className="mt-10 border-t border-gray-100 pt-6">
                     <div className="flex items-center gap-3 mb-2">
@@ -557,12 +493,12 @@ export default function ProfilePage() {
                           value={newsletterEmail}
                           onChange={e => setNewsletterEmail(e.target.value)}
                           required
-                          
+                          disabled
                         />
                         <button
                           type="submit"
                           className="btn btn-primary"
-                          
+                          disabled
                         >
                           S'abonner
                         </button>
@@ -600,7 +536,6 @@ export default function ProfilePage() {
                 />
               </div>
             </div>
-
             <div className="px-4 sm:px-6 py-6">
               {ordersLoading ? (
                 <div className="flex justify-center py-8">
@@ -633,19 +568,10 @@ export default function ProfilePage() {
                             Commande #{order.idCommande}
                           </span>
                           <div className="flex items-center space-x-2">
-                            <div className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(order.statut)}`}>
-                              {getStatusIcon(order.statut)}
+                            <div className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium border bg-gray-100 text-gray-800 border-gray-200`}>
+                              <ClockIcon className="h-5 w-5 text-gray-500" />
                               <span className="ml-1 capitalize">{order.statut}</span>
                             </div>
-                            {isRecentOrder(order.createdAt) && order.statut !== 'annulée' && (
-                              <button
-                                onClick={() => handleCancelOrder(order.idCommande)}
-                                className="btn btn-sm bg-red-500 hover:bg-red-600 text-white border-none flex items-center space-x-1 px-3 py-1"
-                              >
-                                <XMarkIcon className="h-4 w-4" />
-                                <span className="text-xs">Annuler</span>
-                              </button>
-                            )}
                             <a
                               href={`/site/confirmCmd/${order.idCommande}`}
                               className="btn btn-xs bg-purple-600 hover:bg-purple-700 text-white border-none flex items-center space-x-1 px-2 py-1 ml-2"
@@ -675,14 +601,17 @@ export default function ProfilePage() {
                           </div>
                         </div>
                         <div className="text-right">
-                          <p className="font-bold text-purple-600 text-sm sm:text-base">{formatPrice(order.montantTotal)}</p>
+                          <p className="font-bold text-purple-600 text-sm sm:text-base">{order.montantTotal.toFixed(2)} TND</p>
                           <p className="text-xs sm:text-sm text-gray-500 flex items-center justify-end">
                             <CalendarIcon className="h-4 w-4 mr-1" />
-                            {formatDate(order.dateCommande)}
+                            {new Date(order.dateCommande).toLocaleDateString('fr-FR', {
+                              year: 'numeric',
+                              month: 'long',
+                              day: 'numeric',
+                            })}
                           </p>
                         </div>
                       </div>
-
                       {order.lignesCommandes && order.lignesCommandes.length > 0 && (
                         <div className="mt-4 space-y-3 border-t border-gray-100 pt-4">
                           {order.lignesCommandes.slice(0, 3).map((item, index) => (
@@ -699,15 +628,14 @@ export default function ProfilePage() {
                                   {item.produit?.nom || 'Produit non disponible'}
                                 </p>
                                 <p className="text-xs text-gray-500">
-                                  Quantité: {item.quantite} × {formatPrice(item.prixUnitaire)}
+                                  Quantité: {item.quantite} × {item.prixUnitaire.toFixed(2)} TND
                                 </p>
                               </div>
                               <p className="text-sm font-medium text-gray-900">
-                                {formatPrice(item.sousTotal)}
+                                {(item.sousTotal).toFixed(2)} TND
                               </p>
                             </div>
                           ))}
-
                           {order.lignesCommandes.length > 3 && (
                             <p className="text-xs text-gray-500 text-center pt-2">
                               +{order.lignesCommandes.length - 3} autre(s) article(s)

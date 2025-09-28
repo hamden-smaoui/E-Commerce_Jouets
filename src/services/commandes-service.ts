@@ -195,12 +195,20 @@ export interface ValidationCodePromoResponse {
 }
 
 class CommandesService {
-  async createCommande(commandeData: CommandeFormData & { codePromo?: string; fraisLivraison?: number }): Promise<CommandeCreateResponse> {
-    const response = await api.post<CommandeCreateResponse>('/commandes', commandeData);
+  async createCommande(
+    commandeData: CommandeFormData & { codePromo?: string; fraisLivraison?: number },
+    token?: string
+  ): Promise<CommandeCreateResponse> {
+    const response = await api.post<CommandeCreateResponse>('/commandes', commandeData, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
     return response.data;
   }
 
-  async getAllCommandes(params: { page?: number; limit?: number; statut?: string; dateDebut?: string; dateFin?: string } = {}): Promise<CommandePaginationResponse> {
+  async getAllCommandes(
+    params: { page?: number; limit?: number; statut?: string; dateDebut?: string; dateFin?: string } = {},
+    token?: string
+  ): Promise<CommandePaginationResponse> {
     const queryParams = new URLSearchParams();
     if (params.page) queryParams.append('page', params.page.toString());
     if (params.limit) queryParams.append('limit', params.limit.toString());
@@ -208,41 +216,62 @@ class CommandesService {
     if (params.dateDebut) queryParams.append('dateDebut', params.dateDebut);
     if (params.dateFin) queryParams.append('dateFin', params.dateFin);
 
-    const response = await api.get<CommandePaginationResponse>(`/commandes?${queryParams.toString()}`);
+    const response = await api.get<CommandePaginationResponse>(`/commandes?${queryParams.toString()}`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
     return response.data;
   }
 
-  async getCommandeById(id: number): Promise<CommandeResponse> {
-    const response = await api.get<CommandeResponse>(`/commandes/${id}`);
+  async getCommandeById(id: number, token?: string): Promise<CommandeResponse> {
+     const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    const response = await api.get<CommandeResponse>(`/commandes/${id}`, { headers});
     return response.data;
   }
 
-  async updateCommande(id: number, commandeData: Partial<CommandeFormData>): Promise<CommandeResponse> {
-    const response = await api.put<{ data: CommandeResponse }>(`/commandes/${id}`, commandeData);
+  async updateCommande(id: number, commandeData: Partial<CommandeFormData>, token?: string): Promise<CommandeResponse> {
+    const response = await api.put<{ data: CommandeResponse }>(`/commandes/${id}`, commandeData, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
     return response.data.data;
   }
 
-  async deleteCommande(id: number): Promise<void> {
-    await api.delete(`/commandes/${id}`);
+  async deleteCommande(id: number, token?: string): Promise<void> {
+    await api.delete(`/commandes/${id}`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
   }
 
-  async getCommandesByClient(clientId: number): Promise<CommandeResponse[]> {
-    const response = await api.get<CommandeResponse[]>(`/commandes/client/${clientId}`);
+  async getCommandesByClient(token?: string): Promise<CommandeResponse[]> {
+    const response = await api.get<CommandeResponse[]>(`/commandes/client`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
     return response.data;
   }
 
-  async getCommandeStats(): Promise<CommandeStats[]> {
-    const response = await api.get<CommandeStats[]>('/commandes/stats');
+  async getCommandeStats(token?: string): Promise<CommandeStats[]> {
+    const response = await api.get<CommandeStats[]>('/commandes/stats', {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
     return response.data;
   }
 
-  async calculerPanier(panierData: { lignesCommandes: LigneCommande[]; codePromo?: string; idClient?: number; fraisLivraison?: number }): Promise<CalculPanierResponse> {
-    const response = await api.post<CalculPanierResponse>('/commandes/calculer-panier', panierData);
+  async calculerPanier(
+    panierData: { lignesCommandes: LigneCommande[]; codePromo?: string; idClient?: number; fraisLivraison?: number },
+    token?: string
+  ): Promise<CalculPanierResponse> {
+    const response = await api.post<CalculPanierResponse>('/commandes/calculer-panier', panierData, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
     return response.data;
   }
 
-  async validerCodePromo(codeData: { codePromo: string; lignesCommandes: LigneCommande[]; idClient?: number }): Promise<ValidationCodePromoResponse> {
-    const response = await api.post<ValidationCodePromoResponse>('/commandes/valider-code-promo', codeData);
+  async validerCodePromo(
+    codeData: { codePromo: string; lignesCommandes: LigneCommande[]; idClient?: number },
+    token?: string
+  ): Promise<ValidationCodePromoResponse> {
+    const response = await api.post<ValidationCodePromoResponse>('/commandes/valider-code-promo', codeData, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
     return response.data;
   }
 

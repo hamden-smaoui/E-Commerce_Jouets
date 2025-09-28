@@ -78,7 +78,8 @@ class StoreInfoService {
     return response.data;
   }
 
-  async createStoreInfo(formData: StoreInfoFormData): Promise<StoreInfo> {
+  async createStoreInfo(formData: StoreInfoFormData, token?: string): Promise<StoreInfo> {
+    if (!token) throw new Error('Utilisateur non authentifié');
     const form = new FormData();
     Object.entries(formData).forEach(([key, value]) => {
       if (!['heroImages', 'promotionImages', 'imagesToDelete', 'promotionImagesToDelete', 'imageRangs', 'promotionImageRangs', 'logo1File', 'logo2File'].includes(key) && value !== undefined) {
@@ -95,12 +96,13 @@ class StoreInfoService {
     if (formData.promotionImageRangs) form.append('promotionImageRangs', JSON.stringify(formData.promotionImageRangs));
 
     const response = await api.post<{ data: StoreInfo }>('/store-info', form, {
-      headers: { 'Content-Type': 'multipart/form-data' }
+      headers: { 'Content-Type': 'multipart/form-data', Authorization: `Bearer ${token}` }
     });
     return response.data.data;
   }
 
-  async updateStoreInfo(id: number, formData: StoreInfoFormData): Promise<StoreInfo> {
+  async updateStoreInfo(id: number, formData: StoreInfoFormData, token?: string): Promise<StoreInfo> {
+    if (!token) throw new Error('Utilisateur non authentifié');
     const form = new FormData();
     Object.entries(formData).forEach(([key, value]) => {
       if (!['heroImages', 'promotionImages', 'imagesToDelete', 'promotionImagesToDelete', 'imageRangs', 'promotionImageRangs', 'logo1File', 'logo2File'].includes(key) && value !== undefined) {
@@ -117,13 +119,16 @@ class StoreInfoService {
     if (formData.promotionImageRangs) form.append('promotionImageRangs', JSON.stringify(formData.promotionImageRangs));
 
     const response = await api.put<{ data: StoreInfo }>(`/store-info/${id}`, form, {
-      headers: { 'Content-Type': 'multipart/form-data' }
+      headers: { 'Content-Type': 'multipart/form-data', Authorization: `Bearer ${token}` }
     });
     return response.data.data;
   }
 
-  async deleteStoreInfo(id: number): Promise<void> {
-    await api.delete(`/store-info/${id}`);
+  async deleteStoreInfo(id: number, token?: string): Promise<void> {
+    if (!token) throw new Error('Utilisateur non authentifié');
+    await api.delete(`/store-info/${id}`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
   }
 }
 

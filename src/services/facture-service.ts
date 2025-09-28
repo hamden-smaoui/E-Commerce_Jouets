@@ -127,46 +127,53 @@ export interface FactureStats {
 }
 
 class FacturesService {
-  async getAllFactures(): Promise<FactureResponse[]> {
-    const response = await api.get<FactureResponse[]>('/factures');
+  async getAllFactures(token?: string): Promise<FactureResponse[]> {
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    const response = await api.get<FactureResponse[]>('/factures', { headers });
     return response.data;
   }
 
-  async updateFacture(id: number, factureData: Partial<FactureFormData>): Promise<FactureResponse> {
-    const response = await api.put<{ data: FactureResponse }>(`/factures/${id}`, factureData);
+  async updateFacture(id: number, factureData: Partial<FactureFormData>, token?: string): Promise<FactureResponse> {
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    const response = await api.put<{ data: FactureResponse }>(`/factures/${id}`, factureData, { headers });
     return response.data.data;
   }
 
-  async deleteFacture(id: number): Promise<void> {
-    await api.delete(`/factures/${id}`);
+  async deleteFacture(id: number, token?: string): Promise<void> {
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    await api.delete(`/factures/${id}`, { headers });
   }
 
-  async downloadFacturePDF(id: number): Promise<Blob> {
-    const response = await api.get(`/factures/${id}/pdf`, { responseType: 'blob' });
+  async downloadFacturePDF(id: number, token?: string): Promise<Blob> {
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    const response = await api.get(`/factures/${id}/pdf`, { responseType: 'blob', headers });
     return response.data;
   }
 
-  async getFactureStats(): Promise<FactureStats> {
-    const response = await api.get<FactureStats>('/factures/statsfactures');
+  async getFactureStats(token?: string): Promise<FactureStats> {
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    const response = await api.get<FactureStats>('/factures/statsfactures', { headers });
     return response.data;
   }
 
-  async getFactureById(id: number): Promise<FactureResponse> {
-    const response = await api.get<FactureResponse>(`/factures/${id}`);
+  async getFactureById(id: number, token?: string): Promise<FactureResponse> {
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    const response = await api.get<FactureResponse>(`/factures/${id}`, { headers });
     return response.data;
   }
 
-  async createFacture(factureData: FactureFormData): Promise<FactureResponse> {
-    const response = await api.post<{ data: FactureResponse }>(`/factures`, factureData);
+  async createFacture(factureData: FactureFormData, token?: string): Promise<FactureResponse> {
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    const response = await api.post<{ data: FactureResponse }>(`/factures`, factureData, { headers });
     return response.data.data;
   }
 
-  async createFactureForCommande(idCommande: number): Promise<FactureResponse> {
-    const response = await api.post<{ data: FactureResponse }>(`/factures/commandes/${idCommande}/facture`);
+  async createFactureForCommande(idCommande: number, token?: string): Promise<FactureResponse> {
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    const response = await api.post<{ data: FactureResponse }>(`/factures/commandes/${idCommande}/facture`, {}, { headers });
     return response.data.data;
   }
 
-  // Utilitaires (inchangés, tu peux garder tes helpers ici)
   formatFactureNumber(numero: string): string {
     return numero || 'N/A';
   }

@@ -8,6 +8,7 @@ import FormModal from '@/components/layout/FormModal';
 import Notification from '@/components/layout/Notification';
 import ConfirmDeleteModal from '@/components/layout/ConfirmDeleteModal';
 import FournisseursService, { Fournisseur, FournisseurFormData } from '@/services/fournisseurs-service';
+import { useSession } from "next-auth/react";
 
 // Define Field interface for FormModal
 interface Field<T> {
@@ -50,11 +51,12 @@ const Fournisseurs: React.FC = () => {
   });
   const [selectedFournisseurs, setSelectedFournisseurs] = useState<number[]>([]);
   const [notification, setNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
-
+const { data: session, status } = useSession();
+const token = session?.customToken;
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const fetchedFournisseurs = await FournisseursService.getAllFournisseurs();
+        const fetchedFournisseurs = await FournisseursService.getAllFournisseurs(token);
         setFournisseurs(fetchedFournisseurs);
         setLoading(false);
         console.log('Fournisseurs fetched:', fetchedFournisseurs);
@@ -158,7 +160,7 @@ const Fournisseurs: React.FC = () => {
 
   const handleAddSubmit = async (data: FournisseurFormData) => {
     try {
-      const response = await FournisseursService.createFournisseur(data);
+      const response = await FournisseursService.createFournisseur(data,token);
       setFournisseurs([...fournisseurs, response]);
       setIsAddModalOpen(false);
       setNotification({
@@ -183,7 +185,7 @@ const Fournisseurs: React.FC = () => {
         });
         return;
       }
-      const updatedFournisseur = await FournisseursService.updateFournisseur(data.idFournisseur, data);
+      const updatedFournisseur = await FournisseursService.updateFournisseur(data.idFournisseur, data,token);
       setFournisseurs(
         fournisseurs.map((fournisseur) =>
           fournisseur.idFournisseur === data.idFournisseur ? updatedFournisseur : fournisseur
@@ -210,7 +212,7 @@ const Fournisseurs: React.FC = () => {
   const confirmDelete = async () => {
     try {
       for (const id of selectedFournisseurs) {
-        await FournisseursService.deleteFournisseur(id);
+        await FournisseursService.deleteFournisseur(id,token);
       }
       setFournisseurs(fournisseurs.filter((fournisseur) => !selectedFournisseurs.includes(fournisseur.idFournisseur)));
       setSelectedFournisseurs([]);
@@ -258,7 +260,7 @@ const Fournisseurs: React.FC = () => {
 
   const handleEdit = async (fournisseur: Fournisseur) => {
     try {
-      const fetchedFournisseur = await FournisseursService.getFournisseurById(fournisseur.idFournisseur);
+      const fetchedFournisseur = await FournisseursService.getFournisseurById(fournisseur.idFournisseur,token);
       const newFormData = {
         idFournisseur: fetchedFournisseur.idFournisseur,
         prenom: fetchedFournisseur.prenom || '',

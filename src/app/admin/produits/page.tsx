@@ -16,7 +16,7 @@ import TaillesService from '@/services/tailles-service';
 import AgesService from '@/services/ages-service';
 import ImageManager from '@/components/layout/ImageManager';
 import VariationsManager from '@/components/layout/VariationsManager'; // Nouveau composant
-
+import { useSession } from 'next-auth/react';
 interface Type {
   idType: number;
   nom: string;
@@ -121,7 +121,8 @@ const Produits: React.FC = () => {
   });
   const [selectedProduits, setSelectedProduits] = useState<number[]>([]);
   const [notification, setNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
-
+  const { data: session, status } = useSession();
+  const token = session?.customToken;
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -134,13 +135,13 @@ const Produits: React.FC = () => {
           fetchedTailles,
           fetchedAges,
         ] = await Promise.all([
-          ProduitsService.getAllProduits(),
-          CategoriesService.getAllCategories(),
-          MarquesService.getAllMarques(),
-          FournisseursService.getAllFournisseurs(),
-          CouleursService.getAllCouleurs(),
-          TaillesService.getAllTailles(),
-          AgesService.getAllAges(),
+          ProduitsService.getAllProduits(token),
+          CategoriesService.getAllCategories(token),
+          MarquesService.getAllMarques(token),
+          FournisseursService.getAllFournisseurs(token),
+          CouleursService.getAllCouleurs(token),
+          TaillesService.getAllTailles(token),
+          AgesService.getAllAges(token),
         ]);
         
         setProduits(fetchedProduits);
@@ -680,7 +681,7 @@ useEffect(() => {
         variants: data.variants,
       };
 
-      const response = await ProduitsService.createProduit(produitData);
+      const response = await ProduitsService.createProduit(produitData,token);
       const newProduit: ProduitResponse = {
         ...response,
         categorie: categories.find((cat) => cat.idCategorie === data.idCategorie),
@@ -742,7 +743,7 @@ useEffect(() => {
         images: selectedImages,
       };
 
-      const updatedProduit = await ProduitsService.updateProduit(data.idProduit, produitData);
+      const updatedProduit = await ProduitsService.updateProduit(data.idProduit, produitData,token);
       const updatedProduitWithDetails: ProduitResponse = {
         ...updatedProduit,
         categorie: categories.find((cat) => cat.idCategorie === data.idCategorie),
@@ -779,7 +780,7 @@ useEffect(() => {
   const confirmDelete = async () => {
     try {
       for (const id of selectedProduits) {
-        await ProduitsService.deleteProduit(id);
+        await ProduitsService.deleteProduit(id,token);
       }
       setProduits(produits.filter((produit) => !selectedProduits.includes(produit.idProduit)));
       setSelectedProduits([]);
@@ -848,7 +849,7 @@ const formatAgeRanges = (variations: ProduitVariation[] | undefined): string => 
 
   const handleEdit = async (produit: ProduitResponse) => {
     try {
-      const fetchedProduit = await ProduitsService.getProduitById(produit.idProduit);
+      const fetchedProduit = await ProduitsService.getProduitById(produit.idProduit,token);
       const selectedCategory = categories.find((cat) => cat.idCategorie === fetchedProduit.idCategorie);
       setTypes(selectedCategory?.types || []);
 

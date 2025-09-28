@@ -11,37 +11,24 @@ const api = axios.create({
   },
 });
 
-api.interceptors.request.use(
-  (config) => {
-    if (typeof window !== "undefined") {
-      const token = localStorage.getItem('token');
-      if (token) {
-        config.headers = config.headers ?? {};
-        (config.headers as any).Authorization = `Bearer ${token}`;
-      }
-    }
-    return config;
-  },
-  (error) => Promise.reject(error)
-);
+// NE LIS PLUS LE TOKEN DANS LOCALSTORAGE
+// Tu passeras le token dans le header "Authorization" à chaque requête axios
 
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    // 1. Déconnexion globale sur 401
-    if (error.response?.status === 401) {
-      if (typeof window !== "undefined") {
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        toast.error('Session expirée, veuillez vous reconnecter.');
-        window.location.href = '/signIn';
-      }
-    }
-
-    // 2. Toast global pour toutes les autres erreurs
+    // Toast global pour toutes les erreurs
     const errorMsg = error.response?.data?.message || error.message || 'Erreur inconnue';
     if (typeof window !== "undefined") {
       toast.error(errorMsg);
+    }
+
+    // Déconnexion globale sur 401 (redirige vers signIn)
+    if (error.response?.status === 401) {
+      if (typeof window !== "undefined") {
+        toast.error('Session expirée, veuillez vous reconnecter.');
+       // window.location.href = '/signIn';
+      }
     }
 
     return Promise.reject(error);

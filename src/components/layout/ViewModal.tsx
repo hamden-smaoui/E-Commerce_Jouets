@@ -76,8 +76,8 @@ const ViewModal: React.FC<ViewModalProps> = ({ isOpen, onClose, title, facture }
                       {facture.commande.lignesCommandes.map((ligne) => (
                         <tr key={ligne.idLigneCommande}>
                           <td>
-                            <div className="font-bold">{ligne.produit.nom}</div>
-                            <div className="text-sm opacity-50">{ligne.produit.description}</div>
+                            <div className="font-bold">{ligne.produit?.nom}</div>
+                            <div className="text-sm opacity-50">{ligne.produit?.description}</div>
                           </td>
                           <td>{ligne.quantite}</td>
                           <td>{FacturesService.formatAmount(ligne.prixUnitaireFinal)}</td>

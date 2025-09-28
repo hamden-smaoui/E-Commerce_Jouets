@@ -25,32 +25,33 @@ interface MarqueResponse extends Marque {
 }
 
 class MarquesService {
-  async createMarque(formData: FormData): Promise<MarqueResponse> {
-    const response = await api.post<{ data: MarqueResponse }>('/marques', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' }
-    });
+  async createMarque(formData: FormData,token?: string): Promise<MarqueResponse> {
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    const response = await api.post<{ data: MarqueResponse }>('/marques', formData, { headers });
     return response.data.data;
   }
 
-  async getAllMarques(): Promise<MarqueResponse[]> {
-    const response = await api.get<MarqueResponse[]>('/marques');
+ async getAllMarques(token?: string): Promise<MarqueResponse[]> {
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    const response = await api.get<MarqueResponse[]>('/marques', { headers });
     return response.data;
   }
 
-  async getMarqueById(id: number): Promise<MarqueResponse> {
-    const response = await api.get<{ data: MarqueResponse }>(`/marques/${id}`);
+  async getMarqueById(id: number,token?: string): Promise<MarqueResponse> {
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    const response = await api.get<{ data: MarqueResponse }>(`/marques/${id}`, { headers });
     return response.data.data;
   }
 
-  async updateMarque(id: number, formData: FormData): Promise<MarqueResponse> {
-    const response = await api.put<{ data: MarqueResponse }>(`/marques/${id}`, formData, {
-      headers: { 'Content-Type': 'multipart/form-data' }
-    });
+  async updateMarque(id: number, formData: FormData,token?: string): Promise<MarqueResponse> {
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    const response = await api.put<{ data: MarqueResponse }>(`/marques/${id}`, formData,{ headers });
     return response.data.data;
   }
 
-  async deleteMarque(id: number): Promise<void> {
-    await api.delete(`/marques/${id}`);
+  async deleteMarque(id: number,token?: string): Promise<void> {
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    await api.delete(`/marques/${id}`, { headers });
   }
 }
 

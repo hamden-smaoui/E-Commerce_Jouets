@@ -1,8 +1,7 @@
-// components/ProtectedRoute.tsx
 "use client";
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '../../hooks/useAuth';
+import { useSession } from "next-auth/react";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -10,24 +9,24 @@ interface ProtectedRouteProps {
 }
 
 const ProtectedRoute = ({ children, requireAdmin = false }: ProtectedRouteProps) => {
-  const { user, loading } = useAuth();
+  const { data: session, status } = useSession();
   const router = useRouter();
 
   useEffect(() => {
-    if (!loading) {
-      if (!user) {
-        router.push('/signin');
-        return;
-      }
-      
-      if (requireAdmin && user.role !== 'admin') {
-        router.push('/dashboard'); // Rediriger vers le dashboard normal
-        return;
-      }
-    }
-  }, [user, loading, router, requireAdmin]);
+    if (status === "loading") return; // Attendre session chargée
 
-  if (loading) {
+    if (status === "unauthenticated" || !session?.userData) {
+      router.push('/signIn');
+      return;
+    }
+
+    if (requireAdmin && session.userData.role !== 'admin') {
+      router.push('/dashboard'); // Rediriger vers dashboard normal
+      return;
+    }
+  }, [session, status, router, requireAdmin]);
+
+  if (status === "loading") {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-purple-600"></div>
@@ -35,11 +34,11 @@ const ProtectedRoute = ({ children, requireAdmin = false }: ProtectedRouteProps)
     );
   }
 
-  if (!user) {
+  if (status === "unauthenticated" || !session?.userData) {
     return null;
   }
 
-  if (requireAdmin && user.role !== 'admin') {
+  if (requireAdmin && session.userData.role !== 'admin') {
     return null;
   }
 

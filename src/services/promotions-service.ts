@@ -91,53 +91,50 @@ interface RepartitionType {
 }
 
 class PromotionsService {
-  async createPromotion(promotionData: PromotionFormData): Promise<PromotionResponse> {
-    const response = await api.post<{ data: PromotionResponse }>('/promotions', promotionData);
+  async createPromotion(promotionData: PromotionFormData, token?: string): Promise<PromotionResponse> {
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    const response = await api.post<{ data: PromotionResponse }>('/promotions', promotionData, { headers });
     return response.data.data;
   }
 
-  async getAllPromotions(): Promise<PromotionResponse[]> {
-    const response = await api.get<PromotionResponse[]>('/promotions');
+  async getAllPromotions(token?: string): Promise<PromotionResponse[]> {
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    const response = await api.get<PromotionResponse[]>('/promotions', { headers });
     return response.data;
   }
 
-  async getPromotionById(id: number): Promise<PromotionResponse> {
-    const response = await api.get<{ data: PromotionResponse }>(`/promotions/${id}`);
+  async getPromotionById(id: number, token?: string): Promise<PromotionResponse> {
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    const response = await api.get<{ data: PromotionResponse }>(`/promotions/${id}`, { headers });
     return response.data.data;
   }
 
-  async updatePromotion(id: number, promotionData: PromotionFormData): Promise<PromotionResponse> {
-    const response = await api.put<{ data: PromotionResponse }>(`/promotions/${id}`, promotionData);
+  async updatePromotion(id: number, promotionData: PromotionFormData, token?: string): Promise<PromotionResponse> {
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    const response = await api.put<{ data: PromotionResponse }>(`/promotions/${id}`, promotionData, { headers });
     return response.data.data;
   }
 
-  async deletePromotion(id: number): Promise<void> {
-    await api.delete(`/promotions/${id}`);
+  async deletePromotion(id: number, token?: string): Promise<void> {
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    await api.delete(`/promotions/${id}`, { headers });
   }
 
-  async appliquerPromotion(data: { panierData: any; idUtilisateur?: number }): Promise<{
-    message: string;
-    promotion: {
-      id: number;
-      nom: string;
-      description: string;
-      typePromotion: string;
-      reduction: number;
-      montantFinal: number;
-    };
-  }> {
-    const response = await api.post('/promotions/appliquer', data);
+  async appliquerPromotion(data: { panierData: any; idUtilisateur?: number }, token?: string): Promise<any> {
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    const response = await api.post('/promotions/appliquer', data, { headers });
     return response.data;
   }
 
-  async getPromotionsActives(idProduit?: number): Promise<PromotionResponse[]> {
+  async getPromotionsActives(idProduit?: number, token?: string): Promise<PromotionResponse[]> {
     const params = new URLSearchParams();
     if (idProduit) params.append('idProduit', idProduit.toString());
-    const response = await api.get<{ data: PromotionResponse[] }>(`/promotions/actives/list?${params}`);
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    const response = await api.get<{ data: PromotionResponse[] }>(`/promotions/actives/list?${params}`, { headers });
     return response.data.data;
   }
 
-  async getStatsUtilisation(dateDebut?: string, dateFin?: string): Promise<{
+  async getStatsUtilisation(dateDebut?: string, dateFin?: string, token?: string): Promise<{
     generales: StatsUtilisation;
     topPromotions: TopPromotion[];
     repartitionType: RepartitionType[];
@@ -145,27 +142,32 @@ class PromotionsService {
     const params = new URLSearchParams();
     if (dateDebut) params.append('dateDebut', dateDebut);
     if (dateFin) params.append('dateFin', dateFin);
-    const response = await api.get<{ data: { generales: StatsUtilisation; topPromotions: TopPromotion[]; repartitionType: RepartitionType[] } }>(`/promotions/stats/utilisation?${params}`);
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    const response = await api.get<{ data: any }>(`/promotions/stats/utilisation?${params}`, { headers });
     return response.data.data;
   }
 
-  async togglePromotion(id: number): Promise<PromotionResponse> {
-    const response = await api.patch<{ data: PromotionResponse }>(`/promotions/${id}/toggle`);
+  async togglePromotion(id: number, token?: string): Promise<PromotionResponse> {
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    const response = await api.patch<{ data: PromotionResponse }>(`/promotions/${id}/toggle`, {}, { headers });
     return response.data.data;
   }
 
-  async dupliquerPromotion(id: number): Promise<PromotionResponse> {
-    const response = await api.post<{ data: PromotionResponse }>(`/promotions/${id}/dupliquer`);
+  async dupliquerPromotion(id: number, token?: string): Promise<PromotionResponse> {
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    const response = await api.post<{ data: PromotionResponse }>(`/promotions/${id}/dupliquer`, {}, { headers });
     return response.data.data;
   }
 
-  async getPromotionsPourProduit(idProduit: number): Promise<PromotionActive[]> {
-    const response = await api.get<{ data: PromotionActive[] }>(`/promotions/produit/${idProduit}`);
+  async getPromotionsPourProduit(idProduit: number, token?: string): Promise<PromotionActive[]> {
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    const response = await api.get<{ data: PromotionActive[] }>(`/promotions/produit/${idProduit}`, { headers });
     return response.data.data || [];
   }
 
-  async calculerPrixProduit(idProduit: number, prix: number, quantite: number = 1) {
-    const response = await api.post<{ data: any }>(`/promotions/calculer-prix/${idProduit}`, { prix, quantite });
+  async calculerPrixProduit(idProduit: number, prix: number, quantite: number = 1, token?: string) {
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    const response = await api.post<{ data: any }>(`/promotions/calculer-prix/${idProduit}`, { prix, quantite }, { headers });
     return response.data.data;
   }
 }

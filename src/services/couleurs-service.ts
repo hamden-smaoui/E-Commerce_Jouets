@@ -9,28 +9,33 @@ export interface CouleurFormData {
 }
 
 class CouleursService {
-  async createCouleur(couleurData: CouleurFormData): Promise<Couleur> {
-    const response = await api.post<Couleur>('/couleurs', couleurData);
+  async createCouleur(couleurData: CouleurFormData, token?: string): Promise<Couleur> {
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    const response = await api.post<Couleur>('/couleurs', couleurData, { headers });
     return response.data;
   }
 
-  async getAllCouleurs(): Promise<Couleur[]> {
-    const response = await api.get<Couleur[]>('/couleurs');
+  async getAllCouleurs(token?: string): Promise<Couleur[]> {
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    const response = await api.get<Couleur[]>('/couleurs', { headers });
     return response.data;
   }
 
-  async getCouleurById(id: number): Promise<Couleur> {
-    const response = await api.get<Couleur>(`/couleurs/${id}`);
+  async getCouleurById(id: number, token?: string): Promise<Couleur> {
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    const response = await api.get<Couleur>(`/couleurs/${id}`, { headers });
     return response.data;
   }
 
-  async updateCouleur(id: number, couleurData: CouleurFormData): Promise<Couleur> {
-    const response = await api.put<Couleur>(`/couleurs/${id}`, couleurData);
+  async updateCouleur(id: number, couleurData: CouleurFormData, token?: string): Promise<Couleur> {
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    const response = await api.put<Couleur>(`/couleurs/${id}`, couleurData, { headers });
     return response.data;
   }
 
-  async deleteCouleur(id: number): Promise<void> {
-    await api.delete(`/couleurs/${id}`);
+  async deleteCouleur(id: number, token?: string): Promise<void> {
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    await api.delete(`/couleurs/${id}`, { headers });
   }
 }
 

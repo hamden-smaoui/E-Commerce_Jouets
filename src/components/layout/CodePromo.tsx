@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import codesPromoService from '@/services/codes-promo-service';
-
+import { useSession } from "next-auth/react";
 interface CodePromoInputProps {
   montantPanier: number;
   idUtilisateur?: number;
@@ -19,7 +19,8 @@ const CodePromoInput: React.FC<CodePromoInputProps> = ({
   const [code, setCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string; montantMinimum?: number } | null>(null);
-
+  const { data:session , status } = useSession();
+  const token = session?.customToken;
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!code.trim()) return;
@@ -30,7 +31,7 @@ const CodePromoInput: React.FC<CodePromoInputProps> = ({
 
       // Nouvelle API: ne retourne plus promotion, juste le pourcentage
       const resultat = await codesPromoService.validerCodePromo(
-        code.trim().toUpperCase()
+        code.trim().toUpperCase(),token
       );
 
       if (resultat.valide && resultat.valeurPourcentage) {

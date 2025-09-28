@@ -100,7 +100,9 @@ export interface ProduitResponse extends Produit {
 }
 
 class ProduitsService {
-  async createProduit(produitData: ProduitFormData): Promise<ProduitResponse> {
+  async createProduit(produitData: ProduitFormData, token?: string): Promise<ProduitResponse> {
+    const headers: any = { 'Content-Type': 'multipart/form-data' };
+    if (token) headers.Authorization = `Bearer ${token}`;
     const formData = new FormData();
     formData.append('nom', produitData.nom);
     formData.append('description', produitData.description);
@@ -114,23 +116,25 @@ class ProduitsService {
     if (produitData.variants?.length) formData.append('variants', JSON.stringify(produitData.variants));
     if (produitData.images?.length) produitData.images.forEach(img => formData.append('images', img));
 
-    const response = await api.post<{ data: ProduitResponse }>('/produits', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' }
-    });
+    const response = await api.post<{ data: ProduitResponse }>('/produits', formData, { headers });
     return response.data.data;
   }
 
-  async getAllProduits(): Promise<ProduitResponse[]> {
-    const response = await api.get<ProduitResponse[]>('/produits');
+  async getAllProduits(token?: string): Promise<ProduitResponse[]> {
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    const response = await api.get<ProduitResponse[]>('/produits', { headers });
     return response.data;
   }
 
-  async getProduitById(id: number): Promise<ProduitResponse> {
-    const response = await api.get<ProduitResponse>(`/produits/${id}`);
+  async getProduitById(id: number, token?: string): Promise<ProduitResponse> {
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    const response = await api.get<ProduitResponse>(`/produits/${id}`, { headers });
     return response.data;
   }
 
-  async updateProduit(id: number, produitData: ProduitFormData): Promise<ProduitResponse> {
+  async updateProduit(id: number, produitData: ProduitFormData, token?: string): Promise<ProduitResponse> {
+    const headers: any = { 'Content-Type': 'multipart/form-data' };
+    if (token) headers.Authorization = `Bearer ${token}`;
     const formData = new FormData();
     formData.append('nom', produitData.nom);
     formData.append('description', produitData.description);
@@ -144,23 +148,24 @@ class ProduitsService {
     if (produitData.variants?.length) formData.append('variants', JSON.stringify(produitData.variants));
     if (produitData.images?.length) produitData.images.forEach(img => formData.append('images', img));
 
-    const response = await api.put<{ data: ProduitResponse }>(`/produits/${id}`, formData, {
-      headers: { 'Content-Type': 'multipart/form-data' }
-    });
+    const response = await api.put<{ data: ProduitResponse }>(`/produits/${id}`, formData, { headers });
     return response.data.data;
   }
 
-  async deleteProduit(id: number): Promise<void> {
-    await api.delete(`/produits/${id}`);
+  async deleteProduit(id: number, token?: string): Promise<void> {
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    await api.delete(`/produits/${id}`, { headers });
   }
 
-  async getTop10BestSellingProduits(): Promise<BestSellingProduit[]> {
-    const response = await api.get<{ data: BestSellingProduit[] }>('/produits/best-sellers');
+  async getTop10BestSellingProduits(token?: string): Promise<BestSellingProduit[]> {
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    const response = await api.get<{ data: BestSellingProduit[] }>('/produits/best-sellers', { headers });
     return response.data.data;
   }
 
-  async deleteImage(imageId: number): Promise<void> {
-    await api.delete(`/produits/images/${imageId}`);
+  async deleteImage(imageId: number, token?: string): Promise<void> {
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    await api.delete(`/produits/images/${imageId}`, { headers });
   }
 }
 

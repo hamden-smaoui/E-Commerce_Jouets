@@ -16,6 +16,7 @@ import CommandesService, {
   CommandeStats 
 } from '@/services/commandes-service';
 import FactureService from '@/services/facture-service';
+import { useSession } from "next-auth/react";
 
 // Status options for select
 const statutOptions = [
@@ -101,6 +102,8 @@ const Commandes: React.FC = () => {
   const [selectedCommandeDetail, setSelectedCommandeDetail] = useState<CommandeResponse | null>(null);
   const [notification, setNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
+const { data: session, status } = useSession();
+const token = session?.customToken;
   useEffect(() => {
     fetchData();
   }, [currentPage, statutFilter]);
@@ -118,7 +121,7 @@ const Commandes: React.FC = () => {
         ...(statutFilter && { statut: statutFilter }),
       };
 
-      const response = await CommandesService.getAllCommandes(params);
+      const response = await CommandesService.getAllCommandes(params,token);
       setCommandes(response.data);
       setTotalPages(response.pagination.totalPages);
       setLoading(false);
@@ -132,7 +135,7 @@ const Commandes: React.FC = () => {
   const fetchStats = async () => {
     try {
       setStatsLoading(true);
-      const statsData = await CommandesService.getCommandeStats();
+      const statsData = await CommandesService.getCommandeStats(token);
       setStats(statsData);
       setStatsLoading(false);
     } catch (error: unknown) {
@@ -473,7 +476,7 @@ const handleCreateFacture = async (idCommande: number) => {
         return;
       }
 
-      const updatedCommande = await CommandesService.updateCommande(data.idCommande, data);
+      const updatedCommande = await CommandesService.updateCommande(data.idCommande, data,token);
       setCommandes(
         commandes.map((commande) =>
           commande.idCommande === data.idCommande ? { ...commande, ...updatedCommande } : commande
@@ -501,7 +504,7 @@ const handleCreateFacture = async (idCommande: number) => {
   const confirmDelete = async () => {
     try {
       for (const id of selectedCommandes) {
-        await CommandesService.deleteCommande(id);
+        await CommandesService.deleteCommande(id,token);
       }
       setCommandes(commandes.filter((commande) => !selectedCommandes.includes(commande.idCommande)));
       setSelectedCommandes([]);
@@ -538,7 +541,7 @@ const handleCreateFacture = async (idCommande: number) => {
 
   const handleEdit = async (commande: CommandeResponse) => {
     try {
-      const fetchedCommande = await CommandesService.getCommandeById(commande.idCommande);
+      const fetchedCommande = await CommandesService.getCommandeById(commande.idCommande,token);
       const newFormData = {
         idCommande: fetchedCommande.idCommande,
         clientPrenom: fetchedCommande.clientPrenom || '',
@@ -566,7 +569,7 @@ const handleCreateFacture = async (idCommande: number) => {
 
   const handleViewDetails = async (commande: CommandeResponse) => {
     try {
-      const fetchedCommande = await CommandesService.getCommandeById(commande.idCommande);
+      const fetchedCommande = await CommandesService.getCommandeById(commande.idCommande,token);
       setSelectedCommandeDetail(fetchedCommande);
       setIsDetailModalOpen(true);
     } catch (error: unknown) {

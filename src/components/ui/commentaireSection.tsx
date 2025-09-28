@@ -1,11 +1,11 @@
 "use client";
 import { useState, useEffect } from 'react';
-import { useAuth } from '@/hooks/useAuth';
+import { useSession } from "next-auth/react";
 import CommentaireService, { Commentaire, CommentairePagination } from '@/services/commentaires-service';
 import { PlusIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/solid';
 import { toast } from 'react-hot-toast';
 
-// ConfirmDeleteModal component
+// ConfirmDeleteModal component inchangé
 const ConfirmDeleteModal = ({ isOpen, onClose, onConfirm }: {
   isOpen: boolean;
   onClose: () => void;
@@ -71,7 +71,11 @@ interface CommentaireComponentProps {
 }
 
 export default function CommentaireComponent({ idProduit }: CommentaireComponentProps) {
-  const { user, isAuthenticated } = useAuth();
+  const { data: session, status } = useSession();
+  const user = session?.userData;
+  const token = session?.customToken;
+  const isAuthenticated = status === "authenticated";
+
   const [commentaires, setCommentaires] = useState<Commentaire[]>([]);
   const [pagination, setPagination] = useState<CommentairePagination['pagination'] | null>(null);
   const [loading, setLoading] = useState(true);
@@ -88,6 +92,7 @@ export default function CommentaireComponent({ idProduit }: CommentaireComponent
 
   useEffect(() => {
     fetchCommentaires(1, true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [idProduit]);
 
   const fetchCommentaires = async (page: number = 1, reset: boolean = false) => {
@@ -128,14 +133,14 @@ export default function CommentaireComponent({ idProduit }: CommentaireComponent
   };
 
   const handleSubmitComment = async () => {
-    if (!newComment.trim() || !isAuthenticated) return;
+    if (!newComment.trim() || !isAuthenticated || !token) return;
 
     try {
       setSubmitting(true);
       const nouveauCommentaire = await CommentaireService.createCommentaire({
         idProduit,
         contenu: newComment.trim()
-      });
+      }, token);
       
       setCommentaires(prev => [nouveauCommentaire, ...prev]);
       setNewComment('');
@@ -154,12 +159,12 @@ export default function CommentaireComponent({ idProduit }: CommentaireComponent
   };
 
   const handleEditComment = async (id: number) => {
-    if (!editContent.trim() || !isAuthenticated) return;
+    if (!editContent.trim() || !isAuthenticated || !token) return;
 
     try {
       const updatedCommentaire = await CommentaireService.updateCommentaire(id, {
         contenu: editContent.trim()
-      });
+      }, token);
       
       setCommentaires(prev => 
         prev.map(comment => 
@@ -177,10 +182,10 @@ export default function CommentaireComponent({ idProduit }: CommentaireComponent
   };
 
   const handleDeleteComment = async () => {
-    if (!commentToDelete || !isAuthenticated) return;
+    if (!commentToDelete || !isAuthenticated || !token) return;
 
     try {
-      await CommentaireService.deleteCommentaire(commentToDelete);
+      await CommentaireService.deleteCommentaire(commentToDelete, token);
       setCommentaires(prev => prev.filter(comment => comment.idCommentaire !== commentToDelete));
       setShowDeleteModal(false);
       setCommentToDelete(null);
@@ -263,7 +268,10 @@ export default function CommentaireComponent({ idProduit }: CommentaireComponent
                 <p className="text-gray-600 mb-3">
                   Connectez-vous pour ajouter un commentaire
                 </p>
-                <button className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                <button
+                  className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  onClick={() => window.location.href = "/signIn"}
+                >
                   Se connecter
                 </button>
               </div>

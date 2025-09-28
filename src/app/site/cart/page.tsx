@@ -20,6 +20,10 @@ import {
   XMarkIcon
 } from '@heroicons/react/24/solid';
 import { useState } from "react";
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
+
 
 const CartItemWithPromotion = ({ item, index, onIncrement, onDecrement, onQuantityChange, onRemove }: any) => {
   const imageUrl = item.produit.images && item.produit.images.length > 0
@@ -178,12 +182,20 @@ function Cart() {
     removeFromCart,
     clearCart 
   } = useCart();
-  
+   const { data: session, status } = useSession();
+  const router = useRouter();
+
   const { storeInfo, loading: storeLoading } = useStoreInfo(); 
   
   const [mounted, setMounted] = useState(false);
 
   const { getTotals, clearTotals, itemTotals, removeItemTotal } = useCartPromotionContext();
+ useEffect(() => {
+    // Si pas connecté, redirige vers /signIn
+    if (status === "unauthenticated") {
+      router.replace("/signIn");
+    }
+  }, [status, router]);
 
   React.useEffect(() => {
     const currentProductIds = cartItems.map(item => item.idProduit);

@@ -15,20 +15,15 @@ import {
   ShoppingCartIcon,
   UserCircleIcon,
 } from "@heroicons/react/24/solid";
-import { useAuth } from '../../hooks/useAuth';
+import { useSession, signOut } from "next-auth/react";
 import { useStoreInfo } from '@/hooks/useStoreInfo';
-
-interface User {
-  prenom?: string;
-  nom?: string;
-  email?: string;
-  role?: string;
-}
 
 const NavBarCentre: React.FC = () => {
   const router = useRouter();
   const { url } = useParams();
-  const { user, logout, isAuthenticated } = useAuth();
+  const { data: session, status } = useSession();
+  const user = session?.userData;
+  const isAuthenticated = status === "authenticated";
   const { storeInfo } = useStoreInfo();
   const [isDropdownOpen, setIsDropdownOpen] = useState<boolean>(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -46,8 +41,6 @@ const NavBarCentre: React.FC = () => {
     };
   }, []);
 
-  
-
   const pathname = typeof window !== 'undefined' ? window.location.pathname : '';
 
   const toggleDropdown = (e: React.MouseEvent) => {
@@ -55,8 +48,8 @@ const NavBarCentre: React.FC = () => {
     setIsDropdownOpen((prev) => !prev);
   };
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await signOut({ redirect: false });
     setIsDropdownOpen(false);
     router.push(`/signIn`);
   };
@@ -67,7 +60,6 @@ const NavBarCentre: React.FC = () => {
         <label htmlFor="my-drawer-2" className="btn btn-ghost drawer-button lg:hidden">
           <Menu size={24} />
         </label>
-       
         <div className="navbar-start">
           <Link href="/site" className="flex items-center">
             {storeInfo?.logo1 ? (
@@ -87,9 +79,6 @@ const NavBarCentre: React.FC = () => {
           </Link>
         </div>
       </div>
-
-     
-    
 
       <div className="navbar-end flex items-center gap-2 md:gap-4">
         <div className="relative" ref={dropdownRef}>

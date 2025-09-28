@@ -13,6 +13,7 @@ import ProduitsService from '@/services/produits-service';
 import CategoriesService from '@/services/categories-service';
 import MarquesService from '@/services/marques-service';
 import {  Copy , ToggleLeft} from 'lucide-react';
+import { useSession } from "next-auth/react";
 
 // Interfaces
 interface Produit {
@@ -98,7 +99,8 @@ const Promotions: React.FC = () => {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [selectedPromotions, setSelectedPromotions] = useState<number[]>([]);
   const [notification, setNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
-
+ const { data: session, status } = useSession();
+  const token = session?.customToken;
   const [formData, setFormData] = useState<FormData>({
     idPromotion: null,
     nom: '',
@@ -127,10 +129,10 @@ const Promotions: React.FC = () => {
           fetchedCategories,
           fetchedMarques
         ] = await Promise.all([
-          PromotionsService.getAllPromotions(),
-          ProduitsService.getAllProduits(),
-          CategoriesService.getAllCategories(),
-          MarquesService.getAllMarques(),
+          PromotionsService.getAllPromotions(token),
+          ProduitsService.getAllProduits(token),
+          CategoriesService.getAllCategories(token),
+          MarquesService.getAllMarques(token),
         ]);
 
         setPromotions(fetchedPromotions);
@@ -588,7 +590,7 @@ const Promotions: React.FC = () => {
        types: data.types,
      };
 
-     const newPromotion = await PromotionsService.createPromotion(promotionData);
+     const newPromotion = await PromotionsService.createPromotion(promotionData,token);
      setPromotions([...promotions, newPromotion]);
      setIsAddModalOpen(false);
      resetForm();
@@ -633,7 +635,7 @@ const Promotions: React.FC = () => {
        types: data.types,
      };
 
-     const updatedPromotion = await PromotionsService.updatePromotion(data.idPromotion, promotionData);
+     const updatedPromotion = await PromotionsService.updatePromotion(data.idPromotion, promotionData,token);
      setPromotions(promotions.map(p => p.idPromotion === data.idPromotion ? updatedPromotion : p));
      setIsEditModalOpen(false);
      resetForm();
@@ -657,7 +659,7 @@ const Promotions: React.FC = () => {
  const confirmDelete = async () => {
    try {
      for (const id of selectedPromotions) {
-       await PromotionsService.deletePromotion(id);
+       await PromotionsService.deletePromotion(id,token);
      }
      setPromotions(promotions.filter(p => !selectedPromotions.includes(p.idPromotion)));
      setSelectedPromotions([]);
@@ -677,7 +679,7 @@ const Promotions: React.FC = () => {
 
  const handleToggleStatus = async (promotion: PromotionResponse) => {
    try {
-     const updatedPromotion = await PromotionsService.togglePromotion(promotion.idPromotion);
+     const updatedPromotion = await PromotionsService.togglePromotion(promotion.idPromotion,token);
      setPromotions(promotions.map(p => 
        p.idPromotion === promotion.idPromotion ? updatedPromotion : p
      ));
@@ -696,7 +698,7 @@ const Promotions: React.FC = () => {
 
  const handleDuplicate = async (promotion: PromotionResponse) => {
    try {
-     const duplicatedPromotion = await PromotionsService.dupliquerPromotion(promotion.idPromotion);
+     const duplicatedPromotion = await PromotionsService.dupliquerPromotion(promotion.idPromotion,token);
      setPromotions([...promotions, duplicatedPromotion]);
      setNotification({
        type: 'success',
@@ -739,7 +741,7 @@ const Promotions: React.FC = () => {
 
  const handleEdit = async (promotion: PromotionResponse) => {
    try {
-     const fetchedPromotion = await PromotionsService.getPromotionById(promotion.idPromotion);
+     const fetchedPromotion = await PromotionsService.getPromotionById(promotion.idPromotion,token);
      
      setFormData({
        idPromotion: fetchedPromotion.idPromotion,

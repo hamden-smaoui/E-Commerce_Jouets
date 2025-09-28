@@ -10,6 +10,7 @@ import MarquesService from '@/services/marques-service';
 import imageCompression from 'browser-image-compression';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faEdit, faTrash } from '@fortawesome/free-solid-svg-icons';
+import { useSession } from "next-auth/react";
 
 // Backend base URL for images
 const BACKEND_BASE_URL = 'http://localhost:3001';
@@ -83,13 +84,14 @@ const Marques: React.FC = () => {
   const [notification, setNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [formKey, setFormKey] = useState(0);
   const [imageKey, setImageKey] = useState(0);
-
+const { data: session, status } = useSession();
+const token = session?.customToken;
   // Fetch marques on component mount
   useEffect(() => {
     const fetchMarques = async () => {
       try {
         setLoading(true);
-        const fetchedMarques = await MarquesService.getAllMarques();
+        const fetchedMarques = await MarquesService.getAllMarques(token);
         setMarques(fetchedMarques);
         setError(null);
       } catch (error: unknown) {
@@ -357,7 +359,7 @@ const marqueFields: Field<FormData>[] = [
         console.log('Logo ajouté au FormData:', data.logo);
       }
 
-      const newMarque = await MarquesService.createMarque(formDataToSend);
+      const newMarque = await MarquesService.createMarque(formDataToSend,token);
       console.log('Nouvelle marque créée:', newMarque);
 
       setMarques([...marques, newMarque]);
@@ -411,7 +413,7 @@ const marqueFields: Field<FormData>[] = [
         console.log('Logo de modification ajouté:', data.logo);
       }
 
-      const updatedMarque = await MarquesService.updateMarque(data.idMarque, formDataToSend);
+      const updatedMarque = await MarquesService.updateMarque(data.idMarque, formDataToSend,token);
       console.log('Marque mise à jour:', updatedMarque);
 
       setMarques(marques.map((marque) => (marque.idMarque === data.idMarque ? updatedMarque : marque)));
@@ -446,7 +448,7 @@ const marqueFields: Field<FormData>[] = [
   const confirmDelete = async () => {
     try {
       for (const id of selectedMarques) {
-        await MarquesService.deleteMarque(id);
+        await MarquesService.deleteMarque(id,token);
       }
       setMarques(marques.filter((marque) => !selectedMarques.includes(marque.idMarque)));
       setSelectedMarques([]);
@@ -500,7 +502,7 @@ const marqueFields: Field<FormData>[] = [
 
   const handleEdit = async (marque: Marque) => {
     try {
-      const fetchedMarque = await MarquesService.getMarqueById(marque.idMarque);
+      const fetchedMarque = await MarquesService.getMarqueById(marque.idMarque,token);
       console.log('Marque récupérée pour modification:', fetchedMarque);
 
       // Nettoyer le previewUrl précédent

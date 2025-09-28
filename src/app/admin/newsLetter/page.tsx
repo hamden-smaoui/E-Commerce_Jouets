@@ -7,6 +7,7 @@ import HeaderCardComponent from '@/components/layout/HeaderCardComponent';
 import Notification from '@/components/layout/Notification';
 import FormModal from '@/components/layout/FormModal';
 import ConfirmDeleteModal from '@/components/layout/ConfirmDeleteModal';
+import { useSession } from "next-auth/react";
 
 interface Field<T> {
   name: keyof T;
@@ -54,12 +55,13 @@ const NewsletterAdmin: React.FC = () => {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [formData, setFormData] = useState<NewsletterFormData>({ email: '' });
-
+  const { data: session, status } = useSession();
+  const token = session?.customToken;
   useEffect(() => {
     const fetchEntries = async () => {
       try {
         setLoading(true);
-        const data = await NewsletterService.getAllEntries();
+        const data = await NewsletterService.getAllEntries(token);
         setEntries(data);
       } catch (error: any) {
         setNotification({ type: 'error', message: error.message });
@@ -82,7 +84,7 @@ const NewsletterAdmin: React.FC = () => {
     try {
       for (const id of selected) {
         const entry = entries.find(e => e.idNewsletter === id);
-        if (entry) await NewsletterService.unsubscribe(entry.email);
+        if (entry) await NewsletterService.unsubscribe(entry.email,token);
       }
       setEntries(entries.filter(e => !selected.includes(e.idNewsletter)));
       setSelected([]);

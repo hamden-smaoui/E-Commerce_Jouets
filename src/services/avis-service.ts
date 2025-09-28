@@ -32,8 +32,10 @@ export interface CreateAvisData {
 }
 
 class AvisService {
-  async createOrUpdateAvis(avisData: CreateAvisData): Promise<Avis> {
-    const response = await api.post<{ data: Avis }>('/avis', avisData);
+  async createOrUpdateAvis(avisData: CreateAvisData, token?: string): Promise<Avis> {
+    const response = await api.post<{ data: Avis }>('/avis', avisData, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
     return response.data.data;
   }
 
@@ -47,9 +49,11 @@ class AvisService {
     return response.data;
   }
 
-  async getMonAvis(idProduit: number): Promise<Avis | null> {
+  async getMonAvis(idProduit: number, token?: string): Promise<Avis | null> {
     try {
-      const response = await api.get<Avis>(`/avis/mon-avis/${idProduit}`);
+      const response = await api.get<Avis>(`/avis/mon-avis/${idProduit}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
       return response.data;
     } catch (error: any) {
       if (error.response?.status === 404) return null;
@@ -57,8 +61,10 @@ class AvisService {
     }
   }
 
-  async deleteAvis(idAvis: number): Promise<void> {
-    await api.delete(`/avis/${idAvis}`);
+  async deleteAvis(idAvis: number, token?: string): Promise<void> {
+    await api.delete(`/avis/${idAvis}`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
   }
 }
 

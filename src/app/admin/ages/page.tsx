@@ -7,6 +7,8 @@ import FormModal from '@/components/layout/FormModal';
 import Notification from '@/components/layout/Notification';
 import ConfirmDeleteModal from '@/components/layout/ConfirmDeleteModal';
 import AgesService, { Age, AgeFormData } from '@/services/ages-service';
+import { useSession } from "next-auth/react";
+
 
 interface FormData {
   idAge: number | null;
@@ -58,12 +60,14 @@ const Ages: React.FC = () => {
   const [notification, setNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [formKey, setFormKey] = useState(0);
 
-  // Fetch ages on component mount
+const { data: session, status } = useSession();
+const token = session?.customToken;
+  
   useEffect(() => {
     const fetchAges = async () => {
       try {
         setLoading(true);
-        const fetchedAges = await AgesService.getAllAges();
+        const fetchedAges = await AgesService.getAllAges(token);
         setAges(fetchedAges);
         setError(null);
       } catch (error: unknown) {
@@ -203,7 +207,7 @@ const Ages: React.FC = () => {
         typeAge: data.typeAge,
         label: data.label,
       };
-      const newAge = await AgesService.createAge(ageData);
+      const newAge = await AgesService.createAge(ageData,token);
       setAges([...ages, newAge]);
       setIsAddModalOpen(false);
 
@@ -246,7 +250,7 @@ const Ages: React.FC = () => {
         typeAge: data.typeAge,
         label: data.label,
       };
-      const updatedAge = await AgesService.updateAge(data.idAge, ageData);
+      const updatedAge = await AgesService.updateAge(data.idAge, ageData,token);
 
       setAges(ages.map((age) => (age.idAge === data.idAge ? updatedAge : age)));
       setIsEditModalOpen(false);
@@ -273,7 +277,7 @@ const Ages: React.FC = () => {
   const confirmDelete = async () => {
     try {
       for (const id of selectedAges) {
-        await AgesService.deleteAge(id);
+        await AgesService.deleteAge(id,token);
       }
       setAges(ages.filter((age) => !selectedAges.includes(age.idAge)));
       setSelectedAges([]);
@@ -322,7 +326,7 @@ const Ages: React.FC = () => {
 
   const handleEdit = async (age: Age) => {
     try {
-      const fetchedAge = await AgesService.getAgeById(age.idAge);
+      const fetchedAge = await AgesService.getAgeById(age.idAge,token);
 
       setFormData({
         idAge: fetchedAge.idAge,

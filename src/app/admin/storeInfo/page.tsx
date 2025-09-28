@@ -6,6 +6,7 @@ import StoreInfoService, { StoreInfo, StoreInfoFormData } from '@/services/store
 import Image from 'next/image';
 import Notification from '@/components/layout/Notification';
 import KidsCornerLoader from '@/components/ui/KidsCornerLoader';
+import { useSession } from "next-auth/react";
 
 const StoreInfoPage: NextPage = () => {
   const [storeInfo, setStoreInfo] = useState<StoreInfo | null>(null);
@@ -44,6 +45,8 @@ const StoreInfoPage: NextPage = () => {
     seuilLivraisonGratuite:100,
     entrepriseSiret: '',
   });
+   const { data: session, status } = useSession();
+    const token = session?.customToken;
   // Ajout pour images promotion
   const [newImages, setNewImages] = useState<File[]>([]);
   const [imagesToDelete, setImagesToDelete] = useState<number[]>([]);
@@ -175,9 +178,9 @@ const StoreInfoPage: NextPage = () => {
 
       let result: StoreInfo;
       if (storeInfo?.idStoreInfo) {
-        result = await StoreInfoService.updateStoreInfo(storeInfo.idStoreInfo, submitData);
+        result = await StoreInfoService.updateStoreInfo(storeInfo.idStoreInfo, submitData,token);
       } else {
-        result = await StoreInfoService.createStoreInfo(submitData);
+        result = await StoreInfoService.createStoreInfo(submitData,token);
       }
 
       setStoreInfo(result);

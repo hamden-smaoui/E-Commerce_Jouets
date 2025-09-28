@@ -2,6 +2,7 @@
 import TopBarWrapper from "@/components/layout/TopBarWrapper";
 import Navbar from "@/components/layout/Navbar";
 
+
 export default function SiteShell({ children }: { children: React.ReactNode }) {
   return (
     <>

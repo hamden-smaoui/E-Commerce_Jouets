@@ -1,9 +1,9 @@
-// hooks/useCart.ts
 "use client";
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import PanierService, { Cart, CartItem } from "@/services/panier-service";
-import { useAuth } from "./useAuth";
+import { useSession } from "next-auth/react";
 import { toast } from "react-hot-toast";
+import { useRouter } from "next/navigation";
 
 interface CartContextType {
   cart: Cart | null;
@@ -25,7 +25,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const [cart, setCart] = useState<Cart | null>(null);
   const [loading, setLoading] = useState(false);
   const [mounted, setMounted] = useState(false);
-  const { isAuthenticated } = useAuth();
+  const router = useRouter();
+
+  const { status, data: session } = useSession();
+  const isAuthenticated = status === "authenticated";
+  const token = session?.customToken;
 
   useEffect(() => {
     setMounted(true);
@@ -33,40 +37,33 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const cartItems = cart?.produits || [];
   const totalItems = cartItems.reduce((sum, item) => sum + item.quantite, 0);
-  
-  // Utiliser le prix unitaire stocké dans le panier
-  const totalPrice = cartItems.reduce(
-    (sum, item) => sum + item.quantite * item.prixUnitaire,
-    0
-  );
+  const totalPrice = cartItems.reduce((sum, item) => sum + item.quantite * item.prixUnitaire, 0);
 
   const refreshCart = async () => {
-    if (!mounted || !isAuthenticated) {
+    if (!mounted || !isAuthenticated || !token) {
       setCart(null);
       return;
     }
-
     try {
       setLoading(true);
-      const cartData = await PanierService.getPanier();
+      const cartData = await PanierService.getPanier(token);
       setCart(cartData);
-      console.log("Panier chargé avec succès:", cartData);
     } catch (error) {
-      console.error("Erreur lors du chargement du panier:", error);
-      toast.error("Erreur lors du chargement du panier");
+      setCart(null); // always reset if error
+      if (isAuthenticated) toast.error("Erreur lors du chargement du panier");
     } finally {
       setLoading(false);
     }
   };
 
   const addToCart = async (idProduit: number, quantite: number = 1, variationId?: number) => {
-    if (!isAuthenticated) {
+    if (!isAuthenticated || !token) {
       toast.error("Vous devez être connecté pour ajouter des produits au panier");
+      router.push("/signIn");
       return;
     }
-
     try {
-      await PanierService.ajouterProduit(idProduit, quantite, variationId);
+      await PanierService.ajouterProduit(idProduit, quantite, variationId, token);
       await refreshCart();
       toast.success("Produit ajouté au panier");
     } catch (error: any) {
@@ -76,10 +73,14 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  // CORRECTION: Fonction updateQuantity corrigée pour correspondre au service
   const updateQuantity = async (idProduit: number, quantite: number, idProduitVariation?: number) => {
+    if (!isAuthenticated || !token) {
+      toast.error("Vous devez être connecté pour modifier le panier");
+      router.push("/signIn");
+      return;
+    }
     try {
-      await PanierService.modifierQuantite(idProduit, quantite, idProduitVariation);
+      await PanierService.modifierQuantite(idProduit, quantite, idProduitVariation, token);
       await refreshCart();
     } catch (error: any) {
       const message = error.message || "Erreur lors de la modification";
@@ -89,9 +90,13 @@ export function CartProvider({ children }: { children: ReactNode }) {
   };
 
   const removeFromCart = async (idPanierProduit: number) => {
+    if (!isAuthenticated || !token) {
+      toast.error("Vous devez être connecté pour retirer du panier");
+      router.push("/signIn");
+      return;
+    }
     try {
-      console.log("Suppression du produit avec idPanierProduit:", idPanierProduit);
-      await PanierService.retirerProduit(idPanierProduit);
+      await PanierService.retirerProduit(idPanierProduit, token);
       await refreshCart();
       toast.success("Produit retiré du panier");
     } catch (error: any) {
@@ -102,8 +107,13 @@ export function CartProvider({ children }: { children: ReactNode }) {
   };
 
   const clearCart = async () => {
+    if (!isAuthenticated || !token) {
+      toast.error("Vous devez être connecté pour vider le panier");
+      router.push("/signIn");
+      return;
+    }
     try {
-      await PanierService.viderPanier();
+      await PanierService.viderPanier(token);
       await refreshCart();
       toast.success("Panier vidé");
     } catch (error: any) {
@@ -114,8 +124,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
   };
 
   const clearCartWithoutToast = async () => {
+    if (!isAuthenticated || !token) return;
     try {
-      await PanierService.viderPanier();
+      await PanierService.viderPanier(token);
       await refreshCart();
     } catch (error: any) {
       const message = error.message || "Erreur lors du vidage du panier";
@@ -125,12 +136,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
-    if (mounted && isAuthenticated) {
+    if (mounted && isAuthenticated && token) {
       refreshCart();
     } else if (mounted && !isAuthenticated) {
       setCart(null);
     }
-  }, [mounted, isAuthenticated]);
+  }, [mounted, isAuthenticated, token]);
 
   return (
     <CartContext.Provider

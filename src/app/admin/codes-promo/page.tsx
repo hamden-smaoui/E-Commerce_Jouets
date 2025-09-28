@@ -8,6 +8,7 @@ import Notification from '@/components/layout/Notification';
 import ConfirmDeleteModal  from '@/components/layout/ConfirmDeleteModal';
 import CodesPromoService, { CodePromo, CodePromoFormData } from '@/services/codes-promo-service';
 import { ToggleLeft } from 'lucide-react';
+import { useSession } from "next-auth/react";
 
 interface FormData {
   idCodePromo: number | null;
@@ -113,6 +114,8 @@ const CodesPromo: React.FC = () => {
     actif: true,
   });
 
+const { data: session, status } = useSession();
+const token = session?.customToken;
   useEffect(() => {
     fetchCodesPromo();
     // eslint-disable-next-line
@@ -125,7 +128,7 @@ const CodesPromo: React.FC = () => {
         page: currentPage,
         limit: itemsPerPage,
         search: searchTerm.trim() || undefined,
-      });
+      },token);
       setCodesPromo(response.data);
       setTotalPages(response.pagination.totalPages);
       setTotalItems(response.pagination.total);
@@ -208,7 +211,7 @@ const CodesPromo: React.FC = () => {
         utilisationMax: data.utilisationMax,
         actif: data.actif,
       };
-      await CodesPromoService.createCodePromo(codePromoData);
+      await CodesPromoService.createCodePromo(codePromoData,token);
       await fetchCodesPromo();
       setIsAddModalOpen(false);
       resetForm();
@@ -237,7 +240,7 @@ const CodesPromo: React.FC = () => {
         utilisationMax: data.utilisationMax,
         actif: data.actif,
       };
-      await CodesPromoService.updateCodePromo(data.idCodePromo, codePromoData);
+      await CodesPromoService.updateCodePromo(data.idCodePromo, codePromoData,token);
       await fetchCodesPromo();
       setIsEditModalOpen(false);
       resetForm();
@@ -259,7 +262,7 @@ const CodesPromo: React.FC = () => {
   const confirmDelete = async () => {
     try {
       for (const id of selectedCodesPromo) {
-        await CodesPromoService.deleteCodePromo(id);
+        await CodesPromoService.deleteCodePromo(id,token);
       }
       await fetchCodesPromo();
       setSelectedCodesPromo([]);
@@ -279,7 +282,7 @@ const CodesPromo: React.FC = () => {
 
   const handleToggleStatus = async (codePromo: CodePromo) => {
     try {
-      await CodesPromoService.toggleCodePromo(codePromo.idCodePromo);
+      await CodesPromoService.toggleCodePromo(codePromo.idCodePromo,token);
       await fetchCodesPromo();
       setNotification({
         type: 'success',
@@ -311,7 +314,7 @@ const CodesPromo: React.FC = () => {
 
   const handleEdit = async (codePromo: CodePromo) => {
     try {
-      const fetchedCodePromo = await CodesPromoService.getCodePromoById(codePromo.idCodePromo);
+      const fetchedCodePromo = await CodesPromoService.getCodePromoById(codePromo.idCodePromo,token);
       setFormData({
         idCodePromo: fetchedCodePromo.idCodePromo,
         code: fetchedCodePromo.code,
