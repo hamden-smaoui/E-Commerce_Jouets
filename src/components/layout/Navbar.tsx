@@ -32,6 +32,10 @@ export default function Navbar() {
   const router = useRouter();
   const { favorites } = useFavorites();
 
+  // LOGO LOADING STATE
+  const [logoLoading, setLogoLoading] = useState(true); // Loader visible at first
+  const [logoError, setLogoError] = useState(false);
+
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
@@ -66,20 +70,38 @@ export default function Navbar() {
         {/* First Line: Logo and Icons on Mobile */}
         <div className="flex items-center justify-between w-full md:justify-start md:w-auto">
           <Link href="/site" className="flex items-center">
-            {storeInfo?.logo1 ? (
-              <div className="relative h-16 w-auto sm:h-20 ">
-                <Image 
+            {/* Logo Loader then Logo then Default fallback */}
+            <div className="relative h-16 w-auto sm:h-20 min-w-[80px]">
+              {logoLoading && (
+                <div className="absolute inset-0 flex items-center justify-center z-10 bg-white">
+                  <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-pink-500"></div>
+                </div>
+              )}
+              {storeInfo?.logo1 && !logoError ? (
+                <Image
                   src={`http://localhost:3001${storeInfo.logo1}`}
                   alt={storeInfo.nom || "Logo"}
                   height={80}
                   width={240}
-                  className="h-16 w-auto sm:h-20 object-contain "
+                  className={`h-16 w-auto sm:h-20 object-contain transition-opacity duration-500 ${logoLoading ? "opacity-0" : "opacity-100"}`}
                   priority
+                  onLoad={() => setLogoLoading(false)}
+                  onError={() => {
+                    setLogoLoading(false);
+                    setLogoError(true);
+                  }}
                 />
-              </div>
-            ) : (
-              <img src="/images/logoBamby.png" alt="Bamby Joy" className="h-16 w-auto sm:h-20 " />
-            )}
+              ) : (
+                // Default logo fallback (only if logoError is true or logo1 is missing)
+                !logoLoading && (
+                  <img
+                    src="/images/logoBamby.png"
+                    alt="Bamby Joy"
+                    className="h-16 w-auto sm:h-20 object-contain transition-opacity duration-500 opacity-100"
+                  />
+                )
+              )}
+            </div>
           </Link>
           <div className="flex space-x-2 md:hidden">
             <Link href="/site/contact" className="btn btn-ghost btn-circle btn-sm bg-pink-100 hover:bg-pink-200 transition-all" title="Contact">

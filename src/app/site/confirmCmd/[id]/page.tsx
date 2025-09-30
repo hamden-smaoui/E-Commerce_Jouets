@@ -196,20 +196,7 @@ function CommandeConfirmation() {
     );
   }
 
-  if (error) {
-    return (
-      <div className="min-h-screen bg-white px-4 py-6 flex items-center justify-center">
-        <div className="text-center max-w-md mx-auto">
-          <ExclamationTriangleIcon className="w-12 sm:w-16 h-12 sm:h-16 text-red-500 mx-auto mb-4" />
-          <h2 className="text-xl sm:text-2xl font-bold text-red-600 mb-2">Erreur</h2>
-          <p className="text-gray-600 mb-4 text-sm sm:text-base">{error}</p>
-          <Link href="/site" className="bg-purple-600 text-white px-4 sm:px-6 py-2 rounded hover:bg-purple-700 text-sm sm:text-base">
-            Retour à l'accueil
-          </Link>
-        </div>
-      </div>
-    );
-  }
+ 
 
   if (!commande) {
     return (

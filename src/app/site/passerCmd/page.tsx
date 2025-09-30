@@ -219,6 +219,35 @@ useEffect(() => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email);
   };
+  const validateField = (name:any, value:any) => {
+  switch (name) {
+    case 'clientPrenom':
+    case 'clientNom':
+      return value.trim().length < 2;
+    case 'clientTelephone':
+      return value.trim().length < 6;
+    case 'clientEmail':
+      return value && !isValidEmail(value);
+    case 'clientAdresseRue':
+      return value.trim().length < 4;
+    case 'clientAdresseVille':
+      return value.trim().length < 2;
+    case 'clientAdresseCodePostal':
+      return value.trim().length < 2;
+    case 'notesLivraison':
+      return value.length > 300;
+    default:
+      return false;
+  }
+};
+
+const handleBlur = (e:any) => {
+  const { name, value } = e.target;
+  setErrors(prev => ({
+    ...prev,
+    [name]: validateField(name, value)
+  }));
+};
   const formatVariation = (variation: any) => {
     if (!variation) return '';
     const { couleur, taille, age } = variation;
@@ -342,158 +371,215 @@ useEffect(() => {
                 <p className="text-sm text-gray-600 mt-1">Les champs marqués d'un * sont obligatoires</p>
               </div>
               <div className="p-6">
-                <form onSubmit={handleSubmit} className="space-y-6">
-                  {/* Informations personnelles */}
-                  <div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Prénom *
-                          {errors.clientPrenom && <span className="text-red-500 ml-1">- Requis</span>}
-                        </label>
-                        <input
-                          type="text"
-                          name="clientPrenom"
-                          value={formData.clientPrenom}
-                          onChange={handleInputChange}
-                          className={getInputClassName('clientPrenom')}
-                          required
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Nom *
-                          {errors.clientNom && <span className="text-red-500 ml-1">- Requis</span>}
-                        </label>
-                        <input
-                          type="text"
-                          name="clientNom"
-                          value={formData.clientNom}
-                          onChange={handleInputChange}
-                          className={getInputClassName('clientNom')}
-                          required
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Email
-                          {errors.clientEmail && <span className="text-red-500 ml-1">- Format invalide</span>}
-                        </label>
-                        <input
-                          type="email"
-                          name="clientEmail"
-                          value={formData.clientEmail}
-                          onChange={handleInputChange}
-                          className={getInputClassName('clientEmail')}
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Téléphone *
-                          {errors.clientTelephone && <span className="text-red-500 ml-1">- Requis</span>}
-                        </label>
-                        <input
-                          type="tel"
-                          name="clientTelephone"
-                          value={formData.clientTelephone}
-                          onChange={handleInputChange}
-                          className={getInputClassName('clientTelephone')}
-                          required
-                        />
-                      </div>
-                    </div>
-                  </div>
-                  {/* Adresse de livraison */}
-                  <div>
-                    <h3 className="text-lg font-semibold mb-3 text-gray-900">Adresse de livraison</h3>
-                    <div className="space-y-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Adresse complète *
-                          {errors.clientAdresseRue && <span className="text-red-500 ml-1">- Requis</span>}
-                        </label>
-                        <input
-                          type="text"
-                          name="clientAdresseRue"
-                          value={formData.clientAdresseRue}
-                          onChange={handleInputChange}
-                          className={getInputClassName('clientAdresseRue')}
-                          placeholder="Rue, numéro, appartement..."
-                          required
-                        />
-                      </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Ville *
-                            {errors.clientAdresseVille && <span className="text-red-500 ml-1">- Requis</span>}
-                          </label>
-                          <input
-                            type="text"
-                            name="clientAdresseVille"
-                            value={formData.clientAdresseVille}
-                            onChange={handleInputChange}
-                            className={getInputClassName('clientAdresseVille')}
-                            required
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Code postal *
-                            {errors.clientAdresseCodePostal && <span className="text-red-500 ml-1">- Requis</span>}
-                          </label>
-                          <input
-                            type="text"
-                            name="clientAdresseCodePostal"
-                            value={formData.clientAdresseCodePostal}
-                            onChange={handleInputChange}
-                            className={getInputClassName('clientAdresseCodePostal')}
-                            required
-                          />
-                        </div>
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Pays *</label>
-                        <select
-                          name="clientAdressePays"
-                          value={formData.clientAdressePays}
-                          onChange={handleInputChange}
-                          className="w-full border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm"
-                          required
-                        >
-                          <option value="Tunisie">Tunisie</option>
-                        </select>
-                      </div>
-                    </div>
-                  </div>
-                  {/* Mode de paiement */}
-                  <div>
-                    <h3 className="text-lg font-semibold mb-3 text-gray-900">Mode de paiement</h3>
-                    <div className="bg-gray-50 rounded-lg p-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
-                          <BanknotesIcon className="w-5 h-5 text-green-600" />
-                        </div>
-                        <div>
-                          <p className="font-medium text-gray-900">Paiement à la livraison</p>
-                          <p className="text-sm text-gray-600">Payez en espèces lors de la réception de votre commande</p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  {/* Notes additionnelles */}
-                  <div>
-                    <h3 className="text-lg font-semibold mb-3 text-gray-900">Notes de livraison</h3>
-                    <textarea
-                      name="notesLivraison"
-                      value={formData.notesLivraison}
-                      onChange={handleInputChange}
-                      className="w-full border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm"
-                      rows={3}
-                      placeholder="Instructions de livraison, commentaires..."
-                    />
-                  </div>
-                </form>
+<form onSubmit={handleSubmit} className="space-y-6" noValidate>
+  {/* Informations personnelles */}
+  <div>
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          Prénom *
+          {errors.clientPrenom && <span className="text-red-500 ml-1">- Au moins 2 caractères</span>}
+        </label>
+        <input
+          type="text"
+          name="clientPrenom"
+          value={formData.clientPrenom}
+          onChange={handleInputChange}
+          onBlur={handleBlur}
+          className={`w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 text-sm transition-colors ${
+            errors.clientPrenom ? "border-red-500 focus:ring-red-500 bg-red-50" : "border-gray-200 focus:ring-purple-500"
+          }`}
+          
+          maxLength={50}
+        />
+        {errors.clientPrenom && (
+          <p className="text-red-500 text-xs mt-1">Le prénom doit contenir au moins 2 caractères.</p>
+        )}
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          Nom *
+          {errors.clientNom && <span className="text-red-500 ml-1">- Au moins 2 caractères</span>}
+        </label>
+        <input
+          type="text"
+          name="clientNom"
+          value={formData.clientNom}
+          onChange={handleInputChange}
+          onBlur={handleBlur}
+          className={`w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 text-sm transition-colors ${
+            errors.clientNom ? "border-red-500 focus:ring-red-500 bg-red-50" : "border-gray-200 focus:ring-purple-500"
+          }`}
+          
+          maxLength={50}
+        />
+        {errors.clientNom && (
+          <p className="text-red-500 text-xs mt-1">Le nom doit contenir au moins 2 caractères.</p>
+        )}
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          Email
+          {errors.clientEmail && <span className="text-red-500 ml-1">- Format invalide</span>}
+        </label>
+        <input
+          type="email"
+          name="clientEmail"
+          value={formData.clientEmail}
+          onChange={handleInputChange}
+          onBlur={handleBlur}
+          className={`w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 text-sm transition-colors ${
+            errors.clientEmail ? "border-red-500 focus:ring-red-500 bg-red-50" : "border-gray-200 focus:ring-purple-500"
+          }`}
+          maxLength={80}
+        />
+        {errors.clientEmail && (
+          <p className="text-red-500 text-xs mt-1">Format d'email invalide.</p>
+        )}
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          Téléphone *
+          {errors.clientTelephone && <span className="text-red-500 ml-1">- Au moins 6 chiffres</span>}
+        </label>
+        <input
+          type="tel"
+          name="clientTelephone"
+          value={formData.clientTelephone}
+          onChange={handleInputChange}
+          onBlur={handleBlur}
+          className={`w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 text-sm transition-colors ${
+            errors.clientTelephone ? "border-red-500 focus:ring-red-500 bg-red-50" : "border-gray-200 focus:ring-purple-500"
+          }`}
+          
+          maxLength={20}
+        />
+        {errors.clientTelephone && (
+          <p className="text-red-500 text-xs mt-1">Le téléphone doit contenir au moins 6 chiffres.</p>
+        )}
+      </div>
+    </div>
+  </div>
+  {/* Adresse de livraison */}
+  <div>
+    <h3 className="text-lg font-semibold mb-3 text-gray-900">Adresse de livraison</h3>
+    <div className="space-y-4">
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          Adresse complète *
+          {errors.clientAdresseRue && <span className="text-red-500 ml-1">- Au moins 4 caractères</span>}
+        </label>
+        <input
+          type="text"
+          name="clientAdresseRue"
+          value={formData.clientAdresseRue}
+          onChange={handleInputChange}
+          onBlur={handleBlur}
+          className={`w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 text-sm transition-colors ${
+            errors.clientAdresseRue ? "border-red-500 focus:ring-red-500 bg-red-50" : "border-gray-200 focus:ring-purple-500"
+          }`}
+          placeholder="Rue, numéro, appartement..."
+          
+          maxLength={100}
+        />
+        {errors.clientAdresseRue && (
+          <p className="text-red-500 text-xs mt-1">L'adresse doit contenir au moins 4 caractères.</p>
+        )}
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Ville *
+            {errors.clientAdresseVille && <span className="text-red-500 ml-1">- Au moins 2 caractères</span>}
+          </label>
+          <input
+            type="text"
+            name="clientAdresseVille"
+            value={formData.clientAdresseVille}
+            onChange={handleInputChange}
+            onBlur={handleBlur}
+            className={`w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 text-sm transition-colors ${
+              errors.clientAdresseVille ? "border-red-500 focus:ring-red-500 bg-red-50" : "border-gray-200 focus:ring-purple-500"
+            }`}
+            
+            maxLength={50}
+          />
+          {errors.clientAdresseVille && (
+            <p className="text-red-500 text-xs mt-1">La ville doit contenir au moins 2 caractères.</p>
+          )}
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Code postal *
+            {errors.clientAdresseCodePostal && <span className="text-red-500 ml-1">- Au moins 2 caractères</span>}
+          </label>
+          <input
+            type="text"
+            name="clientAdresseCodePostal"
+            value={formData.clientAdresseCodePostal}
+            onChange={handleInputChange}
+            onBlur={handleBlur}
+            className={`w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 text-sm transition-colors ${
+              errors.clientAdresseCodePostal ? "border-red-500 focus:ring-red-500 bg-red-50" : "border-gray-200 focus:ring-purple-500"
+            }`}
+            
+            maxLength={12}
+          />
+          {errors.clientAdresseCodePostal && (
+            <p className="text-red-500 text-xs mt-1">Le code postal doit contenir au moins 2 caractères.</p>
+          )}
+        </div>
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Pays *</label>
+        <select
+          name="clientAdressePays"
+          value={formData.clientAdressePays}
+          onChange={handleInputChange}
+          onBlur={handleBlur}
+          className="w-full border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm"
+          
+        >
+          <option value="Tunisie">Tunisie</option>
+        </select>
+      </div>
+    </div>
+  </div>
+  {/* Notes additionnelles */}
+  <div>
+    <h3 className="text-lg font-semibold mb-3 text-gray-900">Notes de livraison</h3>
+    <textarea
+      name="notesLivraison"
+      value={formData.notesLivraison}
+      onChange={handleInputChange}
+      onBlur={handleBlur}
+      className={`w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 text-sm transition-colors ${
+        errors.notesLivraison ? "border-red-500 focus:ring-red-500 bg-red-50" : "border-gray-200 focus:ring-purple-500"
+      }`}
+      rows={3}
+      placeholder="Instructions de livraison, commentaires..."
+      maxLength={300}
+    />
+    {errors.notesLivraison && (
+      <p className="text-red-500 text-xs mt-1">Trop long ou invalide.</p>
+    )}
+  </div>
+  {/* Bouton de soumission */}
+  <button 
+    type="submit"
+    disabled={loading}
+    className="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white py-4 rounded-xl hover:from-purple-700 hover:to-blue-700 font-semibold transition-all transform hover:scale-105 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed mt-6"
+  >
+    {loading ? (
+      <div className="flex items-center justify-center gap-2">
+        <div className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full"></div>
+        Traitement...
+      </div>
+    ) : (
+      `Confirmer la commande`
+    )}
+  </button>
+</form>
               </div>
             </div>
             <div className="mt-6">

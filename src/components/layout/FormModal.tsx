@@ -2,7 +2,6 @@
 
 import React, { useState } from 'react';
 
-// Define TypeScript interfaces for validation and field configuration
 interface Validation {
   required?: boolean;
   min?: number;
@@ -28,7 +27,6 @@ interface Field<T> {
   disabled?: boolean;
 }
 
-// Define generic FormModalProps
 interface FormModalProps<T> {
   isOpen: boolean;
   onClose: () => void;
@@ -36,7 +34,7 @@ interface FormModalProps<T> {
   fields: Field<T>[];
   formData: T;
   setFormData: React.Dispatch<React.SetStateAction<T>>;
-  onSubmit: (data: T) => void;
+  onSubmit: (data: T) => Promise<void> | void;
   submitButtonText?: string;
 }
 
@@ -51,6 +49,7 @@ const FormModal = <T extends {}>({
   submitButtonText = 'Submit',
 }: FormModalProps<T>) => {
   const [errors, setErrors] = useState<Partial<Record<keyof T, string>>>({});
+  const [submitting, setSubmitting] = useState(false);
 
   // Validation function
   const validateField = (field: Field<T>, value: any, allData: T): string => {
@@ -61,10 +60,10 @@ const FormModal = <T extends {}>({
 
     if (required && (!value || (typeof value === 'string' && value.trim() === '')))
       return 'Ce champ est requis';
-    if (min && Number(value) < min) return `Doit être supérieur ou égal à ${min}`;
-    if (max && Number(value) > max) return `Doit être inférieur ou égal à ${max}`;
-    if (minLength && value.length < minLength) return `Minimum ${minLength} caractères`;
-    if (maxLength && value.length > maxLength) return `Maximum ${maxLength} caractères`;
+    if (min !== undefined && Number(value) < min) return `Doit être supérieur ou égal à ${min}`;
+    if (max !== undefined && Number(value) > max) return `Doit être inférieur ou égal à ${max}`;
+    if (minLength !== undefined && value.length < minLength) return `Minimum ${minLength} caractères`;
+    if (maxLength !== undefined && value.length > maxLength) return `Maximum ${maxLength} caractères`;
     if (pattern && !new RegExp(pattern).test(value)) return title || 'Valeur invalide';
     if (validate && typeof validate === 'function') return validate(value, allData);
 
@@ -83,9 +82,8 @@ const FormModal = <T extends {}>({
     }
   };
 
-  // ✅ Fonction corrigée pour les champs personnalisés
+  // Fonction pour les champs personnalisés
   const handleCustomChange = (name: keyof T, value: any) => {
-    console.log(`FormModal - Custom field ${String(name)} changed to:`, value);
     setFormData((prev) => ({ ...prev, [name]: value }));
     const field = fields.find((f) => f.name === name);
     if (field?.validation) {
@@ -94,22 +92,32 @@ const FormModal = <T extends {}>({
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  // Validation globale du formulaire
+  const validateForm = (): boolean => {
     const newErrors: Partial<Record<keyof T, string>> = {};
-
     fields.forEach((field) => {
       if (field.hidden) return;
-      const value = formData[field.name] || ''; // ✅ Correction ici
+      const value = formData[field.name] || '';
       const error = validateField(field, value, formData);
       if (error) newErrors[field.name] = error;
     });
-
     setErrors(newErrors);
-    if (Object.keys(newErrors).length === 0) {
-      onSubmit(formData);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!validateForm()) return;
+
+    setSubmitting(true);
+    try {
+      await onSubmit(formData);
+    } finally {
+      setSubmitting(false);
     }
   };
+
+  const hasErrors = Object.values(errors).some((err) => err);
 
   const renderField = (field: Field<T>) => {
     if (field.hidden) return null;
@@ -120,8 +128,8 @@ const FormModal = <T extends {}>({
           <label className="block text-sm font-medium text-gray-700">{field.label}</label>
           <div className="mt-1">
             {field.render?.({
-              value: formData[field.name], // ✅ Passer seulement la valeur du champ
-              onChange: (value: any) => handleCustomChange(field.name, value), // ✅ Fonction simplifiée
+              value: formData[field.name],
+              onChange: (value: any) => handleCustomChange(field.name, value),
             })}
           </div>
           {field.hint && (
@@ -142,9 +150,7 @@ const FormModal = <T extends {}>({
           name={String(field.name)}
           value={(formData[field.name] as any) || ''}
           onChange={handleInputChange}
-          className={`input validator mt-1 w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent ${
-            errors[field.name] ? 'border-red-500' : ''
-          }`}
+          className={`input validator mt-1 w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent ${errors[field.name] ? 'border-red-500' : ''}`}
           placeholder={field.placeholder}
           required={field.validation?.required}
           min={field.validation?.min}
@@ -170,17 +176,21 @@ const FormModal = <T extends {}>({
       <div className="modal-box">
         <div className="modal-header flex justify-between items-center border-b pb-2 mb-4">
           <h3 className="font-bold text-lg">{title}</h3>
-          <button className="btn btn-sm btn-circle btn-ghost" onClick={onClose}>
+          <button className="btn btn-sm btn-circle btn-ghost" onClick={onClose} disabled={submitting}>
             ✕
           </button>
         </div>
         <form onSubmit={handleSubmit} className="space-y-2">
           {fields.map((field) => renderField(field))}
           <div className="modal-action">
-            <button type="submit" className="btn btn-primary">
-              {submitButtonText}
+            <button
+              type="submit"
+              className="btn btn-primary"
+              disabled={hasErrors || submitting}
+            >
+              {submitting ? 'Envoi...' : submitButtonText}
             </button>
-            <button type="button" className="btn" onClick={onClose}>
+            <button type="button" className="btn" onClick={onClose} disabled={submitting}>
               Fermer
             </button>
           </div>

@@ -6,11 +6,13 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { EyeIcon, EyeSlashIcon, EnvelopeIcon, LockClosedIcon } from "@heroicons/react/24/solid";
 import { signIn } from "next-auth/react";
 import GoogleAuthButton from "@/components/ui/GoogleAuthButton";
+import FacebookAuthButton from '@/components/ui/FacebookAuthButton'
+
 
 export default function SignIn() {
   const [rememberMe, setRememberMe] = useState(false);
   const router = useRouter();
-  const [formData, setFormData] = useState({ email: "", motDePasse: "" });
+  const [formData, setFormData] = useState({ emailOrPhone: "", motDePasse: "" });
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [loading, setLoading] = useState(false);
@@ -38,11 +40,9 @@ export default function SignIn() {
 
   const validateForm = () => {
     const newErrors: { [key: string]: string } = {};
-    if (!formData.email.trim()) {
-      newErrors.email = "L'email est requis";
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = "Format d'email invalide";
-    }
+    if (!formData.emailOrPhone.trim()) {
+  newErrors.emailOrPhone = "Email ou téléphone requis";
+   }
     if (!formData.motDePasse) {
       newErrors.motDePasse = "Le mot de passe est requis";
     }
@@ -56,7 +56,7 @@ export default function SignIn() {
     setLoading(true);
 
     const res = await signIn("credentials", {
-      email: formData.email,
+      emailOrPhone: formData.emailOrPhone,
       password: formData.motDePasse,
       redirect: false
     });
@@ -74,10 +74,9 @@ export default function SignIn() {
       <div className="max-w-md w-full space-y-8">
         <div className="text-center">
           <div className="flex justify-center mb-6">
-            <Image src="/images/logo2.png" alt="Toy Universe Logo" width={120} height={120} />
+            <Image src="/images/logoBamby.png" alt="Bamby Joy Logo" width={120} height={120} />
           </div>
           <h2 className="text-3xl font-bold text-gray-900 mb-2">Connexion</h2>
-          <p className="text-gray-600">Accédez à votre compte Toy Universe</p>
         </div>
         {successMessage && (
           <div className="bg-green-50 border border-green-200 text-green-600 px-4 py-3 rounded-lg mb-6">
@@ -94,24 +93,19 @@ export default function SignIn() {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Adresse email
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <EnvelopeIcon className="h-5 w-5 text-gray-400" />
-                </div>
-                <input
-                  type="email"
-                  name="email"
-                  value={formData.email}
-                  onChange={handleInputChange}
-                  className={`w-full pl-10 pr-3 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 ${
-                    errors.email ? "border-red-500" : "border-gray-300"
-                  }`}
-                  placeholder="votre.email@example.com"
-                />
-              </div>
-              {errors.email && <p className="mt-1 text-sm text-red-600">{errors.email}</p>}
+  Email ou Téléphone
+</label>
+<input
+  type="text"
+  name="emailOrPhone"
+  value={formData.emailOrPhone}
+  onChange={handleInputChange}
+  className={`w-full pl-10 pr-3 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 ${
+    errors.emailOrPhone ? "border-red-500" : "border-gray-300"
+  }`}
+  placeholder="votre.email@example.com ou 12345678"
+/>
+{errors.emailOrPhone && <p className="mt-1 text-sm text-red-600">{errors.emailOrPhone}</p>}
             </div>
 
             <div>
@@ -187,11 +181,16 @@ export default function SignIn() {
             </div>
             <div className="mt-6">
               <GoogleAuthButton mode="signin" />
+              
+
+            </div>
+            <div className="mt-3">
+            <FacebookAuthButton mode="signin" />
             </div>
           </div>
           <div className="mt-6 text-center">
             <p className="text-gray-600">
-              Vous n'avez pas encore de compte ?{" "}
+              
               <Link href="/signUp" className="text-purple-600 hover:text-purple-800 font-semibold">
                 Créer un compte
               </Link>

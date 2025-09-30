@@ -2,6 +2,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import GoogleAuthButton from "@/components/ui/GoogleAuthButton";
+import FacebookAuthButton from '@/components/ui/FacebookAuthButton'
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
@@ -121,8 +122,8 @@ export default function SignUp() {
         <div className="text-center">
           <div className="flex justify-center mb-6">
             <Image
-              src="/images/logo2.png"
-              alt="Toy Universe Logo"
+              src="/images/logoBamby.png"
+              alt="Bamby Joy Logo"
               width={120}
               height={120}
             />
@@ -325,10 +326,13 @@ export default function SignUp() {
             <div className="mt-6">
               <GoogleAuthButton mode="signup" />
             </div>
+            <div className="mt-3">
+                        <FacebookAuthButton mode="signin" />
+            </div>
           </div>
           <div className="mt-6 text-center">
             <p className="text-gray-600">
-              Vous avez déjà un compte ?{' '}
+             
               <Link href="/signIn" className="text-purple-600 hover:text-purple-800 font-semibold">
                 Se connecter
               </Link>

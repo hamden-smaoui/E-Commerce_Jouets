@@ -21,6 +21,16 @@ import {
   CheckCircleIcon
 } from '@heroicons/react/24/solid';
 
+// Type for form fields
+type ContactFormFields = {
+  nom: string;
+  prenom: string;
+  email: string;
+  telephone: string;
+  sujet: string;
+  message: string;
+};
+
 export default function Contact() {
   const { data: session, status } = useSession();
   const user = session?.userData;
@@ -31,7 +41,7 @@ export default function Contact() {
   // Loader de page
   const [pageLoading, setPageLoading] = useState(true);
 
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<ContactFormFields>({
     nom: '',
     prenom: '',
     email: '',
@@ -40,7 +50,7 @@ export default function Contact() {
     message: ''
   });
 
-  const [errors, setErrors] = useState<{[key: string]: string}>({});
+  const [errors, setErrors] = useState<Partial<Record<keyof ContactFormFields, string>>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
 
@@ -63,35 +73,64 @@ export default function Contact() {
     }
   }, [isAuthenticated, user]);
 
+  // Validation per field for instant UX
+  const validateField = (name: keyof ContactFormFields, value: string) => {
+    switch (name) {
+      case 'nom':
+      case 'prenom':
+        return value.trim().length < 2 ? 'Ce champ doit contenir au moins 2 caractères.' : '';
+      case 'email':
+        return !value.trim()
+          ? "L'email est requis"
+          : !/\S+@\S+\.\S+/.test(value)
+          ? "Format d'email invalide"
+          : '';
+      case 'telephone':
+        return value.trim().length < 6 ? 'Le téléphone doit contenir au moins 6 chiffres.' : '';
+      case 'sujet':
+        return !value.trim() ? 'Le sujet est requis.' : '';
+      case 'message':
+        return !value.trim()
+          ? 'Le message est requis.'
+          : value.trim().length < 10
+          ? 'Le message doit contenir au moins 10 caractères.'
+          : '';
+      default:
+        return '';
+    }
+  };
+
+  // Validate single field on blur
+  const handleBlur = (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setErrors(prev => ({
+      ...prev,
+      [name as keyof ContactFormFields]: validateField(name as keyof ContactFormFields, value)
+    }));
+  };
+
+  // Clear error if user fixes the field
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
-      [name]: value
+      [name as keyof ContactFormFields]: value
     }));
-    if (errors[name]) {
+    if (errors[name as keyof ContactFormFields]) {
       setErrors(prev => ({
         ...prev,
-        [name]: ''
+        [name as keyof ContactFormFields]: ''
       }));
     }
   };
 
+  // Validate all fields before submit
   const validateForm = () => {
-    const newErrors: {[key: string]: string} = {};
-    if (!formData.nom.trim()) newErrors.nom = 'Le nom est requis';
-    if (!formData.prenom.trim()) newErrors.prenom = 'Le prénom est requis';
-    if (!formData.email.trim()) {
-      newErrors.email = 'L\'email est requis';
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = 'Format d\'email invalide';
-    }
-    if (!formData.telephone.trim()) newErrors.telephone = 'Le téléphone est requis';
-    if (!formData.sujet.trim()) newErrors.sujet = 'Le sujet est requis';
-    if (!formData.message.trim()) {
-      newErrors.message = 'Le message est requis';
-    } else if (formData.message.trim().length < 10) {
-      newErrors.message = 'Le message doit contenir au moins 10 caractères';
+    const fields: (keyof ContactFormFields)[] = Object.keys(formData) as (keyof ContactFormFields)[];
+    const newErrors: Partial<Record<keyof ContactFormFields, string>> = {};
+    for (const field of fields) {
+      const errorMsg = validateField(field, formData[field]);
+      if (errorMsg) newErrors[field] = errorMsg;
     }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -133,7 +172,7 @@ export default function Contact() {
       console.error('Erreur lors de l\'envoi:', error);
       const message = error instanceof Error ? error.message : 'Une erreur est survenue';
       toast.error(message);
-      setErrors({ submit: message });
+      setErrors({});
     } finally {
       setIsSubmitting(false);
     }
@@ -190,15 +229,13 @@ export default function Contact() {
                     </p>
                   </div>
                 ) : (
-                  <form onSubmit={handleSubmit} className="space-y-6">
-                    {/* Informations personnelles - seulement si non connecté ou modifiables */}
+                  <form onSubmit={handleSubmit} className="space-y-6" noValidate>
+                    {/* Informations personnelles */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {/* Nom */}
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                           Nom *
-                          {isAuthenticated && (
-                            <span className="text-xs text-gray-500 ml-1">(modifiable)</span>
-                          )}
                         </label>
                         <div className="relative">
                           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -209,23 +246,22 @@ export default function Contact() {
                             name="nom"
                             value={formData.nom}
                             onChange={handleInputChange}
-                            className={`w-full pl-10 pr-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm ${
-                              errors.nom ? 'border-red-500' : 'border-gray-200'
+                            onBlur={handleBlur}
+                            className={`w-full pl-10 pr-3 py-2 border rounded-lg focus:outline-none focus:ring-2 text-sm transition-colors ${
+                              errors.nom ? 'border-red-500 focus:ring-red-500 bg-red-50' : 'border-gray-200 focus:ring-purple-500'
                             }`}
                             placeholder="Votre nom"
+                            maxLength={50}
                           />
                         </div>
                         {errors.nom && (
                           <p className="mt-1 text-xs text-red-600">{errors.nom}</p>
                         )}
                       </div>
-
+                      {/* Prénom */}
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                           Prénom *
-                          {isAuthenticated && (
-                            <span className="text-xs text-gray-500 ml-1">(modifiable)</span>
-                          )}
                         </label>
                         <div className="relative">
                           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -236,10 +272,12 @@ export default function Contact() {
                             name="prenom"
                             value={formData.prenom}
                             onChange={handleInputChange}
-                            className={`w-full pl-10 pr-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm ${
-                              errors.prenom ? 'border-red-500' : 'border-gray-200'
+                            onBlur={handleBlur}
+                            className={`w-full pl-10 pr-3 py-2 border rounded-lg focus:outline-none focus:ring-2 text-sm transition-colors ${
+                              errors.prenom ? 'border-red-500 focus:ring-red-500 bg-red-50' : 'border-gray-200 focus:ring-purple-500'
                             }`}
                             placeholder="Votre prénom"
+                            maxLength={50}
                           />
                         </div>
                         {errors.prenom && (
@@ -247,14 +285,10 @@ export default function Contact() {
                         )}
                       </div>
                     </div>
-
                     {/* Email */}
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
                         Email *
-                        {isAuthenticated && (
-                          <span className="text-xs text-gray-500 ml-1">(modifiable)</span>
-                        )}
                       </label>
                       <div className="relative">
                         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -265,24 +299,22 @@ export default function Contact() {
                           name="email"
                           value={formData.email}
                           onChange={handleInputChange}
-                          className={`w-full pl-10 pr-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm ${
-                            errors.email ? 'border-red-500' : 'border-gray-200'
+                          onBlur={handleBlur}
+                          className={`w-full pl-10 pr-3 py-2 border rounded-lg focus:outline-none focus:ring-2 text-sm transition-colors ${
+                            errors.email ? 'border-red-500 focus:ring-red-500 bg-red-50' : 'border-gray-200 focus:ring-purple-500'
                           }`}
                           placeholder="votre.email@example.com"
+                          maxLength={80}
                         />
                       </div>
                       {errors.email && (
                         <p className="mt-1 text-xs text-red-600">{errors.email}</p>
                       )}
                     </div>
-
                     {/* Téléphone */}
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
                         Téléphone *
-                        {isAuthenticated && (
-                          <span className="text-xs text-gray-500 ml-1">(modifiable)</span>
-                        )}
                       </label>
                       <div className="relative">
                         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -293,17 +325,18 @@ export default function Contact() {
                           name="telephone"
                           value={formData.telephone}
                           onChange={handleInputChange}
-                          className={`w-full pl-10 pr-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm ${
-                            errors.telephone ? 'border-red-500' : 'border-gray-200'
+                          onBlur={handleBlur}
+                          className={`w-full pl-10 pr-3 py-2 border rounded-lg focus:outline-none focus:ring-2 text-sm transition-colors ${
+                            errors.telephone ? 'border-red-500 focus:ring-red-500 bg-red-50' : 'border-gray-200 focus:ring-purple-500'
                           }`}
                           placeholder="12 345 678"
+                          maxLength={20}
                         />
                       </div>
                       {errors.telephone && (
                         <p className="mt-1 text-xs text-red-600">{errors.telephone}</p>
                       )}
                     </div>
-
                     {/* Sujet */}
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Sujet *</label>
@@ -311,9 +344,11 @@ export default function Contact() {
                         name="sujet"
                         value={formData.sujet}
                         onChange={handleInputChange}
-                        className={`w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm ${
-                          errors.sujet ? 'border-red-500' : 'border-gray-200'
+                        onBlur={handleBlur}
+                        className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 text-sm transition-colors ${
+                          errors.sujet ? 'border-red-500 focus:ring-red-500 bg-red-50' : 'border-gray-200 focus:ring-purple-500'
                         }`}
+                        required={false}
                       >
                         <option value="">Sélectionnez un sujet</option>
                         <option value="commande">Question sur une commande</option>
@@ -328,51 +363,50 @@ export default function Contact() {
                         <p className="mt-1 text-xs text-red-600">{errors.sujet}</p>
                       )}
                     </div>
-
                     {/* Message */}
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Message *</label>
-                      <textarea
+                      <textarea 
                         name="message"
                         value={formData.message}
                         onChange={handleInputChange}
+                        onBlur={handleBlur}
                         rows={6}
-                        className={`w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm resize-none ${
-                          errors.message ? 'border-red-500' : 'border-gray-200'
+                        className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 text-sm resize-none transition-colors ${
+                          errors.message ? 'border-red-500 focus:ring-red-500 bg-red-50' : 'border-gray-200 focus:ring-purple-500'
                         }`}
                         placeholder="Décrivez votre demande en détail..."
+                        maxLength={1000}
                       />
                       {errors.message && (
                         <p className="mt-1 text-xs text-red-600">{errors.message}</p>
                       )}
                     </div>
-
                     {/* Bouton d'envoi */}
-                    <button
-                      type="submit"
-                      disabled={isSubmitting}
-                      className="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white py-4 rounded-xl hover:from-purple-700 hover:to-blue-700 font-semibold transition-all transform hover:scale-105 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center gap-2"
-                    >
-                      {isSubmitting ? (
-                        <>
-                          <svg className="animate-spin h-5 w-5 text-white" viewBox="0 0 24 24">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"/>
-                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
-                          </svg>
-                          <span>Envoi en cours...</span>
-                        </>
-                      ) : (
-                        <>
-                          <PaperAirplaneIcon className="w-5 h-5" />
-                          Envoyer le message
-                        </>
-                      )}
-                    </button>
+                   <button
+                           type="submit"
+                           disabled={isSubmitting || Object.values(errors).some(v => v)}
+                           className="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white py-4 rounded-xl hover:from-purple-700 hover:to-blue-700 font-semibold transition-all transform hover:scale-105 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                         >
+                           {isSubmitting ? (
+                             <>
+                               <svg className="animate-spin h-5 w-5 text-white" viewBox="0 0 24 24">
+                                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"/>
+                                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+                               </svg>
+                               <span>Envoi en cours...</span>
+                             </>
+                           ) : (
+                             <>
+                               <PaperAirplaneIcon className="w-5 h-5" />
+                               Envoyer le message
+                             </>
+                           )}
+                         </button>
                   </form>
                 )}
               </div>
             </div>
-
             {/* Bouton Retour */}
             <div className="mt-6">
               <Link href="/site" className="inline-flex items-center gap-2 text-purple-600 hover:text-purple-800 transition-colors font-medium">
@@ -381,7 +415,7 @@ export default function Contact() {
               </Link>
             </div>
           </div>
-
+          {/* ...right column unchanged... */}
           <div className="xl:col-span-1">
             <div className="sticky top-6 space-y-6">
               {/* Card des coordonnées */}
@@ -408,7 +442,6 @@ export default function Contact() {
                         </p>
                       </div>
                     </div>
-
                     <div className="flex items-start gap-3">
                       <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
                         <EnvelopeIcon className="h-5 w-5 text-blue-600" />
@@ -426,7 +459,6 @@ export default function Contact() {
                         </p>
                       </div>
                     </div>
-
                     <div className="flex items-start gap-3">
                       <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center flex-shrink-0">
                         <MapPinIcon className="h-5 w-5 text-purple-600" />
@@ -449,7 +481,6 @@ export default function Contact() {
                         </p>
                       </div>
                     </div>
-
                     <div className="flex items-start gap-3">
                       <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center flex-shrink-0">
                         <ClockIcon className="h-5 w-5 text-orange-600" />
@@ -464,7 +495,6 @@ export default function Contact() {
                   </div>
                 </div>
               </div>
-
               {/* Card FAQ rapide */}
               <div className="bg-white rounded-2xl shadow-sm border overflow-hidden min-w-[350px] md:min-w-[400px]">
                 <div className="p-6 bg-gray-50 border-b">
@@ -495,7 +525,6 @@ export default function Contact() {
           </div>
         </div>
       </div>
-
       <Footer />
     </div>
   );

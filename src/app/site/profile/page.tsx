@@ -24,6 +24,18 @@ import {
 } from '@heroicons/react/24/outline';
 import { useRouter } from "next/navigation";
 
+// Type for profile fields
+type ProfileFields = {
+  prenom: string;
+  nom: string;
+  email: string;
+  telephone: string;
+  adresseRue: string;
+  adresseVille: string;
+  adresseCodePostal: string;
+  adressePays: string;
+};
+
 export default function ProfilePage() {
   const { data: session, status } = useSession();
   const token = session?.customToken;
@@ -31,13 +43,13 @@ export default function ProfilePage() {
   const initialTab = searchParams.get('tab') === 'orders' ? 'orders' : 'profile';
   const [activeTab, setActiveTab] = useState<'profile' | 'orders'>(initialTab);
   const [isEditing, setIsEditing] = useState(false);
-  const [loading, setLoading] = useState(false); // only for profile edit
-  const [globalLoading, setGlobalLoading] = useState(true); // for global/page loading
+  const [loading, setLoading] = useState(false);
+  const [globalLoading, setGlobalLoading] = useState(true);
   const [orders, setOrders] = useState<CommandeResponse[]>([]);
   const [filteredOrders, setFilteredOrders] = useState<CommandeResponse[]>([]);
   const [ordersLoading, setOrdersLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [profileData, setProfileData] = useState<any>({
+  const [profileData, setProfileData] = useState<ProfileFields>({
     prenom: '',
     nom: '',
     email: '',
@@ -47,6 +59,7 @@ export default function ProfilePage() {
     adresseCodePostal: '',
     adressePays: 'Tunisie',
   });
+  const [errors, setErrors] = useState<Partial<Record<keyof ProfileFields, string>>>({});
   const router = useRouter();
 
   // Newsletter state
@@ -54,7 +67,7 @@ export default function ProfilePage() {
   const [newsletterEmail, setNewsletterEmail] = useState('');
   const [newsletterMsg, setNewsletterMsg] = useState<string | null>(null);
 
-  // Charger le profil utilisateur avec token dès que status est authenticated
+  // Fetch profile on auth
   useEffect(() => {
     if (status === "unauthenticated") {
       router.replace("/signIn");
@@ -63,7 +76,6 @@ export default function ProfilePage() {
     }
     if (status !== "authenticated" || !token) return;
 
-    // Charger le profil
     async function fetchProfile() {
       setGlobalLoading(true);
       try {
@@ -129,11 +141,10 @@ export default function ProfilePage() {
     checkNewsletter();
   }, [profileData.email]);
 
-  // Charger les commandes du client
+  // Fetch user orders
   const fetchUserOrders = async () => {
     try {
       setOrdersLoading(true);
-      console.log('Fetching orders with token:', token);
       const userOrders = await CommandesService.getCommandesByClient(token!);
       setOrders(userOrders);
       setFilteredOrders(userOrders.slice(0, 5));
@@ -144,18 +155,73 @@ export default function ProfilePage() {
     }
   };
 
-  // Sauvegarder le profil
+  // Validation logic
+  const validateField = (name: keyof ProfileFields, value: string) => {
+    switch (name) {
+      case 'prenom':
+      case 'nom':
+        return value.trim().length < 2 ? 'Doit contenir au moins 2 caractères.' : '';
+      case 'telephone':
+        return value.trim().length < 6 ? 'Doit contenir au moins 6 chiffres.' : '';
+      case 'adresseRue':
+        return value.trim().length > 0 && value.trim().length < 4 ? 'Adresse trop courte.' : '';
+      case 'adresseVille':
+        return value.trim().length > 0 && value.trim().length < 2 ? 'Ville trop courte.' : '';
+      case 'adresseCodePostal':
+        return value.trim().length > 0 && value.trim().length < 2 ? 'Code postal trop court.' : '';
+      case 'adressePays':
+        return value.trim().length > 0 && value.trim().length < 2 ? 'Pays trop court.' : '';
+      default:
+        return '';
+    }
+  };
+
+  // Handle input change
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setProfileData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+    if (errors[name as keyof ProfileFields]) {
+      setErrors(prev => ({
+        ...prev,
+        [name as keyof ProfileFields]: ''
+      }));
+    }
+  };
+
+  // Handle blur for instant error
+  const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setErrors(prev => ({
+      ...prev,
+      [name as keyof ProfileFields]: validateField(name as keyof ProfileFields, value)
+    }));
+  };
+
+  // Save profile with full validation
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
+    // Validate all fields
+    const fields: (keyof ProfileFields)[] = Object.keys(profileData) as (keyof ProfileFields)[];
+    const newErrors: Partial<Record<keyof ProfileFields, string>> = {};
+    for (const field of fields) {
+      const errorMsg = validateField(field, profileData[field]);
+      if (errorMsg) newErrors[field] = errorMsg;
+    }
+    setErrors(newErrors);
+    if (Object.keys(newErrors).length > 0) {
+      toast.error('Veuillez corriger les erreurs du formulaire.');
+      return;
+    }
     try {
       setLoading(true);
       const updateData = { ...profileData };
-      // Ne jamais permettre la modification de l'email ici !
-      delete updateData.email;
       await AuthService.updateProfile(updateData, token!);
       toast.success('Profil mis à jour avec succès!');
       setIsEditing(false);
-      // Recharger le profil
+      // Reload profile
       const response = await AuthService.getProfile(token!);
       const profile = response.user || response;
       setProfileData({
@@ -175,10 +241,9 @@ export default function ProfilePage() {
     }
   };
 
-  // Annuler la modification
+  // Cancel edit
   const handleCancelEdit = () => {
     setIsEditing(false);
-    // Recharger les données du profil
     if (token) {
       AuthService.getProfile(token).then(response => {
         const profile = response.user || response;
@@ -194,6 +259,7 @@ export default function ProfilePage() {
         });
       });
     }
+    setErrors({});
   };
 
   // Newsletter subscribe/unsubscribe
@@ -299,7 +365,7 @@ export default function ProfilePage() {
             </div>
             <div className="px-4 sm:px-6 py-6">
               {isEditing ? (
-                <form onSubmit={handleSaveProfile}>
+                <form onSubmit={handleSaveProfile} noValidate>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -307,11 +373,18 @@ export default function ProfilePage() {
                       </label>
                       <input
                         type="text"
+                        name="prenom"
                         value={profileData.prenom}
-                        onChange={(e) => setProfileData({ ...profileData, prenom: e.target.value })}
-                        className="input input-bordered w-full text-sm focus:ring-purple-500 focus:border-purple-500"
-                        required
+                        onChange={handleInputChange}
+                        onBlur={handleBlur}
+                        className={`input input-bordered w-full text-sm transition-colors focus:ring-2 ${
+                          errors.prenom ? "border-red-500 focus:ring-red-500 bg-red-50" : "focus:ring-purple-500 focus:border-purple-500"
+                        }`}
+                        maxLength={50}
                       />
+                      {errors.prenom && (
+                        <p className="text-red-500 text-xs mt-1">{errors.prenom}</p>
+                      )}
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -319,11 +392,18 @@ export default function ProfilePage() {
                       </label>
                       <input
                         type="text"
+                        name="nom"
                         value={profileData.nom}
-                        onChange={(e) => setProfileData({ ...profileData, nom: e.target.value })}
-                        className="input input-bordered w-full text-sm focus:ring-purple-500 focus:border-purple-500"
-                        required
+                        onChange={handleInputChange}
+                        onBlur={handleBlur}
+                        className={`input input-bordered w-full text-sm transition-colors focus:ring-2 ${
+                          errors.nom ? "border-red-500 focus:ring-red-500 bg-red-50" : "focus:ring-purple-500 focus:border-purple-500"
+                        }`}
+                        maxLength={50}
                       />
+                      {errors.nom && (
+                        <p className="text-red-500 text-xs mt-1">{errors.nom}</p>
+                      )}
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -331,6 +411,7 @@ export default function ProfilePage() {
                       </label>
                       <input
                         type="email"
+                        name="email"
                         value={profileData.email || ''}
                         disabled
                         className="input input-bordered w-full bg-gray-100 text-gray-500"
@@ -342,11 +423,18 @@ export default function ProfilePage() {
                       </label>
                       <input
                         type="tel"
+                        name="telephone"
                         value={profileData.telephone || ''}
-                        onChange={(e) => setProfileData({ ...profileData, telephone: e.target.value })}
-                        className="input input-bordered w-full text-sm focus:ring-purple-500 focus:border-purple-500"
-                        required
+                        onChange={handleInputChange}
+                        onBlur={handleBlur}
+                        className={`input input-bordered w-full text-sm transition-colors focus:ring-2 ${
+                          errors.telephone ? "border-red-500 focus:ring-red-500 bg-red-50" : "focus:ring-purple-500 focus:border-purple-500"
+                        }`}
+                        maxLength={20}
                       />
+                      {errors.telephone && (
+                        <p className="text-red-500 text-xs mt-1">{errors.telephone}</p>
+                      )}
                     </div>
                     <div className="sm:col-span-2">
                       <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -354,11 +442,19 @@ export default function ProfilePage() {
                       </label>
                       <input
                         type="text"
+                        name="adresseRue"
                         value={profileData.adresseRue || ''}
-                        onChange={(e) => setProfileData({ ...profileData, adresseRue: e.target.value })}
-                        className="input input-bordered w-full text-sm focus:ring-purple-500 focus:border-purple-500"
+                        onChange={handleInputChange}
+                        onBlur={handleBlur}
+                        className={`input input-bordered w-full text-sm transition-colors focus:ring-2 ${
+                          errors.adresseRue ? "border-red-500 focus:ring-red-500 bg-red-50" : "focus:ring-purple-500 focus:border-purple-500"
+                        }`}
                         placeholder="Rue et numéro"
+                        maxLength={100}
                       />
+                      {errors.adresseRue && (
+                        <p className="text-red-500 text-xs mt-1">{errors.adresseRue}</p>
+                      )}
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -366,10 +462,18 @@ export default function ProfilePage() {
                       </label>
                       <input
                         type="text"
+                        name="adresseVille"
                         value={profileData.adresseVille || ''}
-                        onChange={(e) => setProfileData({ ...profileData, adresseVille: e.target.value })}
-                        className="input input-bordered w-full text-sm focus:ring-purple-500 focus:border-purple-500"
+                        onChange={handleInputChange}
+                        onBlur={handleBlur}
+                        className={`input input-bordered w-full text-sm transition-colors focus:ring-2 ${
+                          errors.adresseVille ? "border-red-500 focus:ring-red-500 bg-red-50" : "focus:ring-purple-500 focus:border-purple-500"
+                        }`}
+                        maxLength={50}
                       />
+                      {errors.adresseVille && (
+                        <p className="text-red-500 text-xs mt-1">{errors.adresseVille}</p>
+                      )}
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -377,10 +481,18 @@ export default function ProfilePage() {
                       </label>
                       <input
                         type="text"
+                        name="adresseCodePostal"
                         value={profileData.adresseCodePostal || ''}
-                        onChange={(e) => setProfileData({ ...profileData, adresseCodePostal: e.target.value })}
-                        className="input input-bordered w-full text-sm focus:ring-purple-500 focus:border-purple-500"
+                        onChange={handleInputChange}
+                        onBlur={handleBlur}
+                        className={`input input-bordered w-full text-sm transition-colors focus:ring-2 ${
+                          errors.adresseCodePostal ? "border-red-500 focus:ring-red-500 bg-red-50" : "focus:ring-purple-500 focus:border-purple-500"
+                        }`}
+                        maxLength={12}
                       />
+                      {errors.adresseCodePostal && (
+                        <p className="text-red-500 text-xs mt-1">{errors.adresseCodePostal}</p>
+                      )}
                     </div>
                     <div className="sm:col-span-2">
                       <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -388,10 +500,18 @@ export default function ProfilePage() {
                       </label>
                       <input
                         type="text"
+                        name="adressePays"
                         value={profileData.adressePays || ''}
-                        onChange={(e) => setProfileData({ ...profileData, adressePays: e.target.value })}
-                        className="input input-bordered w-full text-sm focus:ring-purple-500 focus:border-purple-500"
+                        onChange={handleInputChange}
+                        onBlur={handleBlur}
+                        className={`input input-bordered w-full text-sm transition-colors focus:ring-2 ${
+                          errors.adressePays ? "border-red-500 focus:ring-red-500 bg-red-50" : "focus:ring-purple-500 focus:border-purple-500"
+                        }`}
+                        maxLength={50}
                       />
+                      {errors.adressePays && (
+                        <p className="text-red-500 text-xs mt-1">{errors.adressePays}</p>
+                      )}
                     </div>
                   </div>
                   <div className="mt-6 flex justify-end space-x-3">

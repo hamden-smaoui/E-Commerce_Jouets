@@ -97,10 +97,10 @@ export default function Home() {
   {storeInfo?.promotionImages && storeInfo.promotionImages.length > 0 && (
     <PromotionsSection images={storeInfo.promotionImages} />
   )}
-          <FeaturedSection title={`Pourquoi choisir ${storeInfo?.nom || 'Toy Universe'} ?`} features={features} />
+          <FeaturedSection title={`Pourquoi choisir ${storeInfo?.nom || 'Bamby Joy'} ?`} features={features} />
           <Footer/>
         </>
       )}
     </div>
   );
-}
+}     

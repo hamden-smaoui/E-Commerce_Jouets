@@ -15,6 +15,10 @@ export default function Footer() {
   const { storeInfo } = useStoreInfo();
   const [categories, setCategories] = useState<Categorie[]>([]);
 
+  // Logo loading states
+  const [logoLoading, setLogoLoading] = useState(true);
+  const [logoError, setLogoError] = useState(false);
+
   useEffect(() => {
     CategoriesService.getAllCategories()
       .then(setCategories)
@@ -30,23 +34,35 @@ export default function Footer() {
           {/* Company Info */}
           <div className="lg:col-span-1">
             <div className="mb-6 flex justify-center md:justify-start">
-              {storeInfo?.logo2 ? (
-                <div className="relative w-48 h-36 drop-shadow-2xl">
+              <div className="relative w-48 h-36 drop-shadow-2xl">
+                {logoLoading && (
+                  <div className="absolute inset-0 flex items-center justify-center z-10 bg-white">
+                    <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-pink-500"></div>
+                  </div>
+                )}
+                {storeInfo?.logo2 && !logoError ? (
                   <Image
                     src={`http://localhost:3001${storeInfo.logo2}`}
                     alt={storeInfo.nom || "Logo"}
                     fill
-                    className="object-contain"
+                    className={`object-contain transition-opacity duration-500 ${logoLoading ? "opacity-0" : "opacity-100"}`}
+                    priority
+                    onLoad={() => setLogoLoading(false)}
+                    onError={() => {
+                      setLogoLoading(false);
+                      setLogoError(true);
+                    }}
                   />
-                </div>
-              ) : (
-                <img
-                  className="w-48 h-36 object-contain drop-shadow-2xl"
-                  src="/images/logoBamby.png"
-                  alt="Bamby Joy Logo"
-                  onError={() => console.error("Failed to load logo image")}
-                />
-              )}
+                ) : (
+                  !logoLoading && (
+                    <img
+                      className="w-48 h-36 object-contain drop-shadow-2xl transition-opacity duration-500 opacity-100"
+                      src="/images/logoBamby.png"
+                      alt="Bamby Joy Logo"
+                    />
+                  )
+                )}
+              </div>
             </div>
             {/* Contact Info */}
             <div className="space-y-3 bg-white/10 rounded-xl p-4 shadow">

@@ -11,6 +11,7 @@ export default function RequireAdmin({ children }: { children: React.ReactNode }
   const [checked, setChecked] = useState(false);
 
   useEffect(() => {
+    console.log('user',user)
     if (status === "unauthenticated") {
       router.replace("/signIn");
     } else if (status === "authenticated" && user?.role !== "admin") {
