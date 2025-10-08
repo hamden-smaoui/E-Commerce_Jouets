@@ -50,14 +50,7 @@ export const validatePromotionData = (data: PromotionFormData): string[] => {
       break;
   }
 
-  // Validation des codes promo
-  if (data.codesPromo) {
-    const codes = data.codesPromo.filter(c => c.code.trim() !== '');
-    const uniqueCodes = new Set(codes.map(c => c.code));
-    if (codes.length !== uniqueCodes.size) {
-      errors.push('Les codes promo doivent être uniques');
-    }
-  }
+  
 
   return errors;
 };
