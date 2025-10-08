@@ -3,7 +3,6 @@ import { createContext, useContext, useState, useEffect, ReactNode } from "react
 import PanierService, { Cart, CartItem } from "@/services/panier-service";
 import { useSession } from "next-auth/react";
 import { toast } from "react-hot-toast";
-import { useRouter } from "next/navigation";
 import * as fbq from "@/lib/fpixel";
 
 interface CartContextType {
@@ -35,15 +34,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const isAuthenticated = status === "authenticated";
   const token = session?.customToken;
 
-  // ✅ Utiliser useRouter uniquement côté client après montage
-  const [router, setRouter] = useState<ReturnType<typeof useRouter> | null>(null);
-  
   useEffect(() => {
     setMounted(true);
-    // Importer useRouter uniquement côté client
-    import('next/navigation').then((mod) => {
-      setRouter(mod.useRouter());
-    });
   }, []);
 
   const cartItems = cart?.produits || [];
@@ -71,7 +63,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const addToCart = async (idProduit: number, quantite: number = 1, variationId?: number) => {
     if (!isAuthenticated || !token) {
       toast.error("Vous devez être connecté pour ajouter des produits au panier");
-      if (router) router.push("/signIn");
+      // Redirection sera gérée par le composant parent
       return;
     }
     try {
@@ -104,7 +96,6 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const updateQuantity = async (idProduit: number, quantite: number, idProduitVariation?: number) => {
     if (!isAuthenticated || !token) {
       toast.error("Vous devez être connecté pour modifier le panier");
-      if (router) router.push("/signIn");
       return;
     }
     try {
@@ -123,7 +114,6 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const removeFromCart = async (idPanierProduit: number, idProduit: number) => {
     if (!isAuthenticated || !token) {
       toast.error("Vous devez être connecté pour retirer du panier");
-      if (router) router.push("/signIn");
       return;
     }
     try {
@@ -143,7 +133,6 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const clearCart = async () => {
     if (!isAuthenticated || !token) {
       toast.error("Vous devez être connecté pour vider le panier");
-      if (router) router.push("/signIn");
       return;
     }
     try {
