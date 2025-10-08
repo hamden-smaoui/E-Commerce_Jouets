@@ -5,7 +5,8 @@
   "scripts": {
     "test": "set NODE_ENV=test&&set JWT_SECRET=your_jwt_secret_key&&jest",
     "start": "node server",
-    "dev": "nodemon server"
+    "dev": "nodemon server",
+    "init-db": "node syncDatabase.js"
   },
   "keywords": [],
   "author": "",

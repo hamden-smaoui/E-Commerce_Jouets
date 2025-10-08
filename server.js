@@ -4,6 +4,7 @@ const sequelize = require('./config/database');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
 require('dotenv').config();
+const syncDatabase = require('./syncDatabase');
 const SchedulerService = require('./services/SchedulerService');
 const jouetsRoutes = require('./routes/jouetsRoutes');
 const authRoutes = require('./routes/auth');
@@ -98,6 +99,8 @@ const waitForDatabase = async (maxRetries = 30, delay = 3000) => {
   }
   throw new Error('Impossible de se connecter à centre-db après plusieurs tentatives');
 };
+
+syncDatabase(); 
 
 const startServer = async () => {
   try {
