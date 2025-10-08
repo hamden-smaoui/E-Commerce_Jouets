@@ -100,12 +100,12 @@ const waitForDatabase = async (maxRetries = 30, delay = 3000) => {
   throw new Error('Impossible de se connecter à centre-db après plusieurs tentatives');
 };
 
-syncDatabase(); 
+ 
 
 const startServer = async () => {
   try {
     await waitForDatabase();
-
+    await syncDatabase();
     const PORT = process.env.PORT || 3001;
     server.listen(PORT, '0.0.0.0', () => {
       console.log(`Microservice Gestion Centre running on port ${PORT}`);
