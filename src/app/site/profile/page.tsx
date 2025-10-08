@@ -79,7 +79,7 @@ export default function ProfilePage() {
     async function fetchProfile() {
       setGlobalLoading(true);
       try {
-        const response = await AuthService.getProfile(token!);
+        const response = await AuthService.getProfile();
         const profile = response.user || response;
         setProfileData({
           prenom: profile.prenom || '',
@@ -218,11 +218,11 @@ export default function ProfilePage() {
     try {
       setLoading(true);
       const updateData = { ...profileData };
-      await AuthService.updateProfile(updateData, token!);
+      await AuthService.updateProfile(updateData);
       toast.success('Profil mis à jour avec succès!');
       setIsEditing(false);
       // Reload profile
-      const response = await AuthService.getProfile(token!);
+      const response = await AuthService.getProfile();
       const profile = response.user || response;
       setProfileData({
         prenom: profile.prenom || '',
@@ -245,7 +245,7 @@ export default function ProfilePage() {
   const handleCancelEdit = () => {
     setIsEditing(false);
     if (token) {
-      AuthService.getProfile(token).then(response => {
+      AuthService.getProfile().then(response => {
         const profile = response.user || response;
         setProfileData({
           prenom: profile.prenom || '',
