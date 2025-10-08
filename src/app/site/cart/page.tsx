@@ -1,43 +1,455 @@
 "use client";
 import React, { Suspense } from "react";
-import dynamic from 'next/dynamic';
+import Image from "next/image";
+import Footer from "@/components/ui/Footer";
+import Link from 'next/link';
+import { useCart } from "@/hooks/useCart";
+import { useStoreInfo } from "@/hooks/useStoreInfo"; // Import du hook
+import { CartPromotionProvider, useCartPromotionContext } from '@/contexts/CartPromotionContext';
+import CartItemPromotion from '@/components/ui/CartItemPromotion';
 import KidsCornerLoader from "@/components/ui/KidsCornerLoader";
+import { 
+  TrashIcon, 
+  ShieldCheckIcon, 
+  TruckIcon, 
+  ArrowUturnLeftIcon,
+  ArrowLeftIcon,
+  MinusIcon,
+  PlusIcon,
+  ShoppingCartIcon,
+  XMarkIcon
+} from '@heroicons/react/24/solid';
+import { useState } from "react";
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
+import ErrorBanner from "@/components/ui/ErrorBanner";
 import { CartProvider } from "@/hooks/useCart";
-import { CartPromotionProvider } from '@/contexts/CartPromotionContext';
 
-// ✅ Chargement dynamique sans SSR
-const CartContentInner = dynamic(() => import('@/components/cart/CartContentInner'), {
-  ssr: false,
-  loading: () => (
-    <div className="min-h-screen flex items-center justify-center bg-base-200">
-      <KidsCornerLoader
-        message="Chargement du panier..."
-        size="lg"
-        showMessage={true}
-      />
+const CartItemWithPromotion = ({ item, index, onIncrement, onDecrement, onQuantityChange, onRemove, actionLoading }: any) => {
+  const imageUrl = item.produit.images && item.produit.images.length > 0
+    ? `http://localhost:3001${item.produit.images.sort((a:any, b:any) => a.rang - b.rang)[0].url}`
+    : '/images/placeholder.jpg';
+
+  // Fonction pour déterminer le stock disponible
+  const getStockDisponible = () => {
+    if (item.variation && item.variation.quantiteStock !== undefined) {
+      return item.variation.quantiteStock;
+    }
+    return item.produit.quantiteStock;
+  };
+
+  const stockDisponible = getStockDisponible();
+
+  const formatVariation = (variation: any) => {
+    if (!variation) return '';
+    const { couleur, taille, age } = variation;
+    const parts = [];
+    if (couleur) parts.push(couleur.nom);
+    if (taille) parts.push(taille.nom);
+    if (age) parts.push(age.label);
+    return parts.length > 0 ? parts.join(' / ') : '';
+  };
+
+  return (
+    <div className={`flex flex-col sm:flex-row items-start justify-between p-4 gap-4 bg-white rounded-xl hover:shadow-lg transition-shadow border-b-2 border-pink-50 ${
+      index !== 0 ? 'border-t-0 rounded-t-none' : ''
+    }`}>
+      <div className="flex items-start gap-4 flex-1">
+        <div className="relative">
+          <Image
+            src={imageUrl}
+            alt={item.produit.nom}
+            width={80}
+            height={80}
+            className="rounded-lg object-cover border-2 border-pink-100"
+          />
+        </div>
+        <div className="flex-1 min-w-0">
+          <h3 className="font-extrabold text-pink-600 text-sm sm:text-base line-clamp-2 mb-2 font-[Comic_Sans_MS,sans-serif]">
+            {item.produit.nom}
+          </h3>
+          {item.variation && (
+            <div className="text-xs text-gray-500 font-medium truncate">
+              {formatVariation(item.variation)}
+            </div>
+          )}
+         
+          <CartItemPromotion
+            idProduit={item.idProduit}
+            prixOriginal={item.produit.prix}
+            quantite={item.quantite}
+          />
+          
+          <div className="flex items-center gap-2 text-xs mt-2">
+            <span className={`px-2 py-1 rounded-full text-xs font-bold font-[Comic_Sans_MS,sans-serif] ${
+              stockDisponible > 10 
+                ? 'bg-green-100 text-green-700'
+                : stockDisponible > 0
+                  ? 'bg-orange-100 text-orange-700'
+                  : 'bg-red-100 text-red-700'
+            }`}>
+              {stockDisponible > 10 
+                ? 'En stock'
+                : stockDisponible > 0
+                  ? `Stock limité`
+                  : 'Rupture'
+              }
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div className="flex items-center gap-4 flex-shrink-0">
+        {/* Sélecteur de quantité */}
+        <div className="flex items-center gap-1 bg-pink-50 rounded-lg p-1">
+        <button
+          onClick={() => onDecrement(item)}
+          disabled={item.quantite <= 1 || actionLoading}
+          className="w-8 h-8 rounded-md flex items-center justify-center hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed transition-all font-bold"
+        >
+          {actionLoading ? (
+            <span className="animate-spin w-4 h-4 border-2 border-pink-600 border-t-transparent rounded-full"></span>
+          ) : (
+            <MinusIcon className="w-4 h-4 text-pink-600" />
+          )}
+        </button>
+        <input
+          type="number"
+          value={item.quantite}
+          onChange={(e) => onQuantityChange(item, e)}
+          className="w-12 h-8 text-center border-0 bg-transparent focus:outline-none focus:ring-0 text-sm font-medium"
+          min="1"
+          max={stockDisponible}
+          disabled={actionLoading}
+        />
+        <button
+          onClick={() => onIncrement(item)}
+          disabled={item.quantite >= stockDisponible || actionLoading}
+          className="w-8 h-8 rounded-md flex items-center justify-center hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed transition-all font-bold"
+        >
+          {actionLoading ? (
+            <span className="animate-spin w-4 h-4 border-2 border-pink-600 border-t-transparent rounded-full"></span>
+          ) : (
+            <PlusIcon className="w-4 h-4 text-pink-600" />
+          )}
+        </button>
+      </div>
+
+        <CartItemTotalDisplay 
+          idProduit={item.idProduit}
+          quantite={item.quantite}
+        />
+        
+        <button
+          onClick={() => onRemove(item)}
+          className="text-gray-400 hover:text-red-500 transition-colors p-2 hover:bg-red-50 rounded-lg"
+          title="Supprimer"
+        >
+          <TrashIcon className="w-5 h-5" />
+        </button>
+      </div>
     </div>
-  ),
-});
+  );
+};
+
+const CartItemTotalDisplay = ({ idProduit, quantite }: { idProduit: number, quantite: number }) => {
+  const { itemTotals } = useCartPromotionContext();
+  const itemData = itemTotals[idProduit];
+
+  if (!itemData) {
+    return <div className="text-lg font-bold min-w-[100px] text-right text-gray-500">-</div>;
+  }
+
+  const hasPromotion = itemData.final < itemData.original;
+
+  return (
+    <div className="text-right min-w-[100px]">
+      {hasPromotion ? (
+        <div>
+          <div className="text-lg font-extrabold text-pink-600 font-[Comic_Sans_MS,sans-serif]">
+            {(itemData.final * quantite).toFixed(2)} <span className="text-xs">TND</span>
+          </div>
+          <div className="text-xs text-gray-400 line-through">
+            {(itemData.original * quantite).toFixed(2)} <span className="text-xs">TND</span>
+          </div>
+        </div>
+      ) : (
+        <span className="text-lg font-extrabold text-gray-900 font-[Comic_Sans_MS,sans-serif]">
+          {(itemData.original * quantite).toFixed(2)} <span className="text-xs text-gray-600">TND</span>
+        </span>
+      )}
+    </div>
+  );
+};
+
+function CartContent() {
+  const {
+    cartItems,
+    totalItems,
+    loading,
+    initialLoading,
+    actionLoadingItemId,
+    updateQuantity,
+    removeFromCart,
+    refreshCart,
+    clearCart,
+  } = useCart();
+   const { data: session, status } = useSession();
+  const router = useRouter();
+
+  const { storeInfo, loading: storeLoading } = useStoreInfo(); 
+    const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  const [mounted, setMounted] = useState(false);
+
+  const { getTotals, clearTotals, itemTotals, removeItemTotal } = useCartPromotionContext();
+ useEffect(() => {
+    // Si pas connecté, redirige vers /signIn
+    if (status === "unauthenticated") {
+      router.replace("/signIn");
+    }
+  }, [status, router]);
+
+  React.useEffect(() => {
+    const currentProductIds = cartItems.map(item => item.idProduit);
+    const contextProductIds = Object.keys(itemTotals).map(id => parseInt(id));
+    const toRemove = contextProductIds.filter(id => !currentProductIds.includes(id));
+    if (toRemove.length > 0) {
+      toRemove.forEach(id => removeItemTotal(id));
+    }
+    setMounted(true);
+  }, [cartItems, itemTotals, removeItemTotal]);
+
+  const { totalOriginal, totalFinal, totalSavings } = getTotals();
+  
+  // Calcul dynamique des frais de livraison
+  const fraisLivraison = storeInfo?.fraisLivraison || 7; 
+  const seuilLivraisonGratuite = storeInfo?.seuilLivraisonGratuite || 100; 
+  const livraison = totalFinal >= seuilLivraisonGratuite ? 0 : fraisLivraison;
+  const totalTTC = totalFinal + livraison;
+   const handleRefreshCart = async () => {
+    setErrorMessage(null);
+    try {
+      await refreshCart();
+    } catch (error: any) {
+      setErrorMessage(error.message || "Erreur inconnue lors du chargement du panier.");
+    }
+  };
+  const handleIncrement = async (item: any) => {
+    const stockDisponible = item.variation ? item.variation.quantiteStock : item.produit.quantiteStock;
+    if (item.quantite < stockDisponible) {
+      try {
+        await updateQuantity(item.idProduit, item.quantite + 1, item.idProduitVariation);
+      } catch (error) {}
+    }
+  };
+
+  const handleDecrement = async (item: any) => {
+    if (item.quantite > 1) {
+      try {
+        await updateQuantity(item.idProduit, item.quantite - 1, item.idProduitVariation);
+      } catch (error) {}
+    }
+  };
+
+  const handleQuantityChange = async (item: any, e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = parseInt(e.target.value);
+    const stockDisponible = item.variation ? item.variation.quantiteStock : item.produit.quantiteStock;
+    if (isNaN(value) || value < 1 || value > stockDisponible) return;
+    try {
+      await updateQuantity(item.idProduit, value, item.idProduitVariation);
+    } catch (error) {}
+  };
+
+  const handleRemove = async (item: any) => {
+    try {
+await removeFromCart(item.idPanierProduit, item.idProduit);      removeItemTotal(item.idProduit);
+    } catch (error) {}
+  };
+
+  const handleClearCart = async () => {
+    if (window.confirm('Êtes-vous sûr de vouloir vider votre panier ?')) {
+      try {
+        await clearCart();
+      } catch (error) {}
+    }
+  };
+
+  if (!mounted) return null;
+
+   if (initialLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-base-200">
+        <KidsCornerLoader
+          message="Chargement du panier..."
+          size="lg"
+          showMessage={true}
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-yellow-50 to-blue-50 font-[Comic_Sans_MS,sans-serif]">
+      <div className="container mx-auto px-4 py-8 max-w-7xl">
+        {/* ----------- ICI le ErrorBanner (juste après le header) ----------- */}
+        {errorMessage && (
+          <ErrorBanner
+            message={errorMessage}
+            onRetry={handleRefreshCart}
+          />
+        )}
+        {/* Header */}
+        <div className="flex items-center justify-between mb-8 w-full">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-pink-200 rounded-full flex items-center justify-center flex-shrink-0 shadow">
+              <ShoppingCartIcon className="w-6 h-6 sm:w-7 sm:h-7 text-purple-600" />
+            </div>
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-purple-600 drop-shadow-lg font-[Comic_Sans_MS,sans-serif]">
+              Votre Panier
+            </h1>
+          </div>
+          {cartItems.length > 0 && (
+            <button
+              onClick={handleClearCart}
+              className="flex items-center gap-1 sm:gap-2 text-pink-500 hover:text-pink-700 transition-colors px-3 py-1 sm:px-4 sm:py-2 rounded-lg hover:bg-red-50 text-sm sm:text-base font-bold"
+            >
+              <XMarkIcon className="w-4 h-4 sm:w-5 sm:h-5" />
+              <span>Vider</span>
+            </button>
+          )}
+        </div>
+
+        {cartItems.length === 0 ? (
+          <div className="text-center py-20">
+            <div className="max-w-md mx-auto">
+              <div className="w-24 h-24 bg-pink-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                <ShoppingCartIcon className="h-12 w-12 text-pink-400" />
+              </div>
+              <h3 className="text-2xl font-extrabold text-pink-600 drop-shadow-lg mb-3 font-[Comic_Sans_MS,sans-serif]">Votre panier est vide</h3>
+              <p className="text-gray-600 mb-8">Découvrez notre sélection de produits et commencez vos achats</p>
+              <Link href="/site">
+                <button className="bg-gradient-to-r from-pink-400 to-blue-400 text-white px-8 py-3 rounded-xl hover:from-pink-500 hover:to-blue-500 transition-all transform hover:scale-105 font-bold shadow-lg">
+                  Découvrir nos produits
+                </button>
+              </Link>
+            </div>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 xl:grid-cols-4 gap-8">
+            {/* Liste des produits */}
+            <div className="xl:col-span-3">
+              <div className="bg-white rounded-2xl shadow-xl border-2 border-pink-200 overflow-hidden">
+                <div className="p-6 bg-pink-50 border-b-2 border-pink-100">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-xl font-extrabold text-pink-600 font-[Comic_Sans_MS,sans-serif]">Articles dans votre panier</h3>
+                  </div>
+                </div>
+                <div className={`divide-y divide-pink-50 ${cartItems.length > 4 ? 'max-h-[400px] overflow-y-auto' : ''}`}>
+                 {cartItems.map((item, index) => (
+      <CartItemWithPromotion
+        key={`${item.idProduit}-${item.idProduitVariation || 'no-var'}`}
+        item={item}
+        index={index}
+        onIncrement={handleIncrement}
+        onDecrement={handleDecrement}
+        onQuantityChange={handleQuantityChange}
+        onRemove={handleRemove}
+        actionLoading={actionLoadingItemId === item.idProduit} // Nouveau prop
+      />
+    ))}
+                </div>
+              </div>
+              {/* Continuer vos achats */}
+             <div className="mt-6 hidden xl:block">
+                <Link href="/site" className="inline-flex items-center gap-2 text-purple-600 hover:text-purple-800 transition-colors font-extrabold font-[Comic_Sans_MS,sans-serif]">
+                  <ArrowLeftIcon className="w-5 h-5" />
+                  Continuer vos achats
+                </Link>
+              </div>
+            </div>
+
+            {/* Résumé de la commande */}
+            <div className="xl:col-span-1">
+              <div className="sticky top-6 space-y-6">
+                {/* Résumé des prix */}
+                <div className="bg-white rounded-2xl shadow-xl border-2 border-pink-200 p-6">
+                  <h4 className="text-xl font-extrabold text-pink-600 mb-6 font-[Comic_Sans_MS,sans-serif]">Résumé</h4>
+                  <div className="space-y-4 text-base">
+                    {totalSavings > 0 && (
+                      <div className="flex justify-between text-gray-600">
+                        <span>Prix original</span>
+                        <span className="line-through">{totalOriginal.toFixed(2)} <span className="text-xs">TND</span></span>
+                      </div>
+                    )}
+                    {totalSavings > 0 && (
+                      <div className="flex justify-between text-green-600 font-bold">
+                        <span>Promotions</span>
+                        <span>-{totalSavings.toFixed(2)} <span className="text-xs">TND</span></span>
+                      </div>
+                    )}
+                    <div className="flex justify-between">
+                      <span>Sous-total</span>
+                      <span className="font-bold">{totalFinal.toFixed(2)} <span className="text-xs">TND</span></span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Livraison</span>
+                      <span className={`font-bold ${livraison === 0 ? "text-green-600" : ""}`}>
+                        {livraison === 0 ? "Gratuite" : (<>{livraison.toFixed(2)} <span className="text-xs">TND</span></>)}
+                      </span>
+                    </div>
+                    <div className="border-t pt-4">
+                      <div className="flex justify-between font-extrabold text-lg">
+                        <span>Total TTC</span>
+                        <span className="text-purple-600">{totalTTC.toFixed(2)} <span className="text-xs">TND</span></span>
+                      </div>
+                    </div>
+                    {totalSavings > 0 && (
+                      <div className="text-center text-green-600 font-bold bg-green-50 p-3 rounded-lg">
+                        Vous économisez {totalSavings.toFixed(2)} <span className="text-xs">TND</span> !
+                      </div>
+                    )}
+                  </div>
+                  <Link href="/site/passerCmd" className="block mt-6">
+                    <button className="w-full  bg-pink-500  text-white py-4 rounded-xl hover:from-pink-500 hover:to-blue-500 font-extrabold transition-all transform hover:scale-105 shadow">
+                      Finaliser la commande
+                    </button>
+                  </Link>
+                </div>
+                  <div className="mt-4 xl:hidden">
+                  <Link href="/site" className="inline-flex items-center gap-2 text-purple-600 hover:text-purple-800 transition-colors font-extrabold font-[Comic_Sans_MS,sans-serif]">
+                    <ArrowLeftIcon className="w-5 h-5" />
+                    Continuer vos achats
+                  </Link>
+                </div>
+                
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+      <Footer />
+    </div>
+  );
+}
 
 const CartWithProvider = () => {
   return (
+    <Suspense fallback={<KidsCornerLoader
+    message="Chargement du panier..."
+    size="lg"
+    showMessage={true}
+  />}>
     <CartProvider>
-      <CartPromotionProvider>
-        <Suspense 
-          fallback={
-            <div className="min-h-screen flex items-center justify-center bg-base-200">
-              <KidsCornerLoader
-                message="Chargement du panier..."
-                size="lg"
-                showMessage={true}
-              />
-            </div>
-          }
-        >
-          <CartContentInner />
-        </Suspense>
-      </CartPromotionProvider>
+    <CartPromotionProvider>
+      
+        <CartContent />
+      
+    </CartPromotionProvider>
     </CartProvider>
+          </Suspense>
+
   );
 };
 
