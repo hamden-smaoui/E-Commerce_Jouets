@@ -1,12 +1,11 @@
-// app/auth/error/page.tsx (pour App Router)
-// ou pages/auth/error.tsx (pour Pages Router)
-"use client"
-import Link from "next/link"
-import { useSearchParams } from "next/navigation"
+"use client";
+import Link from "next/link";
+import { useSearchParams } from "next/navigation";
+import { Suspense } from "react";
 
-export default function AuthError() {
-  const searchParams = useSearchParams()
-  const error = searchParams.get("error")
+function AuthErrorContent() {
+  const searchParams = useSearchParams();
+  const error = searchParams.get("error");
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-50 flex items-center justify-center py-12 px-4">
@@ -30,5 +29,14 @@ export default function AuthError() {
         </div>
       </div>
     </div>
-  )
+  );
+}
+
+// The page component must wrap client logic in <Suspense>
+export default function AuthError() {
+  return (
+    <Suspense fallback={<div>Chargement...</div>}>
+      <AuthErrorContent />
+    </Suspense>
+  );
 }
