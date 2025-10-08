@@ -8,7 +8,7 @@ import { signIn } from "next-auth/react";
 import GoogleAuthButton from "@/components/ui/GoogleAuthButton";
 import FacebookAuthButton from '@/components/ui/FacebookAuthButton';
 import { Suspense } from "react";
-
+import KidsCornerLoader from "@/components/ui/KidsCornerLoader";
 // Move all hook logic using useSearchParams into a child component
 function SignInContent() {
   const [rememberMe, setRememberMe] = useState(false);
@@ -210,7 +210,11 @@ function SignInContent() {
 // Default export: wrap the content in <Suspense>
 export default function SignIn() {
   return (
-    <Suspense fallback={<div>Chargement...</div>}>
+    <Suspense fallback={<KidsCornerLoader
+    message="Chargement du panier..."
+    size="lg"
+    showMessage={true}
+  />}>
       <SignInContent />
     </Suspense>
   );

@@ -20,6 +20,7 @@ import { CartPromotionProvider, useCartPromotionContext } from '@/contexts/CartP
 import CartItemPromotion from '@/components/ui/CartItemPromotion';
 import CodePromoInput from "@/components/layout/CodePromo";
 import KidsCornerLoader from '@/components/ui/KidsCornerLoader';
+import { Suspense } from "react";
 
 interface FormData {
   clientPrenom: string;
@@ -695,7 +696,13 @@ function Checkout() {
 const CheckoutWithProvider = () => {
   return (
     <CartPromotionProvider>
+       <Suspense fallback={<KidsCornerLoader
+    message="Chargement du panier..."
+    size="lg"
+    showMessage={true}
+  />}>
       <Checkout />
+      </Suspense>
     </CartPromotionProvider>
   );
 };

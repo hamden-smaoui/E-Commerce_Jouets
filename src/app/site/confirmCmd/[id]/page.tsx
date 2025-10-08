@@ -21,7 +21,7 @@ import {
   ExclamationTriangleIcon
 } from '@heroicons/react/24/solid';
 import { useSession } from "next-auth/react";
-
+import { Suspense } from "react";
 // Composant pour le total d'article
 const CommandeItemTotalDisplay = ({ idProduit, quantite, prixUnitaire, prixOriginal }: { idProduit: number, quantite: number, prixUnitaire: number, prixOriginal: number }) => {
   const hasPromotion = prixUnitaire < prixOriginal;
@@ -487,7 +487,13 @@ function CommandeConfirmation() {
 export default function CommandeConfirmationWithProvider() {
   return (
     <CartPromotionProvider>
+      <Suspense fallback={<KidsCornerLoader
+    message="Chargement du panier..."
+    size="lg"
+    showMessage={true}
+  />}>
       <CommandeConfirmation />
+      </Suspense>
     </CartPromotionProvider>
   );
 }

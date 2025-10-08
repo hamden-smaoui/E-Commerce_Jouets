@@ -1,5 +1,5 @@
 "use client";
-import React from "react";
+import React, { Suspense } from "react";
 import Image from "next/image";
 import Footer from "@/components/ui/Footer";
 import Link from 'next/link';
@@ -183,7 +183,7 @@ const CartItemTotalDisplay = ({ idProduit, quantite }: { idProduit: number, quan
   );
 };
 
-function Cart() {
+function CartContent() {
   const {
     cartItems,
     totalItems,
@@ -437,7 +437,13 @@ await removeFromCart(item.idPanierProduit, item.idProduit);      removeItemTotal
 const CartWithProvider = () => {
   return (
     <CartPromotionProvider>
-      <Cart />
+      <Suspense fallback={<KidsCornerLoader
+    message="Chargement du panier..."
+    size="lg"
+    showMessage={true}
+  />}>
+        <CartContent />
+      </Suspense>
     </CartPromotionProvider>
   );
 };
