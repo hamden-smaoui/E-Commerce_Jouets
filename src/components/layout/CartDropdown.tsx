@@ -20,15 +20,15 @@ const TotalContext = createContext({
   removeSubtotal: (id: number) => {},
 });
 
-// Affiche un item avec promotion
 const CartDropdownItem = ({ item, onIncrement, onDecrement, onRemove }: any) => {
   const { addSubtotal, removeSubtotal } = useContext(TotalContext);
   const { calculatePriceWithPromotion, hasPromotions } = usePromotions(item.idProduit);
   const { prixFinal, reduction } = calculatePriceWithPromotion(item.produit.prix);
-  
-  const imageUrl = item.produit.images && item.produit.images.length > 0
-    ? `http://localhost:3001${item.produit.images.sort((a:any, b:any) => a.rang - b.rang)[0].url}`
-    : '/images/placeholder.jpg';
+
+  const imageUrl =
+    item.produit.images && item.produit.images.length > 0
+      ? `http://localhost:3001${item.produit.images.sort((a: any, b: any) => a.rang - b.rang)[0].url}`
+      : "/images/placeholder.jpg";
 
   const subTotal = prixFinal * item.quantite;
   const subOriginal = item.produit.prix * item.quantite;
@@ -36,15 +36,22 @@ const CartDropdownItem = ({ item, onIncrement, onDecrement, onRemove }: any) => 
     addSubtotal(item.idProduit, subTotal, subOriginal);
     return () => removeSubtotal(item.idProduit);
   }, [addSubtotal, removeSubtotal, item.idProduit, subTotal, subOriginal]);
-const formatVariation = (variation: any) => {
-  if (!variation) return '';
-  const { couleur, taille, age } = variation;
-  const parts = [];
-  if (couleur) parts.push(couleur.nom);
-  if (taille) parts.push(taille.nom);
-  if (age) parts.push(age.label);
-  return parts.length > 0 ? parts.join(' / ') : '';
-};
+
+  // Correction ici : stockDisponible dépend de variation ou produit
+  const stockDisponible = item.variation
+    ? item.variation.quantiteStock
+    : item.produit.quantiteStock;
+
+  const formatVariation = (variation: any) => {
+    if (!variation) return "";
+    const { couleur, taille, age } = variation;
+    const parts = [];
+    if (couleur) parts.push(couleur.nom);
+    if (taille) parts.push(taille.nom);
+    if (age) parts.push(age.label);
+    return parts.length > 0 ? parts.join(" / ") : "";
+  };
+
   return (
     <div className="flex items-start gap-3 p-2 hover:bg-gray-50 rounded-lg transition-colors">
       {/* Image du produit */}
@@ -64,10 +71,10 @@ const formatVariation = (variation: any) => {
           {item.produit.nom}
         </h4>
         {item.variation && (
-  <div className="text-xs text-gray-500 font-medium truncate">
-    {formatVariation(item.variation)}
-  </div>
-)}
+          <div className="text-xs text-gray-500 font-medium truncate">
+            {formatVariation(item.variation)}
+          </div>
+        )}
         {/* Prix avec promotion */}
         <div className="flex items-center gap-2 mt-1">
           {hasPromotions ? (
@@ -90,7 +97,9 @@ const formatVariation = (variation: any) => {
         <div className="flex items-center justify-between mt-2">
           <div className="flex items-center gap-1">
             <button
-              onClick={() => onDecrement(item.idProduit, item.quantite,item.idProduitVariation)}
+              onClick={() =>
+                onDecrement(item.idProduit, item.quantite, item.idProduitVariation)
+              }
               disabled={item.quantite <= 1}
               className="w-6 h-6 rounded border border-gray-300 flex items-center justify-center hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
@@ -100,21 +109,28 @@ const formatVariation = (variation: any) => {
               {item.quantite}
             </span>
             <button
-              onClick={() => onIncrement(item.idProduit, item.quantite, item.produit.quantiteStock,item.idProduitVariation)}
-              disabled={item.quantite >= item.produit.quantiteStock}
+              onClick={() =>
+                onIncrement(
+                  item.idProduit,
+                  item.quantite,
+                  stockDisponible,
+                  item.idProduitVariation
+                )
+              }
+              disabled={item.quantite >= stockDisponible}
               className="w-6 h-6 rounded border border-gray-300 flex items-center justify-center hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               <PlusIcon className="w-3 h-3" />
             </button>
           </div>
-          
+
           <button
-            onClick={() => onRemove(item.idPanierProduit)}
-            className="text-red-500 hover:text-red-700 transition-colors p-1"
-            title="Supprimer"
-          >
-            <TrashIcon className="w-4 h-4" />
-          </button>
+  onClick={() => onRemove(item.idPanierProduit, item.idProduit)}
+  className="text-red-500 hover:text-red-700 transition-colors p-1"
+  title="Supprimer"
+>
+  <TrashIcon className="w-4 h-4" />
+</button>
         </div>
       </div>
     </div>
@@ -187,11 +203,11 @@ const { storeInfo, loading: storeLoading } = useStoreInfo();
     }
   };
 
-  const handleRemove = async (idPanierProduit: number) => {
-    try {
-      await removeFromCart(idPanierProduit);
-    } catch (error) {}
-  };
+  const handleRemove = async (idPanierProduit: number, idProduit: number) => {
+  try {
+    await removeFromCart(idPanierProduit, idProduit);
+  } catch (error) {}
+};
 
   const handleCartClick = () => {
     setIsOpen(!isOpen);
@@ -261,15 +277,15 @@ const { storeInfo, loading: storeLoading } = useStoreInfo();
               <TotalContext.Provider value={{ addSubtotal, removeSubtotal }}>
                 <div className="flex-1 overflow-y-auto max-h-80">
                   <div className="p-4 space-y-4">
-                    {cartItems.map((item) => (
-                      <CartDropdownItem
-                        key={item.idProduit}
-                        item={item}
-                        onIncrement={handleIncrement}
-                        onDecrement={handleDecrement}
-                        onRemove={handleRemove}
-                      />
-                    ))}
+                   {cartItems.map((item) => (
+  <CartDropdownItem
+    key={item.idProduit}
+    item={item}
+    onIncrement={handleIncrement}
+    onDecrement={handleDecrement}
+    onRemove={handleRemove}
+  />
+))}
                   </div>
                 </div>
               </TotalContext.Provider>

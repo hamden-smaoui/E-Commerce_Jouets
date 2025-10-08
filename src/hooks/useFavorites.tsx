@@ -4,6 +4,7 @@ import FavoriService, { FavoriResponse } from "@/services/favoris-service";
 import { useSession } from "next-auth/react";
 import { toast } from "react-hot-toast";
 import { useRouter } from "next/navigation";
+import * as fbq from "@/lib/fpixel"; // 👈 Ajouter
 
 interface FavoritesContextType {
   favorites: FavoriResponse[];
@@ -52,27 +53,44 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const addToFavorites = async (idProduit: number) => {
-    if (!isAuthenticated || !user || !token) {
-      toast.error("Vous devez être connecté pour ajouter aux favoris");
-      router.push("/signIn");
+ const addToFavorites = async (idProduit: number) => {
+  if (!isAuthenticated || !user || !token) {
+    toast.error("Vous devez être connecté pour ajouter aux favoris");
+    router.push("/signIn");
+    return;
+  }
+  try {
+    const userId = user.idUtilisateur;
+    if (!userId) {
+      toast.error("Erreur d'authentification");
       return;
     }
-    try {
-      const userId = user.idUtilisateur;
-      if (!userId) {
-        toast.error("Erreur d'authentification");
-        return;
-      }
-      await FavoriService.addFavori({ idUtilisateur: userId, idProduit }, token);
-      await refreshFavorites();
-      toast.success("Produit ajouté aux favoris");
-    } catch (error: any) {
-      const message = error.message || "Erreur lors de l'ajout aux favoris";
-      toast.error(message);
-      throw error;
+    await FavoriService.addFavori({ idUtilisateur: userId, idProduit }, token);
+    
+    // Récupérer les infos du produit
+    const updatedFavorites = await FavoriService.getAllFavorisByUser(userId, token);
+    const addedFavorite = updatedFavorites.find(fav => fav.idProduit === idProduit);
+    
+    await refreshFavorites();
+    toast.success("Produit ajouté aux favoris");
+    
+    // 🔥 TRACKER AVEC LES INFOS
+    if (addedFavorite) {
+      fbq.event('AddToWishlist', {
+        content_ids: [idProduit.toString()],
+        content_name: addedFavorite.produit?.nom || 'Produit', // 👈 Nom
+        content_type: 'product',
+        value: addedFavorite.produit?.prix || 0, 
+        currency: 'TND'
+      });
     }
-  };
+    
+  } catch (error: any) {
+    const message = error.message || "Erreur lors de l'ajout aux favoris";
+    toast.error(message);
+    throw error;
+  }
+};
 
   const removeFromFavorites = async (idProduit: number) => {
     if (!isAuthenticated || !user || !token) {

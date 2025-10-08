@@ -8,7 +8,11 @@ import PromotionBadge from "./PromotionBadge";
 import { useFavorites } from "@/hooks/useFavorites";
 import { ShoppingCartIcon } from "@heroicons/react/24/solid";
 import { useRouter } from "next/navigation";
-
+interface ProduitVariation {
+  idProduitVariation: number;
+  quantiteStock: number;
+  // autres champs si besoin
+}
 interface Product {
   idProduit: number;
   nom: string;
@@ -29,6 +33,7 @@ interface Product {
     url: string;
     rang: number;
   }>;
+   variations?: ProduitVariation[];
 }
 
 interface ProductCardProps {
@@ -67,16 +72,30 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
     ? sortedImages[currentImageIndex].url 
     : product.image;
 
-  // Stock status logic
   const getStockStatus = () => {
-    if (product.quantiteStock === 0) {
+  if (product.variations && product.variations.length > 0) {
+    const totalStock = product.variations.reduce(
+      (sum, v) => sum + (v.quantiteStock || 0),
+      0
+    );
+    if (totalStock === 0) {
       return { text: "Rupture de stock", class: "bg-red-500", available: false };
-    } else if (product.quantiteStock <= 5) {
-      return { text: `Stock limité (${product.quantiteStock})`, class: "bg-orange-500", available: true };
+    } else if (totalStock <= 5) {
+      return { text: `Stock limité`, class: "bg-orange-500", available: true };
     } else {
       return { text: "En stock", class: "bg-green-500 text-white", available: true };
     }
-  };
+  }
+
+  // Stock général (fallback)
+  if (product.quantiteStock === 0) {
+    return { text: "Rupture de stock", class: "bg-red-500", available: false };
+  } else if (product.quantiteStock <= 5) {
+    return { text: `Stock limité`, class: "bg-orange-500", available: true };
+  } else {
+    return { text: "En stock", class: "bg-green-500 text-white", available: true };
+  }
+};
 
   const stockStatus = getStockStatus();
 

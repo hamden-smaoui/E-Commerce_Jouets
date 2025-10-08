@@ -23,9 +23,10 @@ import { useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
+import ErrorBanner from "@/components/ui/ErrorBanner";
 
 
-const CartItemWithPromotion = ({ item, index, onIncrement, onDecrement, onQuantityChange, onRemove }: any) => {
+const CartItemWithPromotion = ({ item, index, onIncrement, onDecrement, onQuantityChange, onRemove, actionLoading }: any) => {
   const imageUrl = item.produit.images && item.produit.images.length > 0
     ? `http://localhost:3001${item.produit.images.sort((a:any, b:any) => a.rang - b.rang)[0].url}`
     : '/images/placeholder.jpg';
@@ -102,29 +103,38 @@ const CartItemWithPromotion = ({ item, index, onIncrement, onDecrement, onQuanti
       <div className="flex items-center gap-4 flex-shrink-0">
         {/* Sélecteur de quantité */}
         <div className="flex items-center gap-1 bg-pink-50 rounded-lg p-1">
-          <button
-            onClick={() => onDecrement(item)}
-            disabled={item.quantite <= 1}
-            className="w-8 h-8 rounded-md flex items-center justify-center hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed transition-all font-bold"
-          >
+        <button
+          onClick={() => onDecrement(item)}
+          disabled={item.quantite <= 1 || actionLoading}
+          className="w-8 h-8 rounded-md flex items-center justify-center hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed transition-all font-bold"
+        >
+          {actionLoading ? (
+            <span className="animate-spin w-4 h-4 border-2 border-pink-600 border-t-transparent rounded-full"></span>
+          ) : (
             <MinusIcon className="w-4 h-4 text-pink-600" />
-          </button>
-          <input
-            type="number"
-            value={item.quantite}
-            onChange={(e) => onQuantityChange(item, e)}
-            className="w-12 h-8 text-center border-0 bg-transparent focus:outline-none focus:ring-0 text-sm font-medium"
-            min="1"
-            max={stockDisponible}
-          />
-          <button
-            onClick={() => onIncrement(item)}
-            disabled={item.quantite >= stockDisponible}
-            className="w-8 h-8 rounded-md flex items-center justify-center hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed transition-all font-bold"
-          >
+          )}
+        </button>
+        <input
+          type="number"
+          value={item.quantite}
+          onChange={(e) => onQuantityChange(item, e)}
+          className="w-12 h-8 text-center border-0 bg-transparent focus:outline-none focus:ring-0 text-sm font-medium"
+          min="1"
+          max={stockDisponible}
+          disabled={actionLoading}
+        />
+        <button
+          onClick={() => onIncrement(item)}
+          disabled={item.quantite >= stockDisponible || actionLoading}
+          className="w-8 h-8 rounded-md flex items-center justify-center hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed transition-all font-bold"
+        >
+          {actionLoading ? (
+            <span className="animate-spin w-4 h-4 border-2 border-pink-600 border-t-transparent rounded-full"></span>
+          ) : (
             <PlusIcon className="w-4 h-4 text-pink-600" />
-          </button>
-        </div>
+          )}
+        </button>
+      </div>
 
         <CartItemTotalDisplay 
           idProduit={item.idProduit}
@@ -174,19 +184,23 @@ const CartItemTotalDisplay = ({ idProduit, quantite }: { idProduit: number, quan
 };
 
 function Cart() {
-  const { 
-    cartItems, 
-    totalItems, 
-    loading, 
-    updateQuantity, 
+  const {
+    cartItems,
+    totalItems,
+    loading,
+    initialLoading,
+    actionLoadingItemId,
+    updateQuantity,
     removeFromCart,
-    clearCart 
+    refreshCart,
+    clearCart,
   } = useCart();
    const { data: session, status } = useSession();
   const router = useRouter();
 
   const { storeInfo, loading: storeLoading } = useStoreInfo(); 
-  
+    const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
   const [mounted, setMounted] = useState(false);
 
   const { getTotals, clearTotals, itemTotals, removeItemTotal } = useCartPromotionContext();
@@ -214,7 +228,14 @@ function Cart() {
   const seuilLivraisonGratuite = storeInfo?.seuilLivraisonGratuite || 100; 
   const livraison = totalFinal >= seuilLivraisonGratuite ? 0 : fraisLivraison;
   const totalTTC = totalFinal + livraison;
-   
+   const handleRefreshCart = async () => {
+    setErrorMessage(null);
+    try {
+      await refreshCart();
+    } catch (error: any) {
+      setErrorMessage(error.message || "Erreur inconnue lors du chargement du panier.");
+    }
+  };
   const handleIncrement = async (item: any) => {
     const stockDisponible = item.variation ? item.variation.quantiteStock : item.produit.quantiteStock;
     if (item.quantite < stockDisponible) {
@@ -243,8 +264,7 @@ function Cart() {
 
   const handleRemove = async (item: any) => {
     try {
-      await removeFromCart(item.idPanierProduit);
-      removeItemTotal(item.idProduit);
+await removeFromCart(item.idPanierProduit, item.idProduit);      removeItemTotal(item.idProduit);
     } catch (error) {}
   };
 
@@ -258,10 +278,10 @@ function Cart() {
 
   if (!mounted) return null;
 
-  if (loading) {
+   if (initialLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-base-200">
-        <KidsCornerLoader 
+        <KidsCornerLoader
           message="Chargement du panier..."
           size="lg"
           showMessage={true}
@@ -273,20 +293,27 @@ function Cart() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-50 via-yellow-50 to-blue-50 font-[Comic_Sans_MS,sans-serif]">
       <div className="container mx-auto px-4 py-8 max-w-7xl">
+        {/* ----------- ICI le ErrorBanner (juste après le header) ----------- */}
+        {errorMessage && (
+          <ErrorBanner
+            message={errorMessage}
+            onRetry={handleRefreshCart}
+          />
+        )}
         {/* Header */}
         <div className="flex items-center justify-between mb-8 w-full">
           <div className="flex items-center gap-2 sm:gap-3">
             <div className="w-10 h-10 sm:w-12 sm:h-12 bg-pink-200 rounded-full flex items-center justify-center flex-shrink-0 shadow">
               <ShoppingCartIcon className="w-6 h-6 sm:w-7 sm:h-7 text-purple-600" />
             </div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-pink-600 drop-shadow-lg font-[Comic_Sans_MS,sans-serif]">
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-purple-600 drop-shadow-lg font-[Comic_Sans_MS,sans-serif]">
               Votre Panier
             </h1>
           </div>
           {cartItems.length > 0 && (
             <button
               onClick={handleClearCart}
-              className="flex items-center gap-1 sm:gap-2 text-red-500 hover:text-red-700 transition-colors px-3 py-1 sm:px-4 sm:py-2 rounded-lg hover:bg-red-50 text-sm sm:text-base font-bold"
+              className="flex items-center gap-1 sm:gap-2 text-pink-500 hover:text-pink-700 transition-colors px-3 py-1 sm:px-4 sm:py-2 rounded-lg hover:bg-red-50 text-sm sm:text-base font-bold"
             >
               <XMarkIcon className="w-4 h-4 sm:w-5 sm:h-5" />
               <span>Vider</span>
@@ -320,21 +347,22 @@ function Cart() {
                   </div>
                 </div>
                 <div className={`divide-y divide-pink-50 ${cartItems.length > 4 ? 'max-h-[400px] overflow-y-auto' : ''}`}>
-                  {cartItems.map((item, index) => (
-                    <CartItemWithPromotion
-                      key={`${item.idProduit}-${item.idProduitVariation || 'no-var'}`}
-                      item={item}
-                      index={index}
-                      onIncrement={handleIncrement}
-                      onDecrement={handleDecrement}
-                      onQuantityChange={handleQuantityChange}
-                      onRemove={handleRemove}
-                    />
-                  ))}
+                 {cartItems.map((item, index) => (
+      <CartItemWithPromotion
+        key={`${item.idProduit}-${item.idProduitVariation || 'no-var'}`}
+        item={item}
+        index={index}
+        onIncrement={handleIncrement}
+        onDecrement={handleDecrement}
+        onQuantityChange={handleQuantityChange}
+        onRemove={handleRemove}
+        actionLoading={actionLoadingItemId === item.idProduit} // Nouveau prop
+      />
+    ))}
                 </div>
               </div>
               {/* Continuer vos achats */}
-              <div className="mt-6">
+             <div className="mt-6 hidden xl:block">
                 <Link href="/site" className="inline-flex items-center gap-2 text-purple-600 hover:text-purple-800 transition-colors font-extrabold font-[Comic_Sans_MS,sans-serif]">
                   <ArrowLeftIcon className="w-5 h-5" />
                   Continuer vos achats
@@ -384,45 +412,18 @@ function Cart() {
                     )}
                   </div>
                   <Link href="/site/passerCmd" className="block mt-6">
-                    <button className="w-full bg-gradient-to-r from-pink-400 to-blue-400 text-white py-4 rounded-xl hover:from-pink-500 hover:to-blue-500 font-extrabold transition-all transform hover:scale-105 shadow">
+                    <button className="w-full  bg-pink-500  text-white py-4 rounded-xl hover:from-pink-500 hover:to-blue-500 font-extrabold transition-all transform hover:scale-105 shadow">
                       Finaliser la commande
                     </button>
                   </Link>
                 </div>
-
-                {/* Garanties */}
-                <div className="bg-white rounded-2xl shadow-xl border-2 border-pink-200 p-6">
-                  <h4 className="font-extrabold text-pink-600 mb-4 font-[Comic_Sans_MS,sans-serif]">Nos garanties</h4>
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
-                        <ShieldCheckIcon className="w-5 h-5 text-green-600" />
-                      </div>
-                      <div>
-                        <div className="font-bold text-gray-900">Paiement sécurisé</div>
-                        <div className="text-sm text-gray-600">SSL et cryptage des données</div>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
-                        <TruckIcon className="w-5 h-5 text-blue-600" />
-                      </div>
-                      <div>
-                        <div className="font-bold text-gray-900">Livraison rapide</div>
-                        <div className="text-sm text-gray-600">24-48h en Tunisie</div>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-yellow-100 rounded-full flex items-center justify-center flex-shrink-0">
-                        <ArrowUturnLeftIcon className="w-5 h-5 text-yellow-600" />
-                      </div>
-                      <div>
-                        <div className="font-bold text-gray-900">Retour gratuit</div>
-                        <div className="text-sm text-gray-600">14 jours satisfait ou remboursé</div>
-                      </div>
-                    </div>
-                  </div>
+                  <div className="mt-4 xl:hidden">
+                  <Link href="/site" className="inline-flex items-center gap-2 text-purple-600 hover:text-purple-800 transition-colors font-extrabold font-[Comic_Sans_MS,sans-serif]">
+                    <ArrowLeftIcon className="w-5 h-5" />
+                    Continuer vos achats
+                  </Link>
                 </div>
+                
               </div>
             </div>
           </div>

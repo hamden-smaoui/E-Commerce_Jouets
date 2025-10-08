@@ -4,7 +4,7 @@ import "../globals.css";
 import SiteShell from "./SiteShell";
 import { CartProvider } from "@/hooks/useCart";
 import { FavoritesProvider } from "@/hooks/useFavorites";
-
+import MetaPixel from "@/components/MetaPixel";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
@@ -18,6 +18,7 @@ export default function RootLayout({
   return (
     <html lang="fr" data-theme="light">
       <body className={inter.className}>
+        <MetaPixel />
         <CartProvider>
           <FavoritesProvider>
             <SiteShell>{children}</SiteShell>

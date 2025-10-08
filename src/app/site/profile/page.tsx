@@ -290,7 +290,7 @@ export default function ProfilePage() {
 
   if (globalLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-50 via-blue-50 to-white font-[Comic_Sans_MS,sans-serif]">
         <KidsCornerLoader 
           message="Chargement de votre profil..."
           size="lg"
@@ -301,11 +301,11 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-6 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-white font-[Comic_Sans_MS,sans-serif] py-6 px-4 sm:px-6 lg:px-8">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
-        <div className="bg-white shadow-sm rounded-lg mb-6">
-          <div className="px-4 sm:px-6 py-4 border-b border-gray-200">
+        <div className="bg-white shadow-xl rounded-2xl mb-6 border-2 border-purple-100">
+          <div className="px-4 sm:px-6 py-4 border-b-2 border-purple-50">
             <div className="flex items-center space-x-4">
               <div className="h-12 w-12 bg-purple-100 rounded-full flex items-center justify-center">
                 <span className="text-xl font-bold text-purple-600">
@@ -313,7 +313,7 @@ export default function ProfilePage() {
                 </span>
               </div>
               <div>
-                <h1 className="text-lg font-semibold text-gray-900">
+                <h1 className="text-lg font-extrabold text-purple-600">
                   {profileData.prenom} {profileData.nom}
                 </h1>
                 <p className="text-sm text-gray-500">{profileData.email || profileData.telephone}</p>
@@ -322,42 +322,43 @@ export default function ProfilePage() {
           </div>
           {/* Navigation Tabs */}
           <div className="px-4 sm:px-6">
-            <nav className="flex space-x-4 border-b border-gray-200">
-              <button
-                onClick={() => setActiveTab('profile')}
-                className={`py-3 px-4 border-b-2 font-medium text-sm flex items-center space-x-2 transition-colors ${
-                  activeTab === 'profile'
-                    ? 'border-purple-500 text-purple-600'
-                    : 'border-transparent text-gray-600 hover:text-purple-600 hover:border-purple-300'
-                }`}
-              >
-                <UserCircleIcon className="h-5 w-5" />
-                <span>Informations personnelles</span>
-              </button>
-              <button
-                onClick={() => setActiveTab('orders')}
-                className={`py-3 px-4 border-b-2 font-medium text-sm flex items-center space-x-2 transition-colors ${
-                  activeTab === 'orders'
-                    ? 'border-purple-500 text-purple-600'
-                    : 'border-transparent text-gray-600 hover:text-purple-600 hover:border-purple-300'
-                }`}
-              >
-                <ShoppingBagIcon className="h-5 w-5" />
-                <span>Mes commandes</span>
-              </button>
-            </nav>
+           <nav className="flex flex-col sm:flex-row gap-2 sm:gap-4 border-b-2 border-purple-50">
+  <button
+    onClick={() => setActiveTab('profile')}
+    className={`py-3 px-4 border-b-2 font-medium text-sm flex items-center space-x-2 transition-colors ${
+      activeTab === 'profile'
+        ? 'border-purple-500 text-purple-600'
+        : 'border-transparent text-gray-600 hover:text-purple-600 hover:border-purple-300'
+    }`}
+  >
+    <UserCircleIcon className="h-5 w-5" />
+    <span>Informations personnelles</span>
+  </button>
+  <button
+    onClick={() => setActiveTab('orders')}
+    className={`py-3 px-4 border-b-2 font-medium text-sm flex items-center space-x-2 transition-colors ${
+      activeTab === 'orders'
+        ? 'border-purple-500 text-purple-600'
+        : 'border-transparent text-gray-600 hover:text-purple-600 hover:border-purple-300'
+    }`}
+  >
+    <ShoppingBagIcon className="h-5 w-5" />
+    <span>Mes commandes</span>
+  </button>
+</nav>
           </div>
         </div>
         {/* Content */}
         {activeTab === 'profile' ? (
-          <div className="bg-white shadow-sm rounded-lg">
-            <div className="px-4 sm:px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-gray-900">
-                Informations personnelles
+          <div className="bg-white shadow-xl rounded-2xl border-2 border-purple-100">
+            <div className="px-4 sm:px-6 py-4 border-b-2 border-purple-50 flex items-center justify-between">
+              <UserCircleIcon className="h-5 w-5 text-purple-600" />
+              <h2 className="text-lg font-extrabold text-purple-600">
+                Infos personnelles
               </h2>
               <button
                 onClick={() => isEditing ? handleCancelEdit() : setIsEditing(true)}
-                className="btn btn-outline btn-sm flex items-center space-x-2 text-gray-600 hover:text-purple-600 hover:border-purple-300"
+                className="btn btn-outline btn-sm flex items-center space-x-2 text-purple-600 hover:text-purple-700 hover:border-purple-300"
               >
                 <PencilIcon className="h-4 w-4" />
                 <span>{isEditing ? 'Annuler' : 'Modifier'}</span>
@@ -539,7 +540,7 @@ export default function ProfilePage() {
                       <UserCircleIcon className="h-5 w-5 text-gray-400" />
                       <div>
                         <p className="text-sm text-gray-500">Nom complet</p>
-                        <p className="font-medium text-sm sm:text-base text-gray-900">{profileData.prenom} {profileData.nom}</p>
+                        <p className="font-medium text-sm sm:text-base text-purple-600">{profileData.prenom} {profileData.nom}</p>
                       </div>
                     </div>
                     <div className="flex items-center space-x-3">
@@ -576,7 +577,7 @@ export default function ProfilePage() {
                     </div>
                   </div>
                   {/* SECTION NEWSLETTER */}
-                  <div className="mt-10 border-t border-gray-100 pt-6">
+                  <div className="mt-10 border-t border-purple-50 pt-6">
                     <div className="flex items-center gap-3 mb-2">
                       <MailIcon className="h-6 w-6 text-blue-400" />
                       <h3 className="text-md font-bold text-gray-900">Abonnement à la Newsletter</h3>
@@ -613,12 +614,12 @@ export default function ProfilePage() {
                           value={newsletterEmail}
                           onChange={e => setNewsletterEmail(e.target.value)}
                           required
-                          disabled
+                          
                         />
                         <button
                           type="submit"
                           className="btn btn-primary"
-                          disabled
+                          
                         >
                           S'abonner
                         </button>
@@ -639,11 +640,11 @@ export default function ProfilePage() {
             </div>
           </div>
         ) : (
-          <div className="bg-white shadow-sm rounded-lg">
-            <div className="px-4 sm:px-6 py-4 border-b border-gray-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="bg-white shadow-xl rounded-2xl border-2 border-purple-100">
+            <div className="px-4 sm:px-6 py-4 border-b-2 border-purple-50 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div className="flex items-center space-x-2">
-                <ShoppingBagIcon className="h-5 w-5 text-gray-600" />
-                <h2 className="text-lg font-semibold text-gray-900">Mes commandes</h2>
+                <ShoppingBagIcon className="h-5 w-5 text-purple-600" />
+                <h2 className="text-lg font-extrabold text-purple-600">Mes commandes</h2>
               </div>
               <div className="relative w-full sm:w-64">
                 <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
@@ -667,7 +668,7 @@ export default function ProfilePage() {
                 </div>
               ) : filteredOrders.length === 0 ? (
                 <div className="text-center py-8">
-                  <ShoppingBagIcon className="h-12 w-12 sm:h-16 sm:w-16 text-gray-300 mx-auto mb-4" />
+                  <ShoppingBagIcon className="h-12 w-12 sm:h-16 sm:w-16 text-purple-100 mx-auto mb-4" />
                   <p className="text-gray-600 text-sm sm:text-base font-medium">
                     {searchQuery ? 'Aucune commande ne correspond à votre recherche' : 'Vous n\'avez pas encore passé de commande'}
                   </p>
@@ -680,45 +681,43 @@ export default function ProfilePage() {
                   {filteredOrders.map((order) => (
                     <div
                       key={order.idCommande}
-                      className="border border-gray-200 rounded-lg p-4 sm:p-6 bg-white shadow-sm hover:shadow-md transition-shadow duration-200"
+                      className="border-2 border-purple-50 rounded-xl p-4 sm:p-6 bg-white shadow-xl hover:shadow-2xl transition-shadow duration-200"
                     >
                       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                         <div className="flex items-center space-x-3">
-                          <span className="font-semibold text-gray-900 text-sm sm:text-base">
+                          <span className="font-semibold text-purple-600 text-sm sm:text-base">
                             Commande #{order.idCommande}
                           </span>
-                          <div className="flex items-center space-x-2">
-                            <div className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium border bg-gray-100 text-gray-800 border-gray-200`}>
-                              <ClockIcon className="h-5 w-5 text-gray-500" />
-                              <span className="ml-1 capitalize">{order.statut}</span>
-                            </div>
-                            <a
-                              href={`/site/confirmCmd/${order.idCommande}`}
-                              className="btn btn-xs bg-purple-600 hover:bg-purple-700 text-white border-none flex items-center space-x-1 px-2 py-1 ml-2"
-                              title="Voir détails de la commande"
-                            >
-                              <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                className="h-4 w-4"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                stroke="currentColor"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                                />
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-                                />
-                              </svg>
-                            </a>
+                          <div className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium border bg-purple-50 text-purple-800 border-purple-100`}>
+                            <ClockIcon className="h-5 w-5 text-purple-500" />
+                            <span className="ml-1 capitalize">{order.statut}</span>
                           </div>
+                          <a
+                            href={`/site/confirmCmd/${order.idCommande}`}
+                            className="btn btn-xs bg-purple-600 hover:bg-purple-700 text-white border-none flex items-center space-x-1 px-2 py-1 ml-2"
+                            title="Voir détails de la commande"
+                          >
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              className="h-4 w-4"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                              />
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                              />
+                            </svg>
+                          </a>
                         </div>
                         <div className="text-right">
                           <p className="font-bold text-purple-600 text-sm sm:text-base">{order.montantTotal.toFixed(2)} TND</p>
@@ -733,18 +732,18 @@ export default function ProfilePage() {
                         </div>
                       </div>
                       {order.lignesCommandes && order.lignesCommandes.length > 0 && (
-                        <div className="mt-4 space-y-3 border-t border-gray-100 pt-4">
+                        <div className="mt-4 space-y-3 border-t border-purple-50 pt-4">
                           {order.lignesCommandes.slice(0, 3).map((item, index) => (
                             <div key={index} className="flex items-center space-x-3">
                               {item.produit?.images && item.produit.images.length > 0 && (
                                 <img
                                   src={`http://localhost:3001${item.produit.images.sort((a, b) => a.rang - b.rang)[0].url}`}
                                   alt={item.produit.nom}
-                                  className="h-12 w-12 sm:h-14 sm:w-14 object-cover rounded-lg border border-gray-100"
+                                  className="h-12 w-12 sm:h-14 sm:w-14 object-cover rounded-lg border border-purple-100"
                                 />
                               )}
                               <div className="flex-1">
-                                <p className="text-sm font-medium text-gray-900">
+                                <p className="text-sm font-medium text-purple-600">
                                   {item.produit?.nom || 'Produit non disponible'}
                                 </p>
                                 <p className="text-xs text-gray-500">

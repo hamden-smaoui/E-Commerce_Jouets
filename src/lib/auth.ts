@@ -1,6 +1,6 @@
 import { NextAuthOptions } from "next-auth"
 import GoogleProvider from "next-auth/providers/google"
-import FacebookProvider from "next-auth/providers/facebook" // Ajout
+import FacebookProvider from "next-auth/providers/facebook"
 import CredentialsProvider from "next-auth/providers/credentials"
 
 export const authOptions: NextAuthOptions = {
@@ -9,7 +9,6 @@ export const authOptions: NextAuthOptions = {
       clientId: process.env.GOOGLE_CLIENT_ID!,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
     }),
-    // NOUVEAU: Provider Facebook
     FacebookProvider({
       clientId: process.env.FACEBOOK_CLIENT_ID!,
       clientSecret: process.env.FACEBOOK_CLIENT_SECRET!,
@@ -25,14 +24,17 @@ export const authOptions: NextAuthOptions = {
           return null
         }
 
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/auth/login`, {
+        // ✅ Utilise le proxy au lieu d'appeler directement le backend
+        const res = await fetch(`${process.env.NEXTAUTH_URL}/api/auth/login-proxy`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
+          credentials: 'include',
           body: JSON.stringify({
             emailOrPhone: credentials.emailOrPhone,
             motDePasse: credentials.password
           })
         });
+
         const data = await res.json();
 
         if (res.ok && data.token && data.user) {
@@ -54,9 +56,11 @@ export const authOptions: NextAuthOptions = {
     async signIn({ user, account }) {
       // Google authentication
       if (account?.provider === "google") {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/auth/google-auth`, {
+        // ✅ Utilise le proxy
+        const response = await fetch(`${process.env.NEXTAUTH_URL}/api/auth/google-proxy`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
           body: JSON.stringify({
             email: user.email,
             name: user.name,
@@ -64,17 +68,21 @@ export const authOptions: NextAuthOptions = {
             image: user.image
           }),
         });
+
         if (!response.ok) return false;
         const data = await response.json();
+        
         user.customToken = data.token;
         user.userData = data.user;
       }
       
-      // NOUVEAU: Facebook authentication
+      // Facebook authentication
       if (account?.provider === "facebook") {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/auth/facebook-auth`, {
+        // ✅ Utilise le proxy
+        const response = await fetch(`${process.env.NEXTAUTH_URL}/api/auth/facebook-proxy`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
           body: JSON.stringify({
             email: user.email,
             name: user.name,
@@ -82,23 +90,23 @@ export const authOptions: NextAuthOptions = {
             image: user.image
           }),
         });
+
         if (!response.ok) return false;
         const data = await response.json();
+        
         user.customToken = data.token;
         user.userData = data.user;
       }
       
       return true;
     },
-    async jwt({ token, user, account }) {
+    async jwt({ token, user }) {
       if (user?.customToken) token.customToken = user.customToken;
       if (user?.userData) token.userData = user.userData;
       if (user?.id) token.userId = user.id;
-      if (account?.access_token) token.accessToken = account.access_token;
       return token;
     },
     async session({ session, token }) {
-      session.accessToken = token.accessToken as string;
       session.userId = token.userId as string;
       session.customToken = token.customToken as string;
       session.userData = token.userData as any;

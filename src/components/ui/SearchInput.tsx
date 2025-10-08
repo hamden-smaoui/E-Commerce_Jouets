@@ -12,6 +12,7 @@ import {
 } from "@heroicons/react/24/outline";
 import SearchService, { SearchSuggestion } from "@/services/search-service";
 import { debounce } from "lodash";
+import * as fbq from "@/lib/fpixel";
 
 interface SearchInputProps {
   placeholder?: string;
@@ -87,7 +88,10 @@ const SearchInput: React.FC<SearchInputProps> = ({
     
     setIsOpen(false);
     setQuery(searchQuery);
-    
+    // 🔥 TRACKER L'ÉVÉNEMENT META PIXEL
+  fbq.event('Search', {
+    search_string: searchQuery.trim()
+  });
     if (onSearch) {
       onSearch(searchQuery);
     } else {

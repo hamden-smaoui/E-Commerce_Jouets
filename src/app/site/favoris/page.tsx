@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import { useFavorites } from "@/hooks/useFavorites";
 import ProductCard from "@/components/ui/ProductCard";
+import { ProduitVariation } from "@/services/produits-service";
 import Footer from "@/components/ui/Footer";
 import Link from 'next/link';
 import KidsCornerLoader from '@/components/ui/KidsCornerLoader';
@@ -25,14 +26,18 @@ export default function Favoris() {
       router.replace("/signIn");
     }
   }, [status, router]);
-
+ const calculateTotalStock = (variations: ProduitVariation[] | undefined): number => {
+  console.log("Calculating total stock for variations:", variations);
+    if (!variations || variations.length === 0) return 0;
+    return variations.reduce((total, variation) => total + (variation.quantiteStock || 0), 0);
+  };
   // Map favorites to products for ProductCard  
   const products = favorites.map(fav => ({
     idProduit: fav.idProduit,
     nom: fav.produit?.nom || "Produit inconnu",
     prix: fav.produit?.prix || 0,
     description: fav.produit?.description || "",
-    quantiteStock: fav.produit?.quantiteStock || 0,
+    quantiteStock: calculateTotalStock(fav.produit?.variations), 
     marque: fav.produit?.marque,
     categorie: fav.produit?.categorie,
     images: fav.produit?.images || []
@@ -42,6 +47,7 @@ export default function Favoris() {
 
   useEffect(() => {
     setSortedProducts(products);
+    console.log("Updated sortedProducts:", products);
   }, [favorites]);
 
   const handleSortChange = (e: React.ChangeEvent<HTMLSelectElement>) => {

@@ -8,11 +8,7 @@ import { useStoreInfo } from "@/hooks/useStoreInfo";
 import {User}from "@/services/users-service";
 import UsersService from "@/services/users-service";
 import { 
-  ShieldCheckIcon, 
-  TruckIcon, 
-  ArrowUturnLeftIcon,
   ArrowLeftIcon,
-  BanknotesIcon,
   ShoppingCartIcon
 } from '@heroicons/react/24/solid';
 import { useCart } from "@/hooks/useCart";
@@ -24,7 +20,6 @@ import { CartPromotionProvider, useCartPromotionContext } from '@/contexts/CartP
 import CartItemPromotion from '@/components/ui/CartItemPromotion';
 import CodePromoInput from "@/components/layout/CodePromo";
 import KidsCornerLoader from '@/components/ui/KidsCornerLoader';
-
 
 interface FormData {
   clientPrenom: string;
@@ -53,12 +48,12 @@ const CheckoutItemTotalDisplay = ({ idProduit, quantite }: { idProduit: number, 
     <div className="text-right min-w-[80px]">
       {hasPromotion ? (
         <div>
-          <div className="text-base font-bold text-gray-900">
+          <div className="text-base font-bold text-pink-600">
             {(itemData.final * quantite).toFixed(2)} <span className="text-xs">TND</span>
           </div>
         </div>
       ) : (
-        <span className="text-base font-bold text-gray-900">
+        <span className="text-base font-bold text-pink-600">
           {(itemData.original * quantite).toFixed(2)} <span className="text-xs">TND</span>
         </span>
       )}
@@ -92,43 +87,43 @@ function Checkout() {
     clientAdressePays: 'Tunisie',
     notesLivraison: ''
   });
- useEffect(() => {
-    // Si pas connecté, redirige vers /signIn
+
+  useEffect(() => {
     if (status === "unauthenticated") {
       router.replace("/signIn");
     }
   }, [status, router]);
 
- useEffect(() => {
-  async function fetchFullUser() {
-    if (isAuthenticated && user?.idUtilisateur) {
-      try {
-        const fetchedUser = await UsersService.getUserById(user.idUtilisateur,token);
-        setFullUser(fetchedUser);
-      } catch (err) {
-        setFullUser(null);
+  useEffect(() => {
+    async function fetchFullUser() {
+      if (isAuthenticated && user?.idUtilisateur) {
+        try {
+          const fetchedUser = await UsersService.getUserById(user.idUtilisateur, token);
+          setFullUser(fetchedUser);
+        } catch (err) {
+          setFullUser(null);
+        }
       }
     }
-  }
-  fetchFullUser();
-  setMounted(true);
-}, [user, isAuthenticated]);
+    fetchFullUser();
+    setMounted(true);
+  }, [user, isAuthenticated]);
 
-useEffect(() => {
-  if (isAuthenticated && fullUser) {
-    setFormData(prev => ({
-      ...prev,
-      clientPrenom: fullUser.prenom || '',
-      clientNom: fullUser.nom || '',
-      clientEmail: fullUser.email || '',
-      clientTelephone: fullUser.telephone || '',
-      clientAdresseRue: fullUser.adresseRue || '',
-      clientAdresseVille: fullUser.adresseVille || '',
-      clientAdresseCodePostal: fullUser.adresseCodePostal || '',
-      clientAdressePays: fullUser.adressePays || 'Tunisie',
-    }));
-  }
-}, [fullUser, isAuthenticated]);
+  useEffect(() => {
+    if (isAuthenticated && fullUser) {
+      setFormData(prev => ({
+        ...prev,
+        clientPrenom: fullUser.prenom || '',
+        clientNom: fullUser.nom || '',
+        clientEmail: fullUser.email || '',
+        clientTelephone: fullUser.telephone || '',
+        clientAdresseRue: fullUser.adresseRue || '',
+        clientAdresseVille: fullUser.adresseVille || '',
+        clientAdresseCodePostal: fullUser.adresseCodePostal || '',
+        clientAdressePays: fullUser.adressePays || 'Tunisie',
+      }));
+    }
+  }, [fullUser, isAuthenticated]);
 
   useEffect(() => {
     if (mounted && !cartLoading && cartItems.length === 0 && !loading) {
@@ -220,34 +215,35 @@ useEffect(() => {
     return emailRegex.test(email);
   };
   const validateField = (name:any, value:any) => {
-  switch (name) {
-    case 'clientPrenom':
-    case 'clientNom':
-      return value.trim().length < 2;
-    case 'clientTelephone':
-      return value.trim().length < 6;
-    case 'clientEmail':
-      return value && !isValidEmail(value);
-    case 'clientAdresseRue':
-      return value.trim().length < 4;
-    case 'clientAdresseVille':
-      return value.trim().length < 2;
-    case 'clientAdresseCodePostal':
-      return value.trim().length < 2;
-    case 'notesLivraison':
-      return value.length > 300;
-    default:
-      return false;
-  }
-};
+    switch (name) {
+      case 'clientPrenom':
+      case 'clientNom':
+        return value.trim().length < 2;
+      case 'clientTelephone':
+        return value.trim().length < 6;
+      case 'clientEmail':
+        return value && !isValidEmail(value);
+      case 'clientAdresseRue':
+        return value.trim().length < 4;
+      case 'clientAdresseVille':
+        return value.trim().length < 2;
+      case 'clientAdresseCodePostal':
+        return value.trim().length < 2;
+      case 'notesLivraison':
+        return value.length > 300;
+      default:
+        return false;
+    }
+  };
 
-const handleBlur = (e:any) => {
-  const { name, value } = e.target;
-  setErrors(prev => ({
-    ...prev,
-    [name]: validateField(name, value)
-  }));
-};
+  const handleBlur = (e:any) => {
+    const { name, value } = e.target;
+    setErrors(prev => ({
+      ...prev,
+      [name]: validateField(name, value)
+    }));
+  };
+
   const formatVariation = (variation: any) => {
     if (!variation) return '';
     const { couleur, taille, age } = variation;
@@ -315,20 +311,12 @@ const handleBlur = (e:any) => {
       if (!success) setLoading(false);
     }
   };
-  const handleCodeApplique = (data: { code: string; valeurPourcentage: number }) => {
-    setCodePromo(data);
-    toast.success(`Code promo "${data.code}" appliqué avec succès!`);
-  };
-  const handleCodeSupprime = () => {
-    setCodePromo(null);
-    toast.success('Code promo supprimé');
-  };
 
   const getInputClassName = (fieldName: string) => {
     const baseClass = "w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 text-sm transition-colors";
     const errorClass = errors[fieldName] 
       ? "border-red-500 focus:ring-red-500 bg-red-50" 
-      : "border-gray-200 focus:ring-purple-500";
+      : "border-gray-200 focus:ring-pink-500";
     return `${baseClass} ${errorClass}`;
   };
 
@@ -348,15 +336,15 @@ const handleBlur = (e:any) => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-blue-50 to-white font-[Comic_Sans_MS,sans-serif]">
       <div className="container mx-auto px-4 py-8 max-w-7xl">
         {/* Header */}
         <div className="flex items-center justify-between mb-8 w-full">
           <div className="flex items-center gap-2 sm:gap-3">
-            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-purple-100 rounded-full flex items-center justify-center flex-shrink-0">
-              <ShoppingCartIcon className="w-5 h-5 sm:w-6 sm:h-6 text-purple-600" />
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-pink-100 rounded-full flex items-center justify-center flex-shrink-0 shadow">
+              <ShoppingCartIcon className="w-6 h-6 sm:w-7 sm:h-7 text-purple-600" />
             </div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 truncate">
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-purple-600 drop-shadow-lg font-[Comic_Sans_MS,sans-serif]">
               Finaliser la Commande
             </h1>
           </div>
@@ -365,225 +353,189 @@ const handleBlur = (e:any) => {
         <div className="grid grid-cols-1 xl:grid-cols-4 gap-8">
           {/* Colonne gauche : Formulaire de commande */}
           <div className="xl:col-span-3">
-            <div className="bg-white rounded-2xl shadow-sm border overflow-hidden">
-              <div className="p-6 bg-gray-50 border-b">
-                <h2 className="text-xl font-bold text-gray-900">Informations personnelles</h2>
+            <div className="bg-white rounded-2xl shadow-xl border-2 border-pink-200 overflow-hidden">
+              <div className="p-6 bg-pink-50 border-b-2 border-pink-100">
+                <h2 className="text-xl font-extrabold text-pink-600">Informations personnelles</h2>
                 <p className="text-sm text-gray-600 mt-1">Les champs marqués d'un * sont obligatoires</p>
               </div>
               <div className="p-6">
-<form onSubmit={handleSubmit} className="space-y-6" noValidate>
-  {/* Informations personnelles */}
-  <div>
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Prénom *
-          {errors.clientPrenom && <span className="text-red-500 ml-1">- Au moins 2 caractères</span>}
-        </label>
-        <input
-          type="text"
-          name="clientPrenom"
-          value={formData.clientPrenom}
-          onChange={handleInputChange}
-          onBlur={handleBlur}
-          className={`w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 text-sm transition-colors ${
-            errors.clientPrenom ? "border-red-500 focus:ring-red-500 bg-red-50" : "border-gray-200 focus:ring-purple-500"
-          }`}
-          
-          maxLength={50}
-        />
-        {errors.clientPrenom && (
-          <p className="text-red-500 text-xs mt-1">Le prénom doit contenir au moins 2 caractères.</p>
-        )}
-      </div>
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Nom *
-          {errors.clientNom && <span className="text-red-500 ml-1">- Au moins 2 caractères</span>}
-        </label>
-        <input
-          type="text"
-          name="clientNom"
-          value={formData.clientNom}
-          onChange={handleInputChange}
-          onBlur={handleBlur}
-          className={`w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 text-sm transition-colors ${
-            errors.clientNom ? "border-red-500 focus:ring-red-500 bg-red-50" : "border-gray-200 focus:ring-purple-500"
-          }`}
-          
-          maxLength={50}
-        />
-        {errors.clientNom && (
-          <p className="text-red-500 text-xs mt-1">Le nom doit contenir au moins 2 caractères.</p>
-        )}
-      </div>
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Email
-          {errors.clientEmail && <span className="text-red-500 ml-1">- Format invalide</span>}
-        </label>
-        <input
-          type="email"
-          name="clientEmail"
-          value={formData.clientEmail}
-          onChange={handleInputChange}
-          onBlur={handleBlur}
-          className={`w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 text-sm transition-colors ${
-            errors.clientEmail ? "border-red-500 focus:ring-red-500 bg-red-50" : "border-gray-200 focus:ring-purple-500"
-          }`}
-          maxLength={80}
-        />
-        {errors.clientEmail && (
-          <p className="text-red-500 text-xs mt-1">Format d'email invalide.</p>
-        )}
-      </div>
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Téléphone *
-          {errors.clientTelephone && <span className="text-red-500 ml-1">- Au moins 6 chiffres</span>}
-        </label>
-        <input
-          type="tel"
-          name="clientTelephone"
-          value={formData.clientTelephone}
-          onChange={handleInputChange}
-          onBlur={handleBlur}
-          className={`w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 text-sm transition-colors ${
-            errors.clientTelephone ? "border-red-500 focus:ring-red-500 bg-red-50" : "border-gray-200 focus:ring-purple-500"
-          }`}
-          
-          maxLength={20}
-        />
-        {errors.clientTelephone && (
-          <p className="text-red-500 text-xs mt-1">Le téléphone doit contenir au moins 6 chiffres.</p>
-        )}
-      </div>
-    </div>
-  </div>
-  {/* Adresse de livraison */}
-  <div>
-    <h3 className="text-lg font-semibold mb-3 text-gray-900">Adresse de livraison</h3>
-    <div className="space-y-4">
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Adresse complète *
-          {errors.clientAdresseRue && <span className="text-red-500 ml-1">- Au moins 4 caractères</span>}
-        </label>
-        <input
-          type="text"
-          name="clientAdresseRue"
-          value={formData.clientAdresseRue}
-          onChange={handleInputChange}
-          onBlur={handleBlur}
-          className={`w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 text-sm transition-colors ${
-            errors.clientAdresseRue ? "border-red-500 focus:ring-red-500 bg-red-50" : "border-gray-200 focus:ring-purple-500"
-          }`}
-          placeholder="Rue, numéro, appartement..."
-          
-          maxLength={100}
-        />
-        {errors.clientAdresseRue && (
-          <p className="text-red-500 text-xs mt-1">L'adresse doit contenir au moins 4 caractères.</p>
-        )}
-      </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Ville *
-            {errors.clientAdresseVille && <span className="text-red-500 ml-1">- Au moins 2 caractères</span>}
-          </label>
-          <input
-            type="text"
-            name="clientAdresseVille"
-            value={formData.clientAdresseVille}
-            onChange={handleInputChange}
-            onBlur={handleBlur}
-            className={`w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 text-sm transition-colors ${
-              errors.clientAdresseVille ? "border-red-500 focus:ring-red-500 bg-red-50" : "border-gray-200 focus:ring-purple-500"
-            }`}
-            
-            maxLength={50}
-          />
-          {errors.clientAdresseVille && (
-            <p className="text-red-500 text-xs mt-1">La ville doit contenir au moins 2 caractères.</p>
-          )}
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Code postal *
-            {errors.clientAdresseCodePostal && <span className="text-red-500 ml-1">- Au moins 2 caractères</span>}
-          </label>
-          <input
-            type="text"
-            name="clientAdresseCodePostal"
-            value={formData.clientAdresseCodePostal}
-            onChange={handleInputChange}
-            onBlur={handleBlur}
-            className={`w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 text-sm transition-colors ${
-              errors.clientAdresseCodePostal ? "border-red-500 focus:ring-red-500 bg-red-50" : "border-gray-200 focus:ring-purple-500"
-            }`}
-            
-            maxLength={12}
-          />
-          {errors.clientAdresseCodePostal && (
-            <p className="text-red-500 text-xs mt-1">Le code postal doit contenir au moins 2 caractères.</p>
-          )}
-        </div>
-      </div>
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Pays *</label>
-        <select
-          name="clientAdressePays"
-          value={formData.clientAdressePays}
-          onChange={handleInputChange}
-          onBlur={handleBlur}
-          className="w-full border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm"
-          
-        >
-          <option value="Tunisie">Tunisie</option>
-        </select>
-      </div>
-    </div>
-  </div>
-  {/* Notes additionnelles */}
-  <div>
-    <h3 className="text-lg font-semibold mb-3 text-gray-900">Notes de livraison</h3>
-    <textarea
-      name="notesLivraison"
-      value={formData.notesLivraison}
-      onChange={handleInputChange}
-      onBlur={handleBlur}
-      className={`w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 text-sm transition-colors ${
-        errors.notesLivraison ? "border-red-500 focus:ring-red-500 bg-red-50" : "border-gray-200 focus:ring-purple-500"
-      }`}
-      rows={3}
-      placeholder="Instructions de livraison, commentaires..."
-      maxLength={300}
-    />
-    {errors.notesLivraison && (
-      <p className="text-red-500 text-xs mt-1">Trop long ou invalide.</p>
-    )}
-  </div>
-  {/* Bouton de soumission */}
-  <button 
-    type="submit"
-    disabled={loading}
-    className="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white py-4 rounded-xl hover:from-purple-700 hover:to-blue-700 font-semibold transition-all transform hover:scale-105 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed mt-6"
-  >
-    {loading ? (
-      <div className="flex items-center justify-center gap-2">
-        <div className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full"></div>
-        Traitement...
-      </div>
-    ) : (
-      `Confirmer la commande`
-    )}
-  </button>
-</form>
+                <form onSubmit={handleSubmit} className="space-y-6" noValidate>
+                  {/* Informations personnelles */}
+                  <div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Prénom *
+                          {errors.clientPrenom && <span className="text-red-500 ml-1">- Au moins 2 caractères</span>}
+                        </label>
+                        <input
+                          type="text"
+                          name="clientPrenom"
+                          value={formData.clientPrenom}
+                          onChange={handleInputChange}
+                          onBlur={handleBlur}
+                          className={getInputClassName('clientPrenom')}
+                          maxLength={50}
+                        />
+                        {errors.clientPrenom && (
+                          <p className="text-red-500 text-xs mt-1">Le prénom doit contenir au moins 2 caractères.</p>
+                        )}
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Nom *
+                          {errors.clientNom && <span className="text-red-500 ml-1">- Au moins 2 caractères</span>}
+                        </label>
+                        <input
+                          type="text"
+                          name="clientNom"
+                          value={formData.clientNom}
+                          onChange={handleInputChange}
+                          onBlur={handleBlur}
+                          className={getInputClassName('clientNom')}
+                          maxLength={50}
+                        />
+                        {errors.clientNom && (
+                          <p className="text-red-500 text-xs mt-1">Le nom doit contenir au moins 2 caractères.</p>
+                        )}
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Email
+                          {errors.clientEmail && <span className="text-red-500 ml-1">- Format invalide</span>}
+                        </label>
+                        <input
+                          type="email"
+                          name="clientEmail"
+                          value={formData.clientEmail}
+                          onChange={handleInputChange}
+                          onBlur={handleBlur}
+                          className={getInputClassName('clientEmail')}
+                          maxLength={80}
+                        />
+                        {errors.clientEmail && (
+                          <p className="text-red-500 text-xs mt-1">Format d'email invalide.</p>
+                        )}
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Téléphone *
+                          {errors.clientTelephone && <span className="text-red-500 ml-1">- Au moins 6 chiffres</span>}
+                        </label>
+                        <input
+                          type="tel"
+                          name="clientTelephone"
+                          value={formData.clientTelephone}
+                          onChange={handleInputChange}
+                          onBlur={handleBlur}
+                          className={getInputClassName('clientTelephone')}
+                          maxLength={20}
+                        />
+                        {errors.clientTelephone && (
+                          <p className="text-red-500 text-xs mt-1">Le téléphone doit contenir au moins 6 chiffres.</p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  {/* Adresse de livraison */}
+                  <div>
+                    <h3 className="text-lg font-semibold mb-3 text-pink-600">Adresse de livraison</h3>
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Adresse complète *
+                          {errors.clientAdresseRue && <span className="text-red-500 ml-1">- Au moins 4 caractères</span>}
+                        </label>
+                        <input
+                          type="text"
+                          name="clientAdresseRue"
+                          value={formData.clientAdresseRue}
+                          onChange={handleInputChange}
+                          onBlur={handleBlur}
+                          className={getInputClassName('clientAdresseRue')}
+                          placeholder="Rue, numéro, appartement..."
+                          maxLength={100}
+                        />
+                        {errors.clientAdresseRue && (
+                          <p className="text-red-500 text-xs mt-1">L'adresse doit contenir au moins 4 caractères.</p>
+                        )}
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Ville *
+                            {errors.clientAdresseVille && <span className="text-red-500 ml-1">- Au moins 2 caractères</span>}
+                          </label>
+                          <input
+                            type="text"
+                            name="clientAdresseVille"
+                            value={formData.clientAdresseVille}
+                            onChange={handleInputChange}
+                            onBlur={handleBlur}
+                            className={getInputClassName('clientAdresseVille')}
+                            maxLength={50}
+                          />
+                          {errors.clientAdresseVille && (
+                            <p className="text-red-500 text-xs mt-1">La ville doit contenir au moins 2 caractères.</p>
+                          )}
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Code postal *
+                            {errors.clientAdresseCodePostal && <span className="text-red-500 ml-1">- Au moins 2 caractères</span>}
+                          </label>
+                          <input
+                            type="text"
+                            name="clientAdresseCodePostal"
+                            value={formData.clientAdresseCodePostal}
+                            onChange={handleInputChange}
+                            onBlur={handleBlur}
+                            className={getInputClassName('clientAdresseCodePostal')}
+                            maxLength={12}
+                          />
+                          {errors.clientAdresseCodePostal && (
+                            <p className="text-red-500 text-xs mt-1">Le code postal doit contenir au moins 2 caractères.</p>
+                          )}
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Pays *</label>
+                        <select
+                          name="clientAdressePays"
+                          value={formData.clientAdressePays}
+                          onChange={handleInputChange}
+                          onBlur={handleBlur}
+                          className="w-full border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-pink-500 text-sm"
+                        >
+                          <option value="Tunisie">Tunisie</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+                  {/* Notes additionnelles */}
+                  <div>
+                    <h3 className="text-lg font-semibold mb-3 text-pink-600">Notes de livraison</h3>
+                    <textarea
+                      name="notesLivraison"
+                      value={formData.notesLivraison}
+                      onChange={handleInputChange}
+                      onBlur={handleBlur}
+                      className={getInputClassName('notesLivraison')}
+                      rows={3}
+                      placeholder="Instructions de livraison, commentaires..."
+                      maxLength={300}
+                    />
+                    {errors.notesLivraison && (
+                      <p className="text-red-500 text-xs mt-1">Trop long ou invalide.</p>
+                    )}
+                  </div>
+                  
+                </form>
               </div>
             </div>
-            <div className="mt-6">
-              <Link href="/site/cart" className="inline-flex items-center gap-2 text-purple-600 hover:text-purple-800 transition-colors font-medium">
+            {/* Retour au panier (desktop only) */}
+            <div className="mt-6 hidden xl:block">
+              <Link href="/site/cart" className="inline-flex items-center gap-2 text-purple-600 hover:text-purple-800 transition-colors font-extrabold font-[Comic_Sans_MS,sans-serif]">
                 <ArrowLeftIcon className="w-5 h-5" />
                 Retour au panier
               </Link>
@@ -592,11 +544,11 @@ const handleBlur = (e:any) => {
           {/* Colonne droite : Résumé panier avec promotions */}
           <div className="xl:col-span-1">
             <div className="sticky top-6 space-y-6">
-              <div className="bg-white rounded-2xl shadow-sm border overflow-hidden min-w-[350px] md:min-w-[400px]">
-                <div className="p-6 bg-gray-50 border-b">
+              <div className="bg-white rounded-2xl shadow-xl border-2 border-pink-200 overflow-hidden min-w-[350px] md:min-w-[400px]">
+                <div className="p-6 bg-pink-50 border-b-2 border-pink-100">
                   <div className="flex items-center justify-between">
-                    <h2 className="text-xl font-bold text-gray-900">Résumé de la commande</h2>
-                    <span className="bg-purple-100 text-purple-700 px-3 py-1 rounded-full text-sm font-medium">
+                    <h2 className="text-xl font-extrabold text-pink-600">Résumé de la commande</h2>
+                    <span className="bg-pink-100 text-pink-700 px-3 py-1 rounded-full text-sm font-medium">
                       {totalArticles} article{totalArticles > 1 ? "s" : ""}
                     </span>
                   </div>
@@ -609,7 +561,7 @@ const handleBlur = (e:any) => {
                     return (
                       <div
                         key={`${item.idProduit}-${item.idProduitVariation || 'no-var'}`}
-                        className={`flex items-start gap-3 py-3 border-b border-gray-100 last:border-b-0 ${
+                        className={`flex items-start gap-3 py-3 border-b border-pink-50 last:border-b-0 ${
                           index !== 0 ? 'border-t-0' : ''
                         }`}
                       >
@@ -618,10 +570,10 @@ const handleBlur = (e:any) => {
                           alt={item.produit.nom}
                           width={60}
                           height={60}
-                          className="rounded-lg object-cover border"
+                          className="rounded-lg object-cover border border-pink-100"
                         />
                         <div className="flex-1 min-w-0">
-                          <p className="text-xs font-semibold text-gray-900 line-clamp-2 mb-1">{item.produit.nom}</p>
+                          <p className="text-xs font-semibold text-pink-600 line-clamp-2 mb-1">{item.produit.nom}</p>
                           {item.variation && (
                             <div className="mb-2 space-y-1 text-xs">
                               {formatVariation(item.variation) && (
@@ -646,8 +598,8 @@ const handleBlur = (e:any) => {
                     );
                   })}
                 </div>
-                <div className="p-6 border-t border-gray-100">
-                  <div className="space-y-4 text-sm">
+                <div className="p-6 border-t-2 border-pink-100">
+                  <div className="space-y-4 text-base">
                     {totalSavings > 0 && (
                       <div className="flex justify-between text-gray-600">
                         <span>Prix original</span>
@@ -655,24 +607,24 @@ const handleBlur = (e:any) => {
                       </div>
                     )}
                     {totalSavings > 0 && (
-                      <div className="flex justify-between text-green-600 font-medium">
+                      <div className="flex justify-between text-pink-500 font-bold">
                         <span>Promotions produits</span>
                         <span>-{totalSavings.toFixed(2)} <span className="text-xs">TND</span></span>
                       </div>
                     )}
                     <div className="flex justify-between">
                       <span>Sous-total</span>
-                      <span className="font-medium">{totalFinal.toFixed(2)} <span className="text-xs">TND</span></span>
+                      <span className="font-bold">{totalFinal.toFixed(2)} <span className="text-xs">TND</span></span>
                     </div>
                     {codePromo && totalEconomiesCodePromo > 0 && (
-                      <div className="flex justify-between text-green-600 font-medium">
+                      <div className="flex justify-between text-pink-500 font-bold">
                         <span>Code promo ({codePromo.code})</span>
                         <span>-{totalEconomiesCodePromo.toFixed(2)} <span className="text-xs">TND</span></span>
                       </div>
                     )}
                     <div className="flex justify-between">
                       <span>Livraison</span>
-                      <span className={`font-medium ${livraison === 0 ? "text-green-600" : ""}`}>
+                      <span className={`font-bold ${livraison === 0 ? "text-pink-600" : ""}`}>
                         {livraison === 0 ? "Gratuite" : `${livraison.toFixed(2)} TND`}
                       </span>
                     </div>
@@ -682,13 +634,13 @@ const handleBlur = (e:any) => {
                       </div>
                     )}
                     <div className="border-t pt-4">
-                      <div className="flex justify-between font-bold text-lg">
+                      <div className="flex justify-between font-extrabold text-lg">
                         <span>Total TTC</span>
-                        <span className="text-purple-600">{totalTTC.toFixed(2)} <span className="text-xs">TND</span></span>
+                        <span className="text-pink-600">{totalTTC.toFixed(2)} <span className="text-xs">TND</span></span>
                       </div>
                     </div>
                     {totalEconomiesGlobal > 0 && (
-                      <div className="text-center text-green-600 font-medium bg-green-50 p-3 rounded-lg">
+                      <div className="text-center text-pink-600 font-bold bg-pink-50 p-3 rounded-lg">
                         Vous économisez {totalEconomiesGlobal.toFixed(2)} <span className="text-xs">TND</span> au total !
                       </div>
                     )}
@@ -711,7 +663,7 @@ const handleBlur = (e:any) => {
                   <button 
                     onClick={handleSubmit}
                     disabled={loading}
-                    className="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white py-4 rounded-xl hover:from-purple-700 hover:to-blue-700 font-semibold transition-all transform hover:scale-105 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed mt-6"
+                    className="w-full  bg-pink-500  text-white py-4 rounded-xl hover:from-pink-500 hover:to-blue-500 font-extrabold transition-all transform hover:scale-105 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed mt-6"
                   >
                     {loading ? (
                       <div className="flex items-center justify-center gap-2">
@@ -723,6 +675,13 @@ const handleBlur = (e:any) => {
                     )}
                   </button>
                 </div>
+              </div>
+              {/* Retour au panier (mobile only) */}
+              <div className="mt-4 xl:hidden">
+                <Link href="/site/cart" className="inline-flex items-center gap-2 text-purple-600 hover:text-purple-800 transition-colors font-extrabold font-[Comic_Sans_MS,sans-serif]">
+                  <ArrowLeftIcon className="w-5 h-5" />
+                  Retour au panier
+                </Link>
               </div>
             </div>
           </div>
@@ -740,4 +699,5 @@ const CheckoutWithProvider = () => {
     </CartPromotionProvider>
   );
 };
+
 export default CheckoutWithProvider;

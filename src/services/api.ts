@@ -9,25 +9,114 @@ const api = axios.create({
   headers: {
     'Accept': 'application/json',
   },
+  withCredentials: true,
 });
 
-// NE LIS PLUS LE TOKEN DANS LOCALSTORAGE
-// Tu passeras le token dans le header "Authorization" à chaque requête axios
+// ✅ Types explicites pour la queue
+interface QueueItem {
+  resolve: (token: string) => void;
+  reject: (error: any) => void;
+}
 
+let isRefreshing = false;
+let failedQueue: QueueItem[] = []; // ✅ Type explicite
+
+const processQueue = (error: any = null, token: string | null = null): void => {
+  failedQueue.forEach(prom => {
+    if (error) {
+      prom.reject(error);
+    } else {
+      prom.resolve(token as string);
+    }
+  });
+  failedQueue = [];
+};
+
+// Intercepteur REQUEST : Ajoute l'access token
+api.interceptors.request.use(
+  (config) => {
+    const token = sessionStorage.getItem('accessToken') || localStorage.getItem('accessToken');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
+// Intercepteur RESPONSE : Gère le refresh automatique
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
-    // Toast global pour toutes les erreurs
-    const errorMsg = error.response?.data?.message || error.message || 'Erreur inconnue';
-    if (typeof window !== "undefined") {
-      toast.error(errorMsg);
+  async (error) => {
+    const originalRequest = error.config;
+
+    // 1. Token expiré (401) → tente un refresh
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      if (isRefreshing) {
+        // Mise en file d'attente si refresh en cours
+        return new Promise<string>((resolve, reject) => {
+          failedQueue.push({ resolve, reject });
+        })
+          .then(token => {
+            originalRequest.headers.Authorization = `Bearer ${token}`;
+            return api(originalRequest);
+          })
+          .catch(err => Promise.reject(err));
+      }
+
+      originalRequest._retry = true;
+      isRefreshing = true;
+
+      try {
+        // Appelle l'endpoint refresh
+        const { data } = await axios.post(
+          `${API_BASE_URL}/auth/refresh-token`,
+          {},
+          { withCredentials: true }
+        );
+
+        const newToken = data.token;
+
+        // Sauvegarde le nouveau token
+        sessionStorage.setItem('accessToken', newToken);
+        
+        // Met à jour l'authorization header
+        api.defaults.headers.common['Authorization'] = `Bearer ${newToken}`;
+        originalRequest.headers.Authorization = `Bearer ${newToken}`;
+
+        processQueue(null, newToken);
+        return api(originalRequest);
+
+      } catch (refreshError) {
+        processQueue(refreshError, null);
+        
+        // Refresh token invalide → déconnexion
+        sessionStorage.removeItem('accessToken');
+        localStorage.removeItem('accessToken');
+        
+        if (typeof window !== "undefined") {
+          toast.error('Session expirée, veuillez vous reconnecter.', { id: "session-expired" });
+          window.location.href = '/signIn';
+        }
+        
+        return Promise.reject(refreshError);
+      } finally {
+        isRefreshing = false;
+      }
     }
 
-    // Déconnexion globale sur 401 (redirige vers signIn)
-    if (error.response?.status === 401) {
+    // 2. Timeout
+    if (error.code === 'ECONNABORTED') {
+      const errorMsg = "La connexion est trop lente ou le serveur ne répond pas.";
       if (typeof window !== "undefined") {
-        toast.error('Session expirée, veuillez vous reconnecter.');
-       // window.location.href = '/signIn';
+        toast.error(errorMsg, { id: "timeout" });
+      }
+    }
+    // 3. Autres erreurs
+    else if (error.response?.status !== 401) {
+      const errorMsg = error.response?.data?.message || error.message || 'Erreur inconnue';
+      if (typeof window !== "undefined") {
+        toast.error(errorMsg, { id: "api-error" });
       }
     }
 

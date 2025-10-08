@@ -7,9 +7,7 @@ export interface RegisterData {
   motDePasse: string;
   telephone: string;
 }
-export interface ForgotPasswordData {
-  email: string;
-}
+
 export interface ResetPasswordData {
   email: string;
   code: string;
@@ -17,37 +15,74 @@ export interface ResetPasswordData {
 }
 
 class AuthService {
-  // Inscription (utilisée par NextAuth CredentialsProvider)
-  async register(userData: RegisterData): Promise<{ message: string }> {
-    const response = await api.post<{ message: string }>('/auth/register', userData);
+  // ✅ Inscription
+  async register(userData: RegisterData): Promise<{ message: string; token: string; user: any }> {
+    const response = await api.post('/auth/register', userData);
+    
+    // Sauvegarde l'access token
+    if (response.data.token) {
+      sessionStorage.setItem('accessToken', response.data.token);
+    }
+    
     return response.data;
   }
 
-  // Mot de passe oublié (public)
+  // ✅ Connexion manuelle (utilisée dans signIn si besoin)
+  async login(emailOrPhone: string, motDePasse: string): Promise<{ token: string; user: any }> {
+    const response = await api.post('/auth/login', { emailOrPhone, motDePasse });
+    
+    if (response.data.token) {
+      sessionStorage.setItem('accessToken', response.data.token);
+    }
+    
+    return response.data;
+  }
+
+  // ✅ Déconnexion
+  async logout(): Promise<void> {
+    try {
+      await api.post('/auth/logout');
+    } finally {
+      sessionStorage.removeItem('accessToken');
+      localStorage.removeItem('accessToken');
+    }
+  }
+
+  // ✅ Refresh token (géré automatiquement par l'intercepteur)
+  async refreshToken(): Promise<string> {
+    const response = await api.post('/auth/refresh-token');
+    const newToken = response.data.token;
+    sessionStorage.setItem('accessToken', newToken);
+    return newToken;
+  }
+
+  // Mot de passe oublié
   async forgotPassword(email: string): Promise<{ message: string }> {
-    const response = await api.post<{ message: string }>('/auth/forgot-password', { email });
+    const response = await api.post('/auth/forgot-password', { email });
     return response.data;
   }
 
-  // Réinitialisation du mot de passe (public)
+  // Réinitialisation du mot de passe
   async resetPassword(resetData: ResetPasswordData): Promise<{ message: string }> {
-    const response = await api.post<{ message: string }>('/auth/reset-password', resetData);
+    const response = await api.post('/auth/reset-password', resetData);
     return response.data;
   }
 
-  // Pour update le profil, utilise le token NextAuth
-  async updateProfile(userData: any, token: string): Promise<any> {
-    const response = await api.put('/auth/profile', userData, {
-      headers: { Authorization: `Bearer ${token}` }
-    });
+  // ✅ Profil (plus besoin de passer le token manuellement)
+  async getProfile(): Promise<any> {
+    const response = await api.get('/auth/profile');
     return response.data;
   }
 
-  // Pour obtenir le profil utilisateur, utilise le token NextAuth
-  async getProfile(token: string): Promise<any> {
-    const response = await api.get('/auth/profile', {
-      headers: { Authorization: `Bearer ${token}` }
-    });
+  // ✅ Update profil
+  async updateProfile(userData: any): Promise<any> {
+    const response = await api.put('/auth/profile', userData);
+    return response.data;
+  }
+
+  // ✅ Changer mot de passe
+  async changePassword(currentPassword: string, newPassword: string): Promise<any> {
+    const response = await api.put('/auth/change-password', { currentPassword, newPassword });
     return response.data;
   }
 }

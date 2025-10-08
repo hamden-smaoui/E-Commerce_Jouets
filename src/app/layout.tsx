@@ -3,7 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "react-hot-toast";
 import AuthSessionProvider from "@/components/ui/AuthSessionProvider";
-
+import ConnectionStatusBanner from "@/components/ui/ConnectionStatusBanner";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
@@ -19,6 +19,7 @@ export default function RootLayout({
   return (
     <html lang="fr" data-theme="light">
       <body className={inter.className}>
+        <ConnectionStatusBanner />
         <AuthSessionProvider>
           {children}
           <Toaster />

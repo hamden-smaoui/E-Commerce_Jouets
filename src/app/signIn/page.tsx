@@ -50,24 +50,28 @@ export default function SignIn() {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!validateForm()) return;
-    setLoading(true);
+  // Dans handleSubmit
+const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  if (!validateForm()) return;
+  setLoading(true);
 
-    const res = await signIn("credentials", {
-      emailOrPhone: formData.emailOrPhone,
-      password: formData.motDePasse,
-      redirect: false
-    });
+  const res = await signIn("credentials", {
+    emailOrPhone: formData.emailOrPhone,
+    password: formData.motDePasse,
+    redirect: false
+  });
 
-    if (res?.ok) {
-      router.push("/site");
-    } else {
-      setErrors({ submit: "Email ou mot de passe incorrect" });
-    }
-    setLoading(false);
-  };
+  if (res?.ok) {
+    // ✅ Le cookie refreshToken est maintenant présent !
+    console.log("🍪 Cookies après login:", document.cookie);
+    
+    router.push("/site");
+  } else {
+    setErrors({ submit: "Email ou mot de passe incorrect" });
+  }
+  setLoading(false);
+};
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">

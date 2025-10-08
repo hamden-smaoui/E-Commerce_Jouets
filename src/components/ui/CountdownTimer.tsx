@@ -1,4 +1,3 @@
-// components/ui/CountdownTimer.tsx
 "use client";
 import React from 'react';
 import { ClockIcon } from '@heroicons/react/24/solid';
@@ -20,19 +19,19 @@ const CountdownTimer: React.FC<CountdownTimerProps> = ({ endTime, onExpired }) =
 
   if (isExpired) {
     return (
-      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 text-red-600">
-        <ClockIcon className="w-5 h-5 flex-shrink-0" />
-        <span className="font-bold text-sm sm:text-base">Délai d'annulation expiré</span>
+      <div className="flex flex-col sm:flex-row items-center gap-2 justify-center rounded-xl bg-red-50 px-4 py-3 border border-red-200 shadow font-bold text-red-600 text-center">
+        <ClockIcon className="w-6 h-6 flex-shrink-0" />
+        <span className="text-base sm:text-lg">Délai d'annulation expiré</span>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 text-orange-600">
-      <ClockIcon className="w-5 h-5 flex-shrink-0" />
-      <div className="flex flex-col sm:flex-row sm:items-center gap-1">
-        <span className="font-bold text-sm sm:text-base">Temps restant pour annuler:</span>
-        <div className="bg-orange-100 px-2 sm:px-3 py-1 rounded-lg font-mono font-bold text-base sm:text-lg inline-block">
+    <div className="flex flex-col sm:flex-row items-center gap-2 justify-center rounded-xl bg-orange-50 px-4 py-3 border border-orange-200 shadow text-orange-700 text-center">
+      <ClockIcon className="w-6 h-6 flex-shrink-0" />
+      <div className="flex flex-col sm:flex-row items-center gap-2">
+        <span className="font-bold text-base sm:text-lg">Temps restant pour annuler :</span>
+        <div className="bg-orange-100 px-3 py-1 rounded-lg font-mono font-bold text-lg sm:text-xl tracking-widest shadow-inner">
           {String(hours).padStart(2, '0')}:
           {String(minutes).padStart(2, '0')}:
           {String(seconds).padStart(2, '0')}

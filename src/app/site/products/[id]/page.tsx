@@ -12,7 +12,7 @@ import ProduitsService, { ProduitResponse, ImageData, ProduitVariation ,Taille,C
 import KidsCornerLoader from '@/components/ui/KidsCornerLoader';
 import AvisComponent from '@/components/ui/avis';
 import CommentaireComponent from '@/components/ui/commentaireSection';
-
+import * as fbq from "@/lib/fpixel";
 interface Product {
   idProduit: number;
   nom: string;
@@ -63,7 +63,7 @@ export default function ProduitDetails() {
   const [selectedAge, setSelectedAge] = useState<number | null>(null);
   const [availableVariations, setAvailableVariations] = useState<ProduitVariation[]>([]);
   const imageRef = useRef<HTMLDivElement>(null);
-
+  const [pixelTracked, setPixelTracked] = useState(false);
   const { addToCart } = useCart();
   const { promotions, calculatePriceWithPromotion, hasPromotions } = usePromotions(produit?.idProduit || 0);
 
@@ -137,9 +137,25 @@ export default function ProduitDetails() {
 
     if (id) {
       fetchData();
+      setPixelTracked(false);
     }
   }, [id]);
+ useEffect(() => {
+    if (produit && !pixelTracked) {
+      const priceData = calculatePriceWithPromotion(produit.prix);
+      
+      fbq.event('ViewContent', {
+        content_ids: [produit.idProduit.toString()],
+        content_name: produit.nom,
+        content_type: 'product',
+        content_category: produit.categorie?.nom || '',
+        value: priceData ? priceData.prixFinal : produit.prix,
+        currency: 'TND'
+      });
 
+      setPixelTracked(true);
+    }
+  }, [produit, pixelTracked]);
   // Mise à jour des variations disponibles en fonction des sélections
   useEffect(() => {
     if (!produit?.variations) return;
@@ -224,11 +240,10 @@ export default function ProduitDetails() {
 
   // Modification 3: Statut de stock basé sur la variation sélectionnée seulement
   const getStockStatus = () => {
-    if (!selectedVariation) {
-      // Si aucune variation complète n'est sélectionnée, afficher "En stock" par défaut
-      return { text: "En stock", class: "bg-green-500 text-white", available: true };
-    }
-    
+  if (!selectedCouleur && !selectedTaille && !selectedAge) {
+    return { text: "Sélectionnez vos options", class: "bg-gray-300 text-gray-800", available: false };
+  }
+  if (selectedVariation) {
     const stock = selectedVariation.quantiteStock;
     if (stock === 0) {
       return { text: "Rupture de stock", class: "bg-red-500 text-white", available: false };
@@ -237,7 +252,22 @@ export default function ProduitDetails() {
     } else {
       return { text: "En stock", class: "bg-green-500 text-white", available: true };
     }
-  };
+  }
+  let filtered = produit?.variations ?? [];
+  if (selectedCouleur) filtered = filtered.filter(v => v.idCouleur === selectedCouleur);
+  if (selectedTaille) filtered = filtered.filter(v => v.idTaille === selectedTaille);
+  if (selectedAge) filtered = filtered.filter(v => v.idAge === selectedAge);
+
+  if (filtered.length > 0) {
+    const someStock = filtered.some(v => v.quantiteStock > 0);
+    if (someStock) {
+      return { text: "En stock", class: "bg-green-500 text-white", available: true };
+    } else {
+      return { text: "Rupture de stock", class: "bg-red-500 text-white", available: false };
+    }
+  }
+  return { text: "Sélectionnez vos options", class: "bg-gray-300 text-gray-800", available: false };
+};
 
   const stockStatus = getStockStatus();
 

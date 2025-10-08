@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { useFavorites } from "@/hooks/useFavorites";
 import { useStoreInfo } from "@/hooks/useStoreInfo";
 import SearchInput from '../ui/SearchInput';
+import authService from "@/services/auth-service";
 
 import {
   EnvelopeIcon,
@@ -59,9 +60,18 @@ export default function Navbar() {
   };
 
   const handleLogout = async () => {
-    await signOut({ redirect: false });
-    setIsDropdownOpen(false);
-    router.push("/signIn");
+    try {
+      // 1. Appelle le backend pour supprimer le refresh token
+      await authService.logout();
+      
+      // 2. Déconnecte NextAuth
+      await signOut({ redirect: false });
+      
+      // 3. Redirige
+      window.location.href = "/signIn";
+    } catch (error) {
+      console.error("Erreur de déconnexion:", error);
+    }
   };
 
   return (

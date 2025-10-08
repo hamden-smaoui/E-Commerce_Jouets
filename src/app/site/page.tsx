@@ -92,6 +92,7 @@ export default function Home() {
             buttonText="Voir les produits"
             buttonLink="/site/products"
           />
+         
           <BestOffers offers={bestOffers} />
         {/* Nouvelle section promotions */}
   {storeInfo?.promotionImages && storeInfo.promotionImages.length > 0 && (
@@ -99,6 +100,7 @@ export default function Home() {
   )}
           <FeaturedSection title={`Pourquoi choisir ${storeInfo?.nom || 'Bamby Joy'} ?`} features={features} />
           <Footer/>
+          
         </>
       )}
     </div>

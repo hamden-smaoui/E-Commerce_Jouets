@@ -1,5 +1,5 @@
 import api from './api';
-
+import { ProduitVariation } from './produits-service';
 interface Marque {
   idMarque: number;
   nom: string;
@@ -22,7 +22,9 @@ interface Produit {
   images?: ProductImage[];
   marque?: Marque;
   categorie?: Categorie;
+  variations?: ProduitVariation[];
 }
+
 export interface Favori {
   idFavori: number;
   idUtilisateur: number;
