@@ -6,10 +6,11 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { EyeIcon, EyeSlashIcon, EnvelopeIcon, LockClosedIcon } from "@heroicons/react/24/solid";
 import { signIn } from "next-auth/react";
 import GoogleAuthButton from "@/components/ui/GoogleAuthButton";
-import FacebookAuthButton from '@/components/ui/FacebookAuthButton'
+import FacebookAuthButton from '@/components/ui/FacebookAuthButton';
+import { Suspense } from "react";
 
-
-export default function SignIn() {
+// Move all hook logic using useSearchParams into a child component
+function SignInContent() {
   const [rememberMe, setRememberMe] = useState(false);
   const router = useRouter();
   const [formData, setFormData] = useState({ emailOrPhone: "", motDePasse: "" });
@@ -41,8 +42,8 @@ export default function SignIn() {
   const validateForm = () => {
     const newErrors: { [key: string]: string } = {};
     if (!formData.emailOrPhone.trim()) {
-  newErrors.emailOrPhone = "Email ou téléphone requis";
-   }
+      newErrors.emailOrPhone = "Email ou téléphone requis";
+    }
     if (!formData.motDePasse) {
       newErrors.motDePasse = "Le mot de passe est requis";
     }
@@ -50,28 +51,26 @@ export default function SignIn() {
     return Object.keys(newErrors).length === 0;
   };
 
-  // Dans handleSubmit
-const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
-  if (!validateForm()) return;
-  setLoading(true);
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!validateForm()) return;
+    setLoading(true);
 
-  const res = await signIn("credentials", {
-    emailOrPhone: formData.emailOrPhone,
-    password: formData.motDePasse,
-    redirect: false
-  });
+    const res = await signIn("credentials", {
+      emailOrPhone: formData.emailOrPhone,
+      password: formData.motDePasse,
+      redirect: false
+    });
 
-  if (res?.ok) {
-    // ✅ Le cookie refreshToken est maintenant présent !
-    console.log("🍪 Cookies après login:", document.cookie);
-    
-    router.push("/site");
-  } else {
-    setErrors({ submit: "Email ou mot de passe incorrect" });
-  }
-  setLoading(false);
-};
+    if (res?.ok) {
+      // ✅ Le cookie refreshToken est maintenant présent !
+      console.log("🍪 Cookies après login:", document.cookie);
+      router.push("/site");
+    } else {
+      setErrors({ submit: "Email ou mot de passe incorrect" });
+    }
+    setLoading(false);
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
@@ -97,19 +96,19 @@ const handleSubmit = async (e: React.FormEvent) => {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-  Email ou Téléphone
-</label>
-<input
-  type="text"
-  name="emailOrPhone"
-  value={formData.emailOrPhone}
-  onChange={handleInputChange}
-  className={`w-full pl-10 pr-3 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 ${
-    errors.emailOrPhone ? "border-red-500" : "border-gray-300"
-  }`}
-  placeholder="votre.email@example.com ou 12345678"
-/>
-{errors.emailOrPhone && <p className="mt-1 text-sm text-red-600">{errors.emailOrPhone}</p>}
+                Email ou Téléphone
+              </label>
+              <input
+                type="text"
+                name="emailOrPhone"
+                value={formData.emailOrPhone}
+                onChange={handleInputChange}
+                className={`w-full pl-10 pr-3 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 ${
+                  errors.emailOrPhone ? "border-red-500" : "border-gray-300"
+                }`}
+                placeholder="votre.email@example.com ou 12345678"
+              />
+              {errors.emailOrPhone && <p className="mt-1 text-sm text-red-600">{errors.emailOrPhone}</p>}
             </div>
 
             <div>
@@ -185,16 +184,13 @@ const handleSubmit = async (e: React.FormEvent) => {
             </div>
             <div className="mt-6">
               <GoogleAuthButton mode="signin" />
-              
-
             </div>
             <div className="mt-3">
-            <FacebookAuthButton mode="signin" />
+              <FacebookAuthButton mode="signin" />
             </div>
           </div>
           <div className="mt-6 text-center">
             <p className="text-gray-600">
-              
               <Link href="/signUp" className="text-purple-600 hover:text-purple-800 font-semibold">
                 Créer un compte
               </Link>
@@ -208,5 +204,14 @@ const handleSubmit = async (e: React.FormEvent) => {
         </div>
       </div>
     </div>
+  );
+}
+
+// Default export: wrap the content in <Suspense>
+export default function SignIn() {
+  return (
+    <Suspense fallback={<div>Chargement...</div>}>
+      <SignInContent />
+    </Suspense>
   );
 }
