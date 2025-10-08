@@ -4,7 +4,7 @@ import Image from "next/image";
 import Footer from "@/components/ui/Footer";
 import Link from 'next/link';
 import { useCart } from "@/hooks/useCart";
-import { useStoreInfo } from "@/hooks/useStoreInfo"; // Import du hook
+import { useStoreInfo } from "@/hooks/useStoreInfo";
 import { CartPromotionProvider, useCartPromotionContext } from '@/contexts/CartPromotionContext';
 import CartItemPromotion from '@/components/ui/CartItemPromotion';
 import KidsCornerLoader from "@/components/ui/KidsCornerLoader";
@@ -26,12 +26,13 @@ import { useEffect } from "react";
 import ErrorBanner from "@/components/ui/ErrorBanner";
 import { CartProvider } from "@/hooks/useCart";
 
+// ✅ Composants qui restent identiques
 const CartItemWithPromotion = ({ item, index, onIncrement, onDecrement, onQuantityChange, onRemove, actionLoading }: any) => {
+  // ... votre code existant ...
   const imageUrl = item.produit.images && item.produit.images.length > 0
     ? `http://localhost:3001${item.produit.images.sort((a:any, b:any) => a.rang - b.rang)[0].url}`
     : '/images/placeholder.jpg';
 
-  // Fonction pour déterminer le stock disponible
   const getStockDisponible = () => {
     if (item.variation && item.variation.quantiteStock !== undefined) {
       return item.variation.quantiteStock;
@@ -101,40 +102,39 @@ const CartItemWithPromotion = ({ item, index, onIncrement, onDecrement, onQuanti
       </div>
 
       <div className="flex items-center gap-4 flex-shrink-0">
-        {/* Sélecteur de quantité */}
         <div className="flex items-center gap-1 bg-pink-50 rounded-lg p-1">
-        <button
-          onClick={() => onDecrement(item)}
-          disabled={item.quantite <= 1 || actionLoading}
-          className="w-8 h-8 rounded-md flex items-center justify-center hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed transition-all font-bold"
-        >
-          {actionLoading ? (
-            <span className="animate-spin w-4 h-4 border-2 border-pink-600 border-t-transparent rounded-full"></span>
-          ) : (
-            <MinusIcon className="w-4 h-4 text-pink-600" />
-          )}
-        </button>
-        <input
-          type="number"
-          value={item.quantite}
-          onChange={(e) => onQuantityChange(item, e)}
-          className="w-12 h-8 text-center border-0 bg-transparent focus:outline-none focus:ring-0 text-sm font-medium"
-          min="1"
-          max={stockDisponible}
-          disabled={actionLoading}
-        />
-        <button
-          onClick={() => onIncrement(item)}
-          disabled={item.quantite >= stockDisponible || actionLoading}
-          className="w-8 h-8 rounded-md flex items-center justify-center hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed transition-all font-bold"
-        >
-          {actionLoading ? (
-            <span className="animate-spin w-4 h-4 border-2 border-pink-600 border-t-transparent rounded-full"></span>
-          ) : (
-            <PlusIcon className="w-4 h-4 text-pink-600" />
-          )}
-        </button>
-      </div>
+          <button
+            onClick={() => onDecrement(item)}
+            disabled={item.quantite <= 1 || actionLoading}
+            className="w-8 h-8 rounded-md flex items-center justify-center hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed transition-all font-bold"
+          >
+            {actionLoading ? (
+              <span className="animate-spin w-4 h-4 border-2 border-pink-600 border-t-transparent rounded-full"></span>
+            ) : (
+              <MinusIcon className="w-4 h-4 text-pink-600" />
+            )}
+          </button>
+          <input
+            type="number"
+            value={item.quantite}
+            onChange={(e) => onQuantityChange(item, e)}
+            className="w-12 h-8 text-center border-0 bg-transparent focus:outline-none focus:ring-0 text-sm font-medium"
+            min="1"
+            max={stockDisponible}
+            disabled={actionLoading}
+          />
+          <button
+            onClick={() => onIncrement(item)}
+            disabled={item.quantite >= stockDisponible || actionLoading}
+            className="w-8 h-8 rounded-md flex items-center justify-center hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed transition-all font-bold"
+          >
+            {actionLoading ? (
+              <span className="animate-spin w-4 h-4 border-2 border-pink-600 border-t-transparent rounded-full"></span>
+            ) : (
+              <PlusIcon className="w-4 h-4 text-pink-600" />
+            )}
+          </button>
+        </div>
 
         <CartItemTotalDisplay 
           idProduit={item.idProduit}
@@ -159,7 +159,7 @@ const CartItemTotalDisplay = ({ idProduit, quantite }: { idProduit: number, quan
 
   if (!itemData) {
     return <div className="text-lg font-bold min-w-[100px] text-right text-gray-500">-</div>;
-  }
+  };
 
   const hasPromotion = itemData.final < itemData.original;
 
@@ -183,7 +183,8 @@ const CartItemTotalDisplay = ({ idProduit, quantite }: { idProduit: number, quan
   );
 };
 
-function CartContent() {
+// 🔥 NOUVELLE VERSION : Séparer la logique qui utilise useRouter
+function CartContentInner() {
   const {
     cartItems,
     totalItems,
@@ -195,23 +196,22 @@ function CartContent() {
     refreshCart,
     clearCart,
   } = useCart();
-   const { data: session, status } = useSession();
-  const router = useRouter();
-
+  
+  const { data: session, status } = useSession();
+  const router = useRouter(); // ⚠️ Ce hook pose problème avec SSR
   const { storeInfo, loading: storeLoading } = useStoreInfo(); 
-    const [errorMessage, setErrorMessage] = useState<string | null>(null);
-
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
-
   const { getTotals, clearTotals, itemTotals, removeItemTotal } = useCartPromotionContext();
- useEffect(() => {
-    // Si pas connecté, redirige vers /signIn
+
+  // ✅ Redirection côté client uniquement
+  useEffect(() => {
     if (status === "unauthenticated") {
       router.replace("/signIn");
     }
   }, [status, router]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     const currentProductIds = cartItems.map(item => item.idProduit);
     const contextProductIds = Object.keys(itemTotals).map(id => parseInt(id));
     const toRemove = contextProductIds.filter(id => !currentProductIds.includes(id));
@@ -222,13 +222,12 @@ function CartContent() {
   }, [cartItems, itemTotals, removeItemTotal]);
 
   const { totalOriginal, totalFinal, totalSavings } = getTotals();
-  
-  // Calcul dynamique des frais de livraison
   const fraisLivraison = storeInfo?.fraisLivraison || 7; 
   const seuilLivraisonGratuite = storeInfo?.seuilLivraisonGratuite || 100; 
   const livraison = totalFinal >= seuilLivraisonGratuite ? 0 : fraisLivraison;
   const totalTTC = totalFinal + livraison;
-   const handleRefreshCart = async () => {
+
+  const handleRefreshCart = async () => {
     setErrorMessage(null);
     try {
       await refreshCart();
@@ -236,6 +235,7 @@ function CartContent() {
       setErrorMessage(error.message || "Erreur inconnue lors du chargement du panier.");
     }
   };
+
   const handleIncrement = async (item: any) => {
     const stockDisponible = item.variation ? item.variation.quantiteStock : item.produit.quantiteStock;
     if (item.quantite < stockDisponible) {
@@ -264,7 +264,8 @@ function CartContent() {
 
   const handleRemove = async (item: any) => {
     try {
-await removeFromCart(item.idPanierProduit, item.idProduit);      removeItemTotal(item.idProduit);
+      await removeFromCart(item.idPanierProduit, item.idProduit);
+      removeItemTotal(item.idProduit);
     } catch (error) {}
   };
 
@@ -278,7 +279,7 @@ await removeFromCart(item.idPanierProduit, item.idProduit);      removeItemTotal
 
   if (!mounted) return null;
 
-   if (initialLoading) {
+  if (initialLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-base-200">
         <KidsCornerLoader
@@ -293,13 +294,13 @@ await removeFromCart(item.idPanierProduit, item.idProduit);      removeItemTotal
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-50 via-yellow-50 to-blue-50 font-[Comic_Sans_MS,sans-serif]">
       <div className="container mx-auto px-4 py-8 max-w-7xl">
-        {/* ----------- ICI le ErrorBanner (juste après le header) ----------- */}
         {errorMessage && (
           <ErrorBanner
             message={errorMessage}
             onRetry={handleRefreshCart}
           />
         )}
+        
         {/* Header */}
         <div className="flex items-center justify-between mb-8 w-full">
           <div className="flex items-center gap-2 sm:gap-3">
@@ -347,22 +348,21 @@ await removeFromCart(item.idPanierProduit, item.idProduit);      removeItemTotal
                   </div>
                 </div>
                 <div className={`divide-y divide-pink-50 ${cartItems.length > 4 ? 'max-h-[400px] overflow-y-auto' : ''}`}>
-                 {cartItems.map((item, index) => (
-      <CartItemWithPromotion
-        key={`${item.idProduit}-${item.idProduitVariation || 'no-var'}`}
-        item={item}
-        index={index}
-        onIncrement={handleIncrement}
-        onDecrement={handleDecrement}
-        onQuantityChange={handleQuantityChange}
-        onRemove={handleRemove}
-        actionLoading={actionLoadingItemId === item.idProduit} // Nouveau prop
-      />
-    ))}
+                  {cartItems.map((item, index) => (
+                    <CartItemWithPromotion
+                      key={`${item.idProduit}-${item.idProduitVariation || 'no-var'}`}
+                      item={item}
+                      index={index}
+                      onIncrement={handleIncrement}
+                      onDecrement={handleDecrement}
+                      onQuantityChange={handleQuantityChange}
+                      onRemove={handleRemove}
+                      actionLoading={actionLoadingItemId === item.idProduit}
+                    />
+                  ))}
                 </div>
               </div>
-              {/* Continuer vos achats */}
-             <div className="mt-6 hidden xl:block">
+              <div className="mt-6 hidden xl:block">
                 <Link href="/site" className="inline-flex items-center gap-2 text-purple-600 hover:text-purple-800 transition-colors font-extrabold font-[Comic_Sans_MS,sans-serif]">
                   <ArrowLeftIcon className="w-5 h-5" />
                   Continuer vos achats
@@ -370,10 +370,9 @@ await removeFromCart(item.idPanierProduit, item.idProduit);      removeItemTotal
               </div>
             </div>
 
-            {/* Résumé de la commande */}
+            {/* Résumé */}
             <div className="xl:col-span-1">
               <div className="sticky top-6 space-y-6">
-                {/* Résumé des prix */}
                 <div className="bg-white rounded-2xl shadow-xl border-2 border-pink-200 p-6">
                   <h4 className="text-xl font-extrabold text-pink-600 mb-6 font-[Comic_Sans_MS,sans-serif]">Résumé</h4>
                   <div className="space-y-4 text-base">
@@ -412,18 +411,17 @@ await removeFromCart(item.idPanierProduit, item.idProduit);      removeItemTotal
                     )}
                   </div>
                   <Link href="/site/passerCmd" className="block mt-6">
-                    <button className="w-full  bg-pink-500  text-white py-4 rounded-xl hover:from-pink-500 hover:to-blue-500 font-extrabold transition-all transform hover:scale-105 shadow">
+                    <button className="w-full bg-pink-500 text-white py-4 rounded-xl hover:from-pink-500 hover:to-blue-500 font-extrabold transition-all transform hover:scale-105 shadow">
                       Finaliser la commande
                     </button>
                   </Link>
                 </div>
-                  <div className="mt-4 xl:hidden">
+                <div className="mt-4 xl:hidden">
                   <Link href="/site" className="inline-flex items-center gap-2 text-purple-600 hover:text-purple-800 transition-colors font-extrabold font-[Comic_Sans_MS,sans-serif]">
                     <ArrowLeftIcon className="w-5 h-5" />
                     Continuer vos achats
                   </Link>
                 </div>
-                
               </div>
             </div>
           </div>
@@ -434,22 +432,26 @@ await removeFromCart(item.idPanierProduit, item.idProduit);      removeItemTotal
   );
 }
 
+// 🔥 COMPOSANT AVEC SUSPENSE CORRECTEMENT PLACÉ
 const CartWithProvider = () => {
   return (
-    <Suspense fallback={<KidsCornerLoader
-    message="Chargement du panier..."
-    size="lg"
-    showMessage={true}
-  />}>
     <CartProvider>
-    <CartPromotionProvider>
-      
-        <CartContent />
-      
-    </CartPromotionProvider>
+      <CartPromotionProvider>
+        <Suspense 
+          fallback={
+            <div className="min-h-screen flex items-center justify-center bg-base-200">
+              <KidsCornerLoader
+                message="Chargement du panier..."
+                size="lg"
+                showMessage={true}
+              />
+            </div>
+          }
+        >
+          <CartContentInner />
+        </Suspense>
+      </CartPromotionProvider>
     </CartProvider>
-          </Suspense>
-
   );
 };
 
