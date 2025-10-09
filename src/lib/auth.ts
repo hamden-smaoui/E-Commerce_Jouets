@@ -54,27 +54,27 @@ export const authOptions: NextAuthOptions = {
   ],
   callbacks: {
     async signIn({ user, account }) {
-      // Google authentication
+      // ---- GOOGLE AUTH SOCIAL LOGIN ----
       if (account?.provider === "google") {
-        // ✅ Utilise le proxy
-        const response = await fetch(`${process.env.NEXTAUTH_URL}/api/auth/google-proxy`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
-          body: JSON.stringify({
-            email: user.email,
-            name: user.name,
-            googleId: user.id,
-            image: user.image
-          }),
-        });
-
-        if (!response.ok) return false;
-        const data = await response.json();
-        
-        user.customToken = data.token;
-        user.userData = data.user;
+        // Appelle ton backend direct pour installer le cookie refreshToken
+        try {
+          await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/auth/google-auth`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include", // IMPORTANT pour les cookies !
+            body: JSON.stringify({
+              email: user.email,
+              name: user.name,
+              googleId: user.id, // ou user.sub selon la structure NextAuth
+              image: user.image
+            })
+          });
+        } catch (err) {
+          console.error("Erreur lors de l'appel backend Google auth:", err);
+          return false;
+        }
       }
+     
       
       // Facebook authentication
       if (account?.provider === "facebook") {
