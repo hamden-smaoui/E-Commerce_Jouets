@@ -86,6 +86,7 @@ class AuthController {
       });
 
     } catch (error) {
+      console.log("Erreur dans register:", error);
       next(error);
     }
   }
