@@ -27,16 +27,15 @@ class AuthService {
     return response.data;
   }
 
-  // ✅ Connexion manuelle (utilisée dans signIn si besoin)
-  async login(emailOrPhone: string, motDePasse: string): Promise<{ token: string; user: any }> {
-    const response = await api.post('/auth/login', { emailOrPhone, motDePasse });
-    
-    if (response.data.token) {
-      sessionStorage.setItem('accessToken', response.data.token);
-    }
-    
-    return response.data;
+ async login(emailOrPhone: string, motDePasse: string): Promise<{ token: string; user: any }> {
+  const response = await api.post('/auth/login', { emailOrPhone, motDePasse });
+  
+  if (response.data.token) {
+    sessionStorage.setItem('accessToken', response.data.token);
   }
+  
+  return response.data;
+}
 
   // ✅ Déconnexion
   async logout(): Promise<void> {

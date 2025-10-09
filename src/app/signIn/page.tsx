@@ -9,6 +9,7 @@ import GoogleAuthButton from "@/components/ui/GoogleAuthButton";
 import FacebookAuthButton from '@/components/ui/FacebookAuthButton';
 import { Suspense } from "react";
 import KidsCornerLoader from "@/components/ui/KidsCornerLoader";
+import AuthService from "@/services/auth-service";
 // Move all hook logic using useSearchParams into a child component
 function SignInContent() {
   const [rememberMe, setRememberMe] = useState(false);
@@ -52,25 +53,19 @@ function SignInContent() {
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!validateForm()) return;
-    setLoading(true);
+  e.preventDefault();
+  if (!validateForm()) return;
+  setLoading(true);
 
-    const res = await signIn("credentials", {
-      emailOrPhone: formData.emailOrPhone,
-      password: formData.motDePasse,
-      redirect: false
-    });
-
-    if (res?.ok) {
-      // ✅ Le cookie refreshToken est maintenant présent !
-      console.log("🍪 Cookies après login:", document.cookie);
-      router.push("/site");
-    } else {
-      setErrors({ submit: "Email ou mot de passe incorrect" });
-    }
-    setLoading(false);
-  };
+  try {
+    const data = await AuthService.login(formData.emailOrPhone, formData.motDePasse);
+   
+    router.push("/site");
+  } catch (error: any) {
+    setErrors({ submit: error?.response?.data?.message || "Email ou mot de passe incorrect" });
+  }
+  setLoading(false);
+};
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">

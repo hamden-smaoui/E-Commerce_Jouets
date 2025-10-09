@@ -5,6 +5,7 @@ import GoogleAuthButton from "@/components/ui/GoogleAuthButton";
 import FacebookAuthButton from '@/components/ui/FacebookAuthButton'
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+
 import { signIn } from "next-auth/react";
 import { 
   EyeIcon, 
@@ -84,37 +85,27 @@ export default function SignUp() {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!validateForm()) return;
-    setLoading(true);
+ const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  if (!validateForm()) return;
+  setLoading(true);
 
-    // 1. Appelle ton API d'inscription manuelle
-    try {
-      await authService.register({
-        prenom: formData.prenom,
-        nom: formData.nom,
-        email: formData.email,
-        telephone: formData.telephone,
-        motDePasse: formData.motDePasse,
-      });
-      // 2. Connecte l'utilisateur automatiquement après inscription
-      const res = await signIn("credentials", {
-        email: formData.email,
-        password: formData.motDePasse,
-        redirect: false,
-      });
-      if (res?.ok) {
-        router.push("/site");
-      } else {
-        setErrors({ submit: "Erreur lors de la connexion après inscription" });
-      }
-    } catch (err: any) {
-      setErrors({ submit: err.message || "Erreur lors de l'inscription" });
-    } finally {
-      setLoading(false);
-    }
-  };
+  try {
+    await authService.register({
+      prenom: formData.prenom,
+      nom: formData.nom,
+      email: formData.email,
+      telephone: formData.telephone,
+      motDePasse: formData.motDePasse,
+    });
+    // Redirige vers le site après inscription et login auto
+    router.push("/site");
+  } catch (err: any) {
+    setErrors({ submit: err.message || "Erreur lors de l'inscription" });
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">

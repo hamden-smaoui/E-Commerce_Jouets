@@ -75,29 +75,25 @@ export const authOptions: NextAuthOptions = {
         }
       }
      
-      
       // Facebook authentication
       if (account?.provider === "facebook") {
-        // ✅ Utilise le proxy
-        const response = await fetch(`${process.env.NEXTAUTH_URL}/api/auth/facebook-proxy`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
-          body: JSON.stringify({
-            email: user.email,
-            name: user.name,
-            facebookId: user.id,
-            image: user.image
-          }),
-        });
-
-        if (!response.ok) return false;
-        const data = await response.json();
-        
-        user.customToken = data.token;
-        user.userData = data.user;
+        try {
+          await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/auth/facebook-auth`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify({
+              email: user.email,
+              name: user.name,
+              facebookId: user.id,
+              image: user.image
+            })
+          });
+        } catch (err) {
+          console.error("Erreur Facebook social login:", err);
+          return false;
+        }
       }
-      
       return true;
     },
     async jwt({ token, user }) {
