@@ -4,6 +4,7 @@ import "./globals.css";
 import { Toaster } from "react-hot-toast";
 import AuthSessionProvider from "@/components/ui/AuthSessionProvider";
 import ConnectionStatusBanner from "@/components/ui/ConnectionStatusBanner";
+import { Suspense } from "react";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
@@ -21,7 +22,9 @@ export default function RootLayout({
       <body className={inter.className}>
         <ConnectionStatusBanner />
         <AuthSessionProvider>
+          <Suspense>
           {children}
+          </Suspense>
           <Toaster />
         </AuthSessionProvider>
       </body>

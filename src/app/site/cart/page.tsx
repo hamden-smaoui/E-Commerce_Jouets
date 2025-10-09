@@ -1,5 +1,5 @@
 "use client";
-import React, { Suspense } from "react";
+import React from "react";
 import Image from "next/image";
 import Footer from "@/components/ui/Footer";
 import Link from 'next/link';
@@ -24,7 +24,7 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import ErrorBanner from "@/components/ui/ErrorBanner";
-import { CartProvider } from "@/hooks/useCart";
+
 
 const CartItemWithPromotion = ({ item, index, onIncrement, onDecrement, onQuantityChange, onRemove, actionLoading }: any) => {
   const imageUrl = item.produit.images && item.produit.images.length > 0
@@ -183,7 +183,7 @@ const CartItemTotalDisplay = ({ idProduit, quantite }: { idProduit: number, quan
   );
 };
 
-function CartContent() {
+function Cart() {
   const {
     cartItems,
     totalItems,
@@ -436,20 +436,9 @@ await removeFromCart(item.idPanierProduit, item.idProduit);      removeItemTotal
 
 const CartWithProvider = () => {
   return (
-    <Suspense fallback={<KidsCornerLoader
-    message="Chargement du panier..."
-    size="lg"
-    showMessage={true}
-  />}>
-    <CartProvider>
     <CartPromotionProvider>
-      
-        <CartContent />
-      
+      <Cart />
     </CartPromotionProvider>
-    </CartProvider>
-          </Suspense>
-
   );
 };
 
