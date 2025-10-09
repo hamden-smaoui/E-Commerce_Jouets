@@ -36,7 +36,7 @@ const server = http.createServer(app);
 app.use(cookieParser());
 // Middleware CORS avec configuration pour les cookies
 app.use(cors({
-  origin:process.env.FRONTEND_URL || 'http://localhost:3000', // ✅ URL exacte du frontend
+  origin:process.env.FRONTEND_URL_PROD || 'https://e-commerce-jouets.vercel.app', // ✅ URL exacte du frontend
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
