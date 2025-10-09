@@ -73,7 +73,7 @@ const Utilisateur = sequelize.define('Utilisateur', {
     },
     facebookId: {
     type: DataTypes.STRING,
-    allowNull: false,
+    allowNull: true,
     unique: false
 },
 isFacebookUser: {
