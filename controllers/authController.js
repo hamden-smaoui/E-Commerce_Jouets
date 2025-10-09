@@ -57,12 +57,13 @@ class AuthController {
       const accessToken = generateAccessToken(newUser);
       const refreshToken = generateRefreshToken(newUser);
 
-      res.cookie("refreshToken", refreshToken, {
+    res.cookie("refreshToken", refreshToken, {
   httpOnly: true,
-  secure: false, // en local
-  sameSite: "lax", // ou "none" si cross-origin avec HTTPS
-  maxAge: 7 * 24 * 60 * 60 * 1000,
-  path: "/"
+  secure: true,
+  sameSite: "none",
+  path: "/",
+  maxAge: 7 * 24 * 60 * 60 * 1000
+  // pas de domain
 });
 
       const userResponse = {
@@ -140,12 +141,13 @@ class AuthController {
       const refreshToken = generateRefreshToken(user);
 console.log("✅ Cookie refreshToken créé lors du login1");
 
-    res.cookie("refreshToken", refreshToken, {
+  res.cookie("refreshToken", refreshToken, {
   httpOnly: true,
-  secure: false, // en local
-  sameSite: "lax", // ou "none" si cross-origin avec HTTPS
-  maxAge: 7 * 24 * 60 * 60 * 1000,
-  path: "/"
+  secure: true,
+  sameSite: "none",
+  path: "/",
+  maxAge: 7 * 24 * 60 * 60 * 1000
+  // pas de domain
 });
  console.log("🍪 Cookie refreshToken configuré !");
     console.log("   Token value:", refreshToken.substring(0, 20) + "...");
@@ -509,12 +511,13 @@ console.log("✅ Cookie refreshToken créé lors du login2");
             const accessToken = generateAccessToken(user);
         const refreshToken = generateRefreshToken(user);
             // Met le refresh token dans un cookie sécurisé
-      res.cookie("refreshToken", refreshToken, {
+  res.cookie("refreshToken", refreshToken, {
   httpOnly: true,
-  secure: false, // en local
-  sameSite: "lax", // ou "none" si cross-origin avec HTTPS
-  maxAge: 7 * 24 * 60 * 60 * 1000,
-  path: "/"
+  secure: true,
+  sameSite: "none",
+  path: "/",
+  maxAge: 7 * 24 * 60 * 60 * 1000
+  // pas de domain
 });
 
         // Prépare la réponse utilisateur
@@ -590,12 +593,13 @@ console.log("✅ Cookie refreshToken créé lors du login2");
         const accessToken = generateAccessToken(user);
         const refreshToken = generateRefreshToken(user);
 
-      res.cookie("refreshToken", refreshToken, {
+     res.cookie("refreshToken", refreshToken, {
   httpOnly: true,
-  secure: false, // en local
-  sameSite: "lax", // ou "none" si cross-origin avec HTTPS
-  maxAge: 7 * 24 * 60 * 60 * 1000,
-  path: "/"
+  secure: true,
+  sameSite: "none",
+  path: "/",
+  maxAge: 7 * 24 * 60 * 60 * 1000
+  // pas de domain
 });
 
         // Prépare la réponse utilisateur
