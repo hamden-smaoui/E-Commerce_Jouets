@@ -89,7 +89,7 @@ export default function Navbar() {
               )}
               {storeInfo?.logo1 && !logoError ? (
                 <Image
-                  src={`http://localhost:3001${storeInfo.logo1}`}
+                  src={`${process.env.NEXT_PUBLIC_API_BASE_URL_IMAGE}${storeInfo.logo1}`}
                   alt={storeInfo.nom || "Logo"}
                   height={80}
                   width={240}

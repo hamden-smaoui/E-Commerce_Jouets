@@ -28,7 +28,7 @@ import ErrorBanner from "@/components/ui/ErrorBanner";
 
 const CartItemWithPromotion = ({ item, index, onIncrement, onDecrement, onQuantityChange, onRemove, actionLoading }: any) => {
   const imageUrl = item.produit.images && item.produit.images.length > 0
-    ? `http://localhost:3001${item.produit.images.sort((a:any, b:any) => a.rang - b.rang)[0].url}`
+    ? `${process.env.NEXT_PUBLIC_API_BASE_URL_IMAGE}${item.produit.images.sort((a:any, b:any) => a.rang - b.rang)[0].url}`
     : '/images/placeholder.jpg';
 
   // Fonction pour déterminer le stock disponible

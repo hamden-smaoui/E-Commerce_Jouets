@@ -23,7 +23,7 @@ export default function Hero({ title, description, buttonText, buttonLink }: Her
       ? storeInfo.heroImages
           .sort((a, b) => a.rang - b.rang)
           .map((img) => ({
-            src: `http://localhost:3001${img.url}`,
+            src: `${process.env.NEXT_PUBLIC_API_BASE_URL_IMAGE}${img.url}`,
             alt: `Image ${img.rang} de la boutique`,
           }))
       : defaultImages;

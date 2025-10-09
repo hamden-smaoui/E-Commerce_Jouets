@@ -224,7 +224,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
           onTouchEnd={handleTouchEnd}
         >
           <Image
-            src={imageError ? '/images/placeholder.jpg' : `http://localhost:3001${displayImage || '/images/placeholder.jpg'}`}
+            src={imageError ? '/images/placeholder.jpg' : `${process.env.NEXT_PUBLIC_API_BASE_URL_IMAGE}${displayImage || '/images/placeholder.jpg'}`}
             alt={product.nom}
             fill
             // Best practice for grid cards:

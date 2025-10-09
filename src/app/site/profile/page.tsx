@@ -737,7 +737,7 @@ export default function ProfilePage() {
                             <div key={index} className="flex items-center space-x-3">
                               {item.produit?.images && item.produit.images.length > 0 && (
                                 <img
-                                  src={`http://localhost:3001${item.produit.images.sort((a, b) => a.rang - b.rang)[0].url}`}
+                                  src={`${process.env.NEXT_PUBLIC_API_BASE_URL_IMAGE}${item.produit.images.sort((a, b) => a.rang - b.rang)[0].url}`}
                                   alt={item.produit.nom}
                                   className="h-12 w-12 sm:h-14 sm:w-14 object-cover rounded-lg border border-purple-100"
                                 />

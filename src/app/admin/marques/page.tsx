@@ -12,8 +12,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faEdit, faTrash } from '@fortawesome/free-solid-svg-icons';
 import { useSession } from "next-auth/react";
 
-// Backend base URL for images
-const BACKEND_BASE_URL = 'http://localhost:3001';
+
 
 // Define TypeScript interface for Produit from the backend
 interface Produit {
@@ -144,12 +143,12 @@ const token = session?.customToken;
       render: (item: Marque) =>
         item.logoUrl ? (
           <img
-            src={`${BACKEND_BASE_URL}${item.logoUrl}`}
+            src={`${process.env.NEXT_PUBLIC_API_BASE_URL_IMAGE}${item.logoUrl}`}
             alt={item.nom}
             className="h-10 w-10 object-contain"
             onError={(e) => {
               e.currentTarget.src = '/images/image-profile.svg';
-              console.error(`Failed to load image: ${BACKEND_BASE_URL}${item.logoUrl}`);
+              console.error(`Failed to load image: ${process.env.NEXT_PUBLIC_API_BASE_URL_IMAGE}${item.logoUrl}`);
             }}
           />
         ) : (
@@ -273,7 +272,7 @@ const marqueFields: Field<FormData>[] = [
         
         // Si on a une URL d'image existante (cas de modification)
         if (typeof logoValue === 'string' && logoValue && !logoValue.startsWith('blob:')) {
-          const url = `${BACKEND_BASE_URL}${logoValue}`;
+          const url = `${process.env.NEXT_PUBLIC_API_BASE_URL_IMAGE}${logoValue}`;
           console.log('Utilisation de l\'URL backend:', url);
           return url;
         }

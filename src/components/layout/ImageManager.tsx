@@ -108,7 +108,7 @@ const ImageManager: React.FC<ImageManagerProps> = ({
 
   const getImageSrc = (image: ImageWithRang) => {
     if (image.preview) return image.preview;
-    if (image.existing) return `http://localhost:3001${image.existing.url}`;
+    if (image.existing) return `${process.env.NEXT_PUBLIC_API_BASE_URL_IMAGE}${image.existing.url}`;
     return '';
   };
 

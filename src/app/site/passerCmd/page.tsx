@@ -557,7 +557,7 @@ function Checkout() {
                 <div className={`p-4 ${cartItems.length > 4 ? 'max-h-[300px] overflow-y-auto' : ''}`}>
                   {cartItems.map((item, index) => {
                     const imageUrl = item.produit.images && item.produit.images.length > 0
-                      ? `http://localhost:3001${item.produit.images.sort((a:any, b:any) => a.rang - b.rang)[0].url}`
+                      ? `${process.env.NEXT_PUBLIC_API_BASE_URL_IMAGE}${item.produit.images.sort((a:any, b:any) => a.rang - b.rang)[0].url}`
                       : '/images/placeholder.jpg';
                     return (
                       <div

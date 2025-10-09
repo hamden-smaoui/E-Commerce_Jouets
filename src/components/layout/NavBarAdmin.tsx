@@ -65,7 +65,7 @@ const NavBarCentre: React.FC = () => {
             {storeInfo?.logo1 ? (
               <div className="relative h-10 w-auto">
                 <Image 
-                  src={`http://localhost:3001${storeInfo.logo1}`}
+                  src={`${process.env.NEXT_PUBLIC_API_BASE_URL_IMAGE}${storeInfo.logo1}`}
                   alt={storeInfo.nom || "Logo"}
                   height={40}
                   width={120}

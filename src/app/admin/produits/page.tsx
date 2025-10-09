@@ -242,7 +242,7 @@ useEffect(() => {
             <div className="avatar">
               <div className="mask mask-squircle w-12 h-12">
                 <img
-                  src={`http://localhost:3001${item.images.find(img => img.rang === 1)?.url || item.images[0]?.url}`}
+                  src={`${process.env.NEXT_PUBLIC_API_BASE_URL_IMAGE}${item.images.find(img => img.rang === 1)?.url || item.images[0]?.url}`}
                   alt={item.nom}
                 />
               </div>

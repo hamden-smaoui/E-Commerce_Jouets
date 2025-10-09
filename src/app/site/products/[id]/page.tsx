@@ -414,7 +414,7 @@ export default function ProduitDetails() {
                           }`}
                         >
                           <Image
-                            src={`http://localhost:3001${image.url || '/images/placeholder.jpg'}`}
+                            src={`${process.env.NEXT_PUBLIC_API_BASE_URL_IMAGE}${image.url || '/images/placeholder.jpg'}`}
                             alt={`${produit.nom} thumbnail ${image.rang}`}
                             width={80}
                             height={80}
@@ -434,7 +434,7 @@ export default function ProduitDetails() {
                       onMouseLeave={handleMouseLeave}
                     >
                       <Image
-                        src={`http://localhost:3001${selectedImage || '/images/placeholder.jpg'}`}
+                        src={`${process.env.NEXT_PUBLIC_API_BASE_URL_IMAGE}${selectedImage || '/images/placeholder.jpg'}`}
                         alt={produit.nom}
                         fill
                         className="object-cover"
@@ -486,7 +486,7 @@ export default function ProduitDetails() {
                         style={{
                           top: `${magnifierPos.y - 96}px`,
                           left: `${magnifierPos.x + 20}px`,
-                          backgroundImage: `url(${`http://localhost:3001${selectedImage || '/images/placeholder.jpg'}`})`,
+                          backgroundImage: `url(${`${process.env.NEXT_PUBLIC_API_BASE_URL_IMAGE}${selectedImage || '/images/placeholder.jpg'}`})`,
                           backgroundPosition: `-${magnifierPos.x * 2 - 96}px -${magnifierPos.y * 2 - 96}px`,
                           backgroundSize: `400% 400%`,
                         }}

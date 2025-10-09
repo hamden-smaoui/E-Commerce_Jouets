@@ -270,7 +270,7 @@ const handleEdit = (campaign: NewsletterCampaign) => {
   
   if (campaign.imageUrl) {
     // Utiliser l'URL complète de l'image existante
-    setImagePreview(`http://localhost:3001${campaign.imageUrl}`);
+    setImagePreview(`${process.env.NEXT_PUBLIC_API_BASE_URL_IMAGE}${campaign.imageUrl}`);
   } else {
     setImagePreview(null);
   }
@@ -451,7 +451,7 @@ const handleCloseEditModal = () => {
           )}
           {item.imageUrl && (
             <a  
-              href={`http://localhost:3001${item.imageUrl}`}
+              href={`${process.env.NEXT_PUBLIC_API_BASE_URL_IMAGE}${item.imageUrl}`}
               target="_blank"
               rel="noopener noreferrer"
               className="bg-gray-500 hover:bg-gray-700 text-white px-3 py-1 rounded text-sm"
