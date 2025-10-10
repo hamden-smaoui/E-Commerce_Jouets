@@ -29,67 +29,55 @@ function generateRefreshToken(user) {
   );
 }
 class AuthController {
-     // Inscription
-  async register(req, res, next) {
-    try {
-      const { prenom, nom, email, motDePasse, telephone, role = 'client' } = req.body;
+ // Inscription - VERSION SIMPLIFIÉE
+async register(req, res, next) {
+  try {
+    const { prenom, nom, email, motDePasse, telephone, role = 'client' } = req.body;
 
-      const existingUser = await Utilisateur.findOne({ where: { email } });
-      if (existingUser) {
-        const error = new Error('Un utilisateur avec cet email existe déjà');
-        error.code = "VALIDATION_ERROR";
-        return next(error);
-      }
-
-      const saltRounds = 12;
-      const hashedPassword = await bcrypt.hash(motDePasse, saltRounds);
-
-      const newUser = await Utilisateur.create({
-        prenom,
-        nom,
-        email,
-        motDePasse: hashedPassword,
-        telephone,
-        role
-      });
-
-      // Generate tokens
-      const accessToken = generateAccessToken(newUser);
-      const refreshToken = generateRefreshToken(newUser);
-
-    res.cookie("refreshToken", refreshToken, {
-  httpOnly: true,
-  secure: true,
-  sameSite: "none",
-  path: "/",
-  maxAge: 7 * 24 * 60 * 60 * 1000
-  // pas de domain
-});
-
-      const userResponse = {
-        idUtilisateur: newUser.idUtilisateur,
-        prenom: newUser.prenom,
-        nom: newUser.nom,
-        email: newUser.email,
-        telephone: newUser.telephone,
-        adresseRue: newUser.adresseRue,
-        adresseVille: newUser.adresseVille,
-        adresseCodePostal: newUser.adresseCodePostal,
-        adressePays: newUser.adressePays,
-        role: newUser.role
-      };
-
-      res.status(201).json({
-        message: 'Inscription réussie',
-        token: accessToken,
-        user: userResponse
-      });
-
-    } catch (error) {
-      console.log("Erreur dans register:", error);
-      next(error);
+    const existingUser = await Utilisateur.findOne({ where: { email } });
+    if (existingUser) {
+      const error = new Error('Un utilisateur avec cet email existe déjà');
+      error.code = "VALIDATION_ERROR";
+      return next(error);
     }
+
+    const saltRounds = 12;
+    const hashedPassword = await bcrypt.hash(motDePasse, saltRounds);
+
+    const newUser = await Utilisateur.create({
+      prenom,
+      nom,
+      email,
+      motDePasse: hashedPassword,
+      telephone,
+      role
+    });
+
+    // ✅ Prépare la réponse utilisateur (SANS tokens ni cookies)
+    const userResponse = {
+      idUtilisateur: newUser.idUtilisateur,
+      prenom: newUser.prenom,
+      nom: newUser.nom,
+      email: newUser.email,
+      telephone: newUser.telephone,
+      adresseRue: newUser.adresseRue,
+      adresseVille: newUser.adresseVille,
+      adresseCodePostal: newUser.adresseCodePostal,
+      adressePays: newUser.adressePays,
+      role: newUser.role
+    };
+
+    // ✅ Retourne seulement les infos de l'utilisateur créé
+    res.status(201).json({
+      message: 'Inscription réussie',
+      user: userResponse
+    });
+
+  } catch (error) {
+    console.log("Erreur dans register:", error);
+    next(error);
   }
+}
 
   // Connexion
   async login(req, res, next) {
