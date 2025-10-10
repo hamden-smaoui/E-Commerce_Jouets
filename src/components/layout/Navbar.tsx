@@ -23,22 +23,34 @@ import { useSession, signOut } from "next-auth/react";
 
 export default function Navbar() {
   const { data: session, status } = useSession();
-  const user = session?.userData;
-  const isAuthenticated = status === "authenticated";
   const { storeInfo } = useStoreInfo();
   const [isDropdownOpen, setIsDropdownOpen] = useState<boolean>(false);
-  const [searchQuery, setSearchQuery] = useState<string>("");
   const mobileDropdownRef = useRef<HTMLDivElement>(null);
   const desktopDropdownRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
   const { favorites } = useFavorites();
 
   // LOGO LOADING STATE
-  const [logoLoading, setLogoLoading] = useState(true); // Loader visible at first
+  const [logoLoading, setLogoLoading] = useState(true);
   const [logoError, setLogoError] = useState(false);
 
+  // ✅ Récupère les données utilisateur depuis la session
+  const user = session?.userData;
+  const isAuthenticated = status === "authenticated";
+
+  // ✅ Sauvegarde l'access token dans sessionStorage quand la session change
   useEffect(() => {
-    console.log("userdata:", user, "session:", session, "status:", status);
+    if (session?.customToken) {
+      sessionStorage.setItem('accessToken', session.customToken);
+      console.log("✅ Access token sauvegardé dans sessionStorage");
+    }
+  }, [session]);
+
+  useEffect(() => {
+    console.log("📊 Status:", status);
+    console.log("📊 Session:", session);
+    console.log("📊 User data:", user);
+    
     const handleClickOutside = (event: MouseEvent) => {
       if (
         mobileDropdownRef.current &&
@@ -53,7 +65,7 @@ export default function Navbar() {
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
-  }, []);
+  }, [status, session, user]);
 
   const toggleDropdown = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -65,15 +77,46 @@ export default function Navbar() {
       // 1. Appelle le backend pour supprimer le refresh token
       await authService.logout();
       
-      // 2. Déconnecte NextAuth
+      // 2. Supprime l'access token du sessionStorage
+      sessionStorage.removeItem('accessToken');
+      
+      // 3. Déconnecte NextAuth
       await signOut({ redirect: false });
       
-      // 3. Redirige
-      window.location.href = "/signIn";
+      // 4. Redirige
+      router.push("/signIn");
     } catch (error) {
       console.error("Erreur de déconnexion:", error);
+      // Force la redirection même en cas d'erreur
+      sessionStorage.removeItem('accessToken');
+      router.push("/signIn");
     }
   };
+
+  // ✅ Affiche un loader pendant le chargement de la session
+  if (status === "loading") {
+    return (
+      <div className="navbar bg-base-100 shadow-md px-4 py-2 font-[Comic_Sans_MS,sans-serif]">
+        <div className="flex flex-col w-full md:flex-row md:items-center">
+          <div className="flex items-center justify-between w-full md:justify-start md:w-auto">
+            <Link href="/site" className="flex items-center">
+              <div className="relative h-16 w-auto sm:h-20 min-w-[80px]">
+                <div className="absolute inset-0 flex items-center justify-center z-10 bg-white">
+                  <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-pink-500"></div>
+                </div>
+              </div>
+            </Link>
+            <div className="flex space-x-2 md:hidden">
+              <div className="animate-pulse h-10 w-10 bg-gray-200 rounded-full"></div>
+              <div className="animate-pulse h-10 w-10 bg-gray-200 rounded-full"></div>
+              <div className="animate-pulse h-10 w-10 bg-gray-200 rounded-full"></div>
+              <div className="animate-pulse h-10 w-10 bg-gray-200 rounded-full"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="navbar bg-base-100 shadow-md px-4 py-2 font-[Comic_Sans_MS,sans-serif]">
@@ -103,7 +146,6 @@ export default function Navbar() {
                   }}
                 />
               ) : (
-                // Default logo fallback (only if logoError is true or logo1 is missing)
                 !logoLoading && (
                   <img
                     src="/images/logoBamby.png"
@@ -114,6 +156,8 @@ export default function Navbar() {
               )}
             </div>
           </Link>
+          
+          {/* Mobile Icons */}
           <div className="flex space-x-2 md:hidden">
             <Link href="/site/contact" className="btn btn-ghost btn-circle btn-sm bg-pink-100 hover:bg-pink-200 transition-all" title="Contact">
               <EnvelopeIcon className="h-5 w-5 text-pink-600 drop-shadow-lg" />
@@ -127,6 +171,8 @@ export default function Navbar() {
               </Link>
             </div>
             <CartDropdown />
+            
+            {/* Mobile User Dropdown */}
             <div className="relative" ref={mobileDropdownRef}>
               <button
                 tabIndex={0}
@@ -140,15 +186,24 @@ export default function Navbar() {
               </button>
               {isDropdownOpen && (
                 <ul className="absolute right-0 mt-2 p-2 shadow-xl bg-white rounded-lg w-56 border border-gray-200 z-[1000]">
-                  {isAuthenticated ? (
+                  {isAuthenticated && user ? (
                     <>
                       <li className="px-4 py-2 border-b border-gray-100">
                         <div className="flex items-center space-x-3">
+                          {user.profileImage && (
+                            <Image
+                              src={user.profileImage}
+                              alt={user.prenom}
+                              width={40}
+                              height={40}
+                              className="rounded-full"
+                            />
+                          )}
                           <div>
                             <p className="font-extrabold text-pink-600 text-lg drop-shadow-lg">
-                              {user?.prenom} {user?.nom}
+                              {user.prenom} {user.nom}
                             </p>
-                            <p className="text-xs text-gray-500">{user?.email}</p>
+                            <p className="text-xs text-gray-500">{user.email}</p>
                           </div>
                         </div>
                       </li>
@@ -164,7 +219,7 @@ export default function Navbar() {
                           Mes commandes
                         </Link>
                       </li>
-                      {user?.role === "admin" && (
+                      {user.role === "admin" && (
                         <li>
                           <Link href="/admin" className="flex items-center py-2 hover:bg-purple-50 font-bold text-purple-600">
                             <Cog6ToothIcon className="h-5 w-5 text-purple-500 mr-3" />
@@ -226,6 +281,8 @@ export default function Navbar() {
             </Link>
           </div>
           <CartDropdown />
+          
+          {/* Desktop User Dropdown */}
           <div className="relative" ref={desktopDropdownRef}>
             <button
               tabIndex={0}
@@ -235,24 +292,33 @@ export default function Navbar() {
             >
               <div className="flex items-center space-x-1">
                 <UserIcon className="h-5 w-5 sm:h-6 sm:w-6 text-yellow-500 drop-shadow-lg" />
-                {isAuthenticated && (
+                {isAuthenticated && user && (
                   <span className="text-lg font-extrabold font-[Comic_Sans_MS,sans-serif] text-pink-600 drop-shadow-lg hidden xl:block">
-                    {user?.prenom}
+                    {user.prenom}
                   </span>
                 )}
               </div>
             </button>
             {isDropdownOpen && (
               <ul className="absolute right-0 mt-2 p-2 shadow-xl bg-white rounded-lg w-56 border border-gray-200 z-[1000]">
-                {isAuthenticated ? (
+                {isAuthenticated && user ? (
                   <>
                     <li className="px-4 py-2 border-b border-gray-100">
                       <div className="flex items-center space-x-3">
+                        {user.profileImage && (
+                          <Image
+                            src={user.profileImage}
+                            alt={user.prenom}
+                            width={40}
+                            height={40}
+                            className="rounded-full"
+                          />
+                        )}
                         <div>
                           <p className="font-extrabold text-pink-600 text-lg drop-shadow-lg">
-                            {user?.prenom} {user?.nom}
+                            {user.prenom} {user.nom}
                           </p>
-                          <p className="text-xs text-gray-500">{user?.email}</p>
+                          <p className="text-xs text-gray-500">{user.email}</p>
                         </div>
                       </div>
                     </li>
@@ -268,7 +334,7 @@ export default function Navbar() {
                         Mes commandes
                       </Link>
                     </li>
-                    {user?.role === "admin" && (
+                    {user.role === "admin" && (
                       <li>
                         <Link href="/admin" className="flex items-center py-2 hover:bg-purple-50 font-bold text-purple-600">
                           <Cog6ToothIcon className="h-5 w-5 text-purple-500 mr-3" />

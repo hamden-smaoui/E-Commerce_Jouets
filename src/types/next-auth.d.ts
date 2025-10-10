@@ -4,18 +4,22 @@ import { DefaultSession } from "next-auth"
 
 declare module "next-auth" {
   interface Session {
-    accessToken?: string
-    userId?: string
     customToken?: string
+    userId?: string
     userData?: {
       idUtilisateur: number
       prenom: string
       nom: string
-      email?: string
+      email: string
       telephone: string
-      role: 'admin' | 'client' | null
+      role: 'admin' | 'client'
       profileImage?: string
       isGoogleUser?: boolean
+      isFacebookUser?: boolean
+      adresseRue?: string
+      adresseVille?: string
+      adresseCodePostal?: string
+      adressePays?: string
     }
   }
 
@@ -24,18 +28,43 @@ declare module "next-auth" {
     email?: string | null
     name?: string | null
     image?: string | null
-    role?: string | null  // Change this to allow string | null
     customToken?: string
-    userData?: any
+    userData?: {
+      idUtilisateur: number
+      prenom: string
+      nom: string
+      email: string
+      telephone: string
+      role: 'admin' | 'client'
+      profileImage?: string
+      isGoogleUser?: boolean
+      isFacebookUser?: boolean
+      adresseRue?: string
+      adresseVille?: string
+      adresseCodePostal?: string
+      adressePays?: string
+    }
   }
 }
 
 declare module "next-auth/jwt" {
   interface JWT {
-    accessToken?: string
-    userId?: string
     customToken?: string
-    userData?: any
-    role?: string | null
+    userId?: string
+    userData?: {
+      idUtilisateur: number
+      prenom: string
+      nom: string
+      email: string
+      telephone: string
+      role: 'admin' | 'client'
+      profileImage?: string
+      isGoogleUser?: boolean
+      isFacebookUser?: boolean
+      adresseRue?: string
+      adresseVille?: string
+      adresseCodePostal?: string
+      adressePays?: string
+    }
   }
 }

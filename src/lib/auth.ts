@@ -24,7 +24,6 @@ export const authOptions: NextAuthOptions = {
           return null
         }
 
-        // ✅ Utilise le proxy au lieu d'appeler directement le backend
         const res = await fetch(`${process.env.NEXTAUTH_URL}/api/auth/login-proxy`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -42,70 +41,99 @@ export const authOptions: NextAuthOptions = {
             id: data.user.idUtilisateur.toString(),
             email: data.user.email,
             name: `${data.user.prenom} ${data.user.nom}`,
-            role: data.user.role,
             customToken: data.token,
             userData: data.user,
           };
-        } else {
-          return null;
         }
+        return null;
       }
     })
   ],
   callbacks: {
-    async signIn({ user, account }) {
-      // ---- GOOGLE AUTH SOCIAL LOGIN ----
+    async signIn({ user, account, profile }) {
+      // ✅ GOOGLE AUTH
       if (account?.provider === "google") {
-        // Appelle ton backend direct pour installer le cookie refreshToken
         try {
-          await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/auth/google-auth`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            credentials: "include", // IMPORTANT pour les cookies !
-            body: JSON.stringify({
-              email: user.email,
-              name: user.name,
-              googleId: user.id, // ou user.sub selon la structure NextAuth
-              image: user.image
-            })
-          });
-        } catch (err) {
-          console.error("Erreur lors de l'appel backend Google auth:", err);
-          return false;
-        }
-      }
-     
-      // Facebook authentication
-      if (account?.provider === "facebook") {
-        try {
-          await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/auth/facebook-auth`, {
+          const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/auth/google-auth`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             credentials: "include",
             body: JSON.stringify({
               email: user.email,
               name: user.name,
-              facebookId: user.id,
+              googleId: account.providerAccountId, // ✅ Utilise providerAccountId
               image: user.image
             })
           });
+
+          const data = await res.json();
+          
+          // ✅ IMPORTANT : Stocker les données dans l'objet user
+          if (res.ok && data.token && data.user) {
+            user.customToken = data.token;
+            user.userData = data.user;
+            user.id = data.user.idUtilisateur.toString();
+            return true;
+          }
+          
+          return false;
         } catch (err) {
-          console.error("Erreur Facebook social login:", err);
+          console.error("Erreur Google auth:", err);
           return false;
         }
       }
+     
+      // ✅ FACEBOOK AUTH
+      if (account?.provider === "facebook") {
+        try {
+          const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/auth/facebook-auth`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify({
+              email: user.email,
+              name: user.name,
+              facebookId: account.providerAccountId,
+              image: user.image
+            })
+          });
+
+          const data = await res.json();
+          
+          if (res.ok && data.token && data.user) {
+            user.customToken = data.token;
+            user.userData = data.user;
+            user.id = data.user.idUtilisateur.toString();
+            return true;
+          }
+          
+          return false;
+        } catch (err) {
+          console.error("Erreur Facebook auth:", err);
+          return false;
+        }
+      }
+      
       return true;
     },
-    async jwt({ token, user }) {
-      if (user?.customToken) token.customToken = user.customToken;
-      if (user?.userData) token.userData = user.userData;
-      if (user?.id) token.userId = user.id;
+    
+    async jwt({ token, user, account }) {
+      // ✅ Lors de la première connexion
+      if (user) {
+        token.customToken = user.customToken;
+        token.userData = user.userData;
+        token.userId = user.id;
+      }
+      
       return token;
     },
+    
     async session({ session, token }) {
-      session.userId = token.userId as string;
+      // ✅ Injecter les données dans la session
       session.customToken = token.customToken as string;
       session.userData = token.userData as any;
+      session.userId = token.userId as string;
+      
       return session;
     }
   },
@@ -113,5 +141,6 @@ export const authOptions: NextAuthOptions = {
     signIn: '/signIn',
     error: '/auth/error',
   },
-  session: { strategy: "jwt" }
+  session: { strategy: "jwt" },
+  secret: process.env.NEXTAUTH_SECRET,
 }
