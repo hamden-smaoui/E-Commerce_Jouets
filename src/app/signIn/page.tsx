@@ -3,14 +3,13 @@ import Image from "next/image";
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { EyeIcon, EyeSlashIcon, EnvelopeIcon, LockClosedIcon } from "@heroicons/react/24/solid";
-import { signIn } from "next-auth/react";
+import { EyeIcon, EyeSlashIcon, LockClosedIcon } from "@heroicons/react/24/solid";
+import { signIn } from "next-auth/react"; // ✅ Import NextAuth
 import GoogleAuthButton from "@/components/ui/GoogleAuthButton";
 import FacebookAuthButton from '@/components/ui/FacebookAuthButton';
 import { Suspense } from "react";
 import KidsCornerLoader from "@/components/ui/KidsCornerLoader";
-import AuthService from "@/services/auth-service";
-// Move all hook logic using useSearchParams into a child component
+
 function SignInContent() {
   const [rememberMe, setRememberMe] = useState(false);
   const router = useRouter();
@@ -52,20 +51,39 @@ function SignInContent() {
     return Object.keys(newErrors).length === 0;
   };
 
+  // ✅ NOUVELLE VERSION : Utilise NextAuth signIn
   const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
-  if (!validateForm()) return;
-  setLoading(true);
+    e.preventDefault();
+    if (!validateForm()) return;
+    setLoading(true);
 
-  try {
-    const data = await AuthService.login(formData.emailOrPhone, formData.motDePasse);
-   
-    router.push("/site");
-  } catch (error: any) {
-    setErrors({ submit: error?.response?.data?.message || "Email ou mot de passe incorrect" });
-  }
-  setLoading(false);
-};
+    try {
+      // ✅ Utilise le provider "credentials" de NextAuth
+      const result = await signIn("credentials", {
+        emailOrPhone: formData.emailOrPhone,
+        password: formData.motDePasse,
+        redirect: false, // Ne redirige pas automatiquement
+      });
+
+      if (result?.error) {
+        setErrors({ submit: "Email ou mot de passe incorrect" });
+        setLoading(false);
+        return;
+      }
+
+      if (result?.ok) {
+        // ✅ Connexion réussie, redirige vers /site
+        console.log("✅ Connexion réussie via NextAuth");
+        router.push("/site");
+        router.refresh(); // Force le rafraîchissement pour charger la session
+      }
+    } catch (error: any) {
+      console.error("Erreur lors de la connexion:", error);
+      setErrors({ submit: "Une erreur est survenue" });
+    }
+    
+    setLoading(false);
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
@@ -202,15 +220,14 @@ function SignInContent() {
   );
 }
 
-// Default export: wrap the content in <Suspense>
 export default function SignIn() {
   return (
     <Suspense fallback={<KidsCornerLoader
-    message="Chargement du panier..."
-    size="lg"
-    showMessage={true}
-  />}>
+      message="Chargement..."
+      size="lg"
+      showMessage={true}
+    />}>
       <SignInContent />
     </Suspense>
   );
-}
+} 

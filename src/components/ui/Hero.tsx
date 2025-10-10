@@ -28,7 +28,7 @@ export default function Hero({ title, description, buttonText, buttonLink }: Her
           }))
       : defaultImages;
 
-  const heroTitle = title || `Bienvenue chez ${storeInfo?.nom || "Toy Universe"} !`;
+  const heroTitle = title || `Bienvenue chez ${storeInfo?.nom || "Bamby Joy"} !`;
   const heroDescription =
     description ||
     storeInfo?.descriptionHero ||
