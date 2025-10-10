@@ -38,6 +38,7 @@ export default function Navbar() {
   const [logoError, setLogoError] = useState(false);
 
   useEffect(() => {
+    console.log("userdata:", user, "session:", session, "status:", status);
     const handleClickOutside = (event: MouseEvent) => {
       if (
         mobileDropdownRef.current &&
