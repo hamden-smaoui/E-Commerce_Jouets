@@ -6,7 +6,7 @@ import FacebookAuthButton from '@/components/ui/FacebookAuthButton'
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
-import { signIn } from "next-auth/react";
+import { signIn } from "next-auth/react"; // ✅ Import signIn
 import { 
   EyeIcon, 
   EyeSlashIcon,
@@ -39,7 +39,6 @@ export default function SignUp() {
       ...prev,
       [name]: value
     }));
-    // Clear error when user starts typing
     if (errors[name]) {
       setErrors(prev => ({
         ...prev,
@@ -85,27 +84,51 @@ export default function SignUp() {
     return Object.keys(newErrors).length === 0;
   };
 
- const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
-  if (!validateForm()) return;
-  setLoading(true);
+  // ✅ NOUVELLE VERSION : Register + Auto-Login
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!validateForm()) return;
+    setLoading(true);
 
-  try {
-    await authService.register({
-      prenom: formData.prenom,
-      nom: formData.nom,
-      email: formData.email,
-      telephone: formData.telephone,
-      motDePasse: formData.motDePasse,
-    });
-    // Redirige vers le site après inscription et login auto
-    router.push("/site");
-  } catch (err: any) {
-    setErrors({ submit: err.message || "Erreur lors de l'inscription" });
-  } finally {
-    setLoading(false);
-  }
-};
+    try {
+      // 1️⃣ Inscription via authService (crée le compte + cookies)
+      await authService.register({
+        prenom: formData.prenom,
+        nom: formData.nom,
+        email: formData.email,
+        telephone: formData.telephone,
+        motDePasse: formData.motDePasse,
+      });
+
+      console.log("✅ Inscription réussie, connexion automatique...");
+
+      // 2️⃣ Connexion automatique via NextAuth
+      const result = await signIn("credentials", {
+        emailOrPhone: formData.email, // Utilise l'email pour se connecter
+        password: formData.motDePasse,
+        redirect: false,
+      });
+
+      if (result?.error) {
+        console.error("❌ Erreur lors de la connexion automatique:", result.error);
+        // Si la connexion auto échoue, redirige vers login avec message
+        router.push("/signIn");
+        return;
+      }
+
+      if (result?.ok) {
+        console.log("✅ Connexion automatique réussie");
+        // 3️⃣ Redirige vers le site
+        router.push("/site");
+        router.refresh(); // Force le rechargement de la session
+      }
+    } catch (err: any) {
+      console.error("❌ Erreur lors de l'inscription:", err);
+      setErrors({ submit: err?.response?.data?.message || "Erreur lors de l'inscription" });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
@@ -183,6 +206,7 @@ export default function SignUp() {
                 )}
               </div>
             </div>
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Adresse email *
@@ -206,6 +230,7 @@ export default function SignUp() {
                 <p className="mt-1 text-sm text-red-600">{errors.email}</p>
               )}
             </div>
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Numéro de téléphone *
@@ -229,6 +254,7 @@ export default function SignUp() {
                 <p className="mt-1 text-sm text-red-600">{errors.telephone}</p>
               )}
             </div>
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Mot de passe *
@@ -263,6 +289,7 @@ export default function SignUp() {
                 <p className="mt-1 text-sm text-red-600">{errors.motDePasse}</p>
               )}
             </div>
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Confirmer le mot de passe *
@@ -297,6 +324,7 @@ export default function SignUp() {
                 <p className="mt-1 text-sm text-red-600">{errors.confirmPassword}</p>
               )}
             </div>
+
             <button
               type="submit"
               disabled={loading}
@@ -305,6 +333,7 @@ export default function SignUp() {
               {loading ? 'Création en cours...' : 'Créer mon compte'}
             </button>
           </form>
+
           <div className="mt-6">
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
@@ -318,18 +347,20 @@ export default function SignUp() {
               <GoogleAuthButton mode="signup" />
             </div>
             <div className="mt-3">
-                        <FacebookAuthButton mode="signin" />
+              <FacebookAuthButton mode="signup" />
             </div>
           </div>
+
           <div className="mt-6 text-center">
             <p className="text-gray-600">
-             
+              Vous avez déjà un compte ?{" "}
               <Link href="/signIn" className="text-purple-600 hover:text-purple-800 font-semibold">
                 Se connecter
               </Link>
             </p>
           </div>
         </div>
+
         <div className="text-center">
           <Link href="/site" className="text-purple-600 hover:text-purple-800 font-medium">
             ← Retour à l'accueil

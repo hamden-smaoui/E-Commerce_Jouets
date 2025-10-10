@@ -19,11 +19,6 @@ class AuthService {
   async register(userData: RegisterData): Promise<{ message: string; token: string; user: any }> {
     const response = await api.post('/auth/register', userData);
     
-    // Sauvegarde l'access token
-    if (response.data.token) {
-      sessionStorage.setItem('accessToken', response.data.token);
-    }
-    
     return response.data;
   }
 
