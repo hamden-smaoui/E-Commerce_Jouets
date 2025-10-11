@@ -8,7 +8,6 @@ import { useFavorites } from "@/hooks/useFavorites";
 import { useStoreInfo } from "@/hooks/useStoreInfo";
 import SearchInput from '../ui/SearchInput';
 import authService from "@/services/auth-service";
-
 import {
   EnvelopeIcon,
   HeartIcon,
@@ -23,6 +22,8 @@ import { useSession, signOut } from "next-auth/react";
 
 export default function Navbar() {
   const { data: session, status } = useSession();
+  const user = session?.userData;
+  const isAuthenticated = status === "authenticated";
   const { storeInfo } = useStoreInfo();
   const [isDropdownOpen, setIsDropdownOpen] = useState<boolean>(false);
   const mobileDropdownRef = useRef<HTMLDivElement>(null);
@@ -30,27 +31,10 @@ export default function Navbar() {
   const router = useRouter();
   const { favorites } = useFavorites();
 
-  // LOGO LOADING STATE
   const [logoLoading, setLogoLoading] = useState(true);
   const [logoError, setLogoError] = useState(false);
 
-  // ✅ Récupère les données utilisateur depuis la session
-  const user = session?.userData;
-  const isAuthenticated = status === "authenticated";
-
-  // ✅ Sauvegarde l'access token dans sessionStorage quand la session change
   useEffect(() => {
-    if (session?.customToken) {
-      sessionStorage.setItem('accessToken', session.customToken);
-      console.log("✅ Access token sauvegardé dans sessionStorage");
-    }
-  }, [session]);
-
-  useEffect(() => {
-    console.log("📊 Status:", status);
-    console.log("📊 Session:", session);
-    console.log("📊 User data:", user);
-    
     const handleClickOutside = (event: MouseEvent) => {
       if (
         mobileDropdownRef.current &&
@@ -65,7 +49,7 @@ export default function Navbar() {
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
-  }, [status, session, user]);
+  }, []);
 
   const toggleDropdown = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -74,26 +58,19 @@ export default function Navbar() {
 
   const handleLogout = async () => {
     try {
-      // 1. Appelle le backend pour supprimer le refresh token
       await authService.logout();
-      
-      // 2. Supprime l'access token du sessionStorage
       sessionStorage.removeItem('accessToken');
-      
-      // 3. Déconnecte NextAuth
+      setIsDropdownOpen(false);
       await signOut({ redirect: false });
-      
-      // 4. Redirige
       router.push("/signIn");
     } catch (error) {
       console.error("Erreur de déconnexion:", error);
-      // Force la redirection même en cas d'erreur
       sessionStorage.removeItem('accessToken');
+      setIsDropdownOpen(false);
       router.push("/signIn");
     }
   };
 
-  // ✅ Affiche un loader pendant le chargement de la session
   if (status === "loading") {
     return (
       <div className="navbar bg-base-100 shadow-md px-4 py-2 font-[Comic_Sans_MS,sans-serif]">
@@ -121,10 +98,9 @@ export default function Navbar() {
   return (
     <div className="navbar bg-base-100 shadow-md px-4 py-2 font-[Comic_Sans_MS,sans-serif]">
       <div className="flex flex-col w-full md:flex-row md:items-center">
-        {/* First Line: Logo and Icons on Mobile */}
+        {/* Logo and Mobile Icons */}
         <div className="flex items-center justify-between w-full md:justify-start md:w-auto">
           <Link href="/site" className="flex items-center">
-            {/* Logo Loader then Logo then Default fallback */}
             <div className="relative h-16 w-auto sm:h-20 min-w-[80px]">
               {logoLoading && (
                 <div className="absolute inset-0 flex items-center justify-center z-10 bg-white">
@@ -156,8 +132,6 @@ export default function Navbar() {
               )}
             </div>
           </Link>
-          
-          {/* Mobile Icons */}
           <div className="flex space-x-2 md:hidden">
             <Link href="/site/contact" className="btn btn-ghost btn-circle btn-sm bg-pink-100 hover:bg-pink-200 transition-all" title="Contact">
               <EnvelopeIcon className="h-5 w-5 text-pink-600 drop-shadow-lg" />
@@ -171,7 +145,6 @@ export default function Navbar() {
               </Link>
             </div>
             <CartDropdown />
-            
             {/* Mobile User Dropdown */}
             <div className="relative" ref={mobileDropdownRef}>
               <button
@@ -190,32 +163,50 @@ export default function Navbar() {
                     <>
                       <li className="px-4 py-2 border-b border-gray-100">
                         <div className="flex items-center space-x-3">
-                          
+                          <div>
                             <p className="font-extrabold text-pink-600 text-lg drop-shadow-lg">
                               {user.prenom} {user.nom}
                             </p>
-                            <p className="text-xs text-gray-500">{user.email}</p>
+                            <p className="text-xs text-gray-500 mt-1">{user.email}</p>
                           </div>
-                        
+                        </div>
                       </li>
                       <li>
-                        <Link href="/site/profile" className="flex items-center py-2 hover:bg-pink-50 font-bold text-blue-600">
+                        <button
+                          className="flex items-center py-2 hover:bg-pink-50 font-bold text-blue-600 w-full text-left"
+                          onClick={() => {
+                            setIsDropdownOpen(false);
+                            router.push("/site/profile");
+                          }}
+                        >
                           <UserCircleIcon className="h-5 w-5 text-blue-400 mr-3" />
                           Mon profil
-                        </Link>
+                        </button>
                       </li>
                       <li>
-                        <Link href="/site/profile?tab=orders" className="flex items-center py-2 hover:bg-yellow-50 font-bold text-yellow-600">
+                        <button
+                          className="flex items-center py-2 hover:bg-yellow-50 font-bold text-yellow-600 w-full text-left"
+                          onClick={() => {
+                            setIsDropdownOpen(false);
+                            router.push("/site/profile?tab=orders");
+                          }}
+                        >
                           <ShoppingCartIcon className="h-5 w-5 text-yellow-500 mr-3" />
                           Mes commandes
-                        </Link>
+                        </button>
                       </li>
                       {user.role === "admin" && (
                         <li>
-                          <Link href="/admin" className="flex items-center py-2 hover:bg-purple-50 font-bold text-purple-600">
+                          <button
+                            className="flex items-center py-2 hover:bg-purple-50 font-bold text-purple-600 w-full text-left"
+                            onClick={() => {
+                              setIsDropdownOpen(false);
+                              router.push("/admin");
+                            }}
+                          >
                             <Cog6ToothIcon className="h-5 w-5 text-purple-500 mr-3" />
                             Administration
-                          </Link>
+                          </button>
                         </li>
                       )}
                       <li className="border-t border-gray-100 mt-2 pt-2">
@@ -231,16 +222,28 @@ export default function Navbar() {
                   ) : (
                     <>
                       <li>
-                        <Link href="/signIn" className="flex items-center py-2 hover:bg-blue-50 font-bold text-blue-600">
+                        <button
+                          className="flex items-center py-2 hover:bg-blue-50 font-bold text-blue-600 w-full text-left"
+                          onClick={() => {
+                            setIsDropdownOpen(false);
+                            router.push("/signIn");
+                          }}
+                        >
                           <ArrowRightOnRectangleIcon className="h-5 w-5 text-blue-500 mr-3" />
                           Se connecter
-                        </Link>
+                        </button>
                       </li>
                       <li>
-                        <Link href="/signUp" className="flex items-center py-2 hover:bg-pink-50 font-bold text-pink-600">
+                        <button
+                          className="flex items-center py-2 hover:bg-pink-50 font-bold text-pink-600 w-full text-left"
+                          onClick={() => {
+                            setIsDropdownOpen(false);
+                            router.push("/signUp");
+                          }}
+                        >
                           <UserIcon className="h-5 w-5 text-pink-500 mr-3" />
                           S'inscrire
-                        </Link>
+                        </button>
                       </li>
                     </>
                   )}
@@ -249,7 +252,6 @@ export default function Navbar() {
             </div>
           </div>
         </div>
-
         {/* Search Bar */}
         <div className="relative w-full mt-2 md:mt-0 md:flex-1 md:mx-4">
           <SearchInput 
@@ -257,7 +259,6 @@ export default function Navbar() {
             className="w-full rounded-xl bg-pink-50 shadow-inner border-2 border-pink-100 focus:border-blue-300 transition-all"
           />
         </div>
-
         {/* Desktop menu */}
         <div className="hidden md:flex space-x-2 md:ml-2">
           <Link href="/site/contact" className="btn btn-ghost btn-circle bg-pink-100 hover:bg-pink-200 shadow-md hover:scale-105 transition-all" title="Contact">
@@ -272,8 +273,6 @@ export default function Navbar() {
             </Link>
           </div>
           <CartDropdown />
-          
-          {/* Desktop User Dropdown */}
           <div className="relative" ref={desktopDropdownRef}>
             <button
               tabIndex={0}
@@ -296,30 +295,50 @@ export default function Navbar() {
                   <>
                     <li className="px-4 py-2 border-b border-gray-100">
                       <div className="flex items-center space-x-3">
+                        <div>
                           <p className="font-extrabold text-pink-600 text-lg drop-shadow-lg">
                             {user.prenom} {user.nom}
                           </p>
-                          <p className="text-xs text-gray-500">{user.email}</p>
+                          <p className="text-xs text-gray-500 mt-1">{user.email}</p>
+                        </div>
                       </div>
                     </li>
                     <li>
-                      <Link href="/site/profile" className="flex items-center py-2 hover:bg-pink-50 font-bold text-blue-600">
+                      <button
+                        className="flex items-center py-2 hover:bg-pink-50 font-bold text-blue-600 w-full text-left"
+                        onClick={() => {
+                          setIsDropdownOpen(false);
+                          router.push("/site/profile");
+                        }}
+                      >
                         <UserCircleIcon className="h-5 w-5 text-blue-400 mr-3" />
                         Mon profil
-                      </Link>
+                      </button>
                     </li>
                     <li>
-                      <Link href="/site/profile?tab=orders" className="flex items-center py-2 hover:bg-yellow-50 font-bold text-yellow-600">
+                      <button
+                        className="flex items-center py-2 hover:bg-yellow-50 font-bold text-yellow-600 w-full text-left"
+                        onClick={() => {
+                          setIsDropdownOpen(false);
+                          router.push("/site/profile?tab=orders");
+                        }}
+                      >
                         <ShoppingCartIcon className="h-5 w-5 text-yellow-500 mr-3" />
                         Mes commandes
-                      </Link>
+                      </button>
                     </li>
                     {user.role === "admin" && (
                       <li>
-                        <Link href="/admin" className="flex items-center py-2 hover:bg-purple-50 font-bold text-purple-600">
+                        <button
+                          className="flex items-center py-2 hover:bg-purple-50 font-bold text-purple-600 w-full text-left"
+                          onClick={() => {
+                            setIsDropdownOpen(false);
+                            router.push("/admin");
+                          }}
+                        >
                           <Cog6ToothIcon className="h-5 w-5 text-purple-500 mr-3" />
                           Administration
-                        </Link>
+                        </button>
                       </li>
                     )}
                     <li className="border-t border-gray-100 mt-2 pt-2">
@@ -335,16 +354,28 @@ export default function Navbar() {
                 ) : (
                   <>
                     <li>
-                      <Link href="/signIn" className="flex items-center py-2 hover:bg-blue-50 font-bold text-blue-600">
+                      <button
+                        className="flex items-center py-2 hover:bg-blue-50 font-bold text-blue-600 w-full text-left"
+                        onClick={() => {
+                          setIsDropdownOpen(false);
+                          router.push("/signIn");
+                        }}
+                      >
                         <ArrowRightOnRectangleIcon className="h-5 w-5 text-blue-500 mr-3" />
                         Se connecter
-                      </Link>
+                      </button>
                     </li>
                     <li>
-                      <Link href="/signUp" className="flex items-center py-2 hover:bg-pink-50 font-bold text-pink-600">
+                      <button
+                        className="flex items-center py-2 hover:bg-pink-50 font-bold text-pink-600 w-full text-left"
+                        onClick={() => {
+                          setIsDropdownOpen(false);
+                          router.push("/signUp");
+                        }}
+                      >
                         <UserIcon className="h-5 w-5 text-pink-500 mr-3" />
                         S'inscrire
-                      </Link>
+                      </button>
                     </li>
                   </>
                 )}

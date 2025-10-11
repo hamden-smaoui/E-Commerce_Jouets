@@ -1,6 +1,7 @@
 "use client";
 import React, { useRef } from "react";
 import ProductCard from "./ProductCard";
+import { ArrowRightIcon,ArrowLeftIcon  } from '@heroicons/react/24/solid';
 
 interface Product {
   idProduit: number;
@@ -109,7 +110,7 @@ export default function BestOffers({ offers }: BestOffersProps) {
               }}
               aria-label="Précédent"
             >
-              <span className="text-3xl" role="img" aria-label="left arrow">🡸</span>
+              <ArrowLeftIcon className="h-8 w-8 text-white" aria-label="left arrow" />
             </button>
             <button
               onClick={() => scrollBy("next")}
@@ -120,7 +121,7 @@ export default function BestOffers({ offers }: BestOffersProps) {
               }}
               aria-label="Suivant"
             >
-              <span className="text-3xl" role="img" aria-label="right arrow">🡺</span>
+              <ArrowRightIcon className="h-8 w-8 text-white" aria-label="right arrow" />
             </button>
           </div>
         </div>

@@ -1,6 +1,6 @@
 "use client";
 import React, { useEffect, useRef, useState, useCallback } from "react";
-import { ChevronDownIcon, ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
+import { ChevronDownIcon, ArrowRightIcon,ArrowLeftIcon } from '@heroicons/react/24/outline';
 import { useRouter } from 'next/navigation';
 import KidsCornerLoader from "@/components/ui/KidsCornerLoader";
 
@@ -223,7 +223,7 @@ export default function Categories({ categories }: CategoriesProps) {
       }}
       aria-label="Catégorie précédente"
     >
-              <span className="text-3xl" role="img" aria-label="left arrow">🡸</span>
+              <ArrowLeftIcon className="h-8 w-8 text-white" aria-label="left arrow" />
     </button>
     <button
       onClick={() => scrollToDirection('right')}
@@ -239,7 +239,7 @@ export default function Categories({ categories }: CategoriesProps) {
       }}
       aria-label="Catégorie suivante"
     >
-              <span className="text-3xl" role="img" aria-label="right arrow">🡺</span>
+              <ArrowLeftIcon className="h-8 w-8 text-white" aria-label="right arrow" />
     </button>
   </>
 )}
