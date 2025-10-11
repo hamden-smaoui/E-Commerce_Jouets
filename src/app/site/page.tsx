@@ -93,8 +93,8 @@ export default function Home() {
             buttonLink="/site/products"
           />
          
-          <BestOffers offers={bestOffers} />
-        {/* Nouvelle section promotions */}
+     {bestOffers.length > 0 && <BestOffers offers={bestOffers} />} 
+       {/* Nouvelle section promotions */}
   {storeInfo?.promotionImages && storeInfo.promotionImages.length > 0 && (
     <PromotionsSection images={storeInfo.promotionImages} />
   )}

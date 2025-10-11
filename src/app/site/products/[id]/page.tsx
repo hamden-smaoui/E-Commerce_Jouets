@@ -851,7 +851,7 @@ export default function ProduitDetails() {
           </div>
         </div>
 
-        <SameType offers={sameTypeProducts} />
+        {sameTypeProducts.length > 0 && <SameType offers={sameTypeProducts} />}
       </div>
       <Footer />
     </div>

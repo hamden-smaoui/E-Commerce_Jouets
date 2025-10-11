@@ -296,21 +296,10 @@ export default function Navbar() {
                   <>
                     <li className="px-4 py-2 border-b border-gray-100">
                       <div className="flex items-center space-x-3">
-                        {user.profileImage && (
-                          <Image
-                            src={user.profileImage}
-                            alt={user.prenom}
-                            width={40}
-                            height={40}
-                            className="rounded-full"
-                          />
-                        )}
-                        <div>
                           <p className="font-extrabold text-pink-600 text-lg drop-shadow-lg">
                             {user.prenom} {user.nom}
                           </p>
                           <p className="text-xs text-gray-500">{user.email}</p>
-                        </div>
                       </div>
                     </li>
                     <li>
