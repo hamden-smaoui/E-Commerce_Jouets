@@ -371,7 +371,7 @@ console.log("✅ Cookie refreshToken créé lors du login2");
             const transporter = nodemailer.createTransport({
                 host: process.env.SMTP_HOST,
                 port: process.env.SMTP_PORT,
-                secure: true,
+                secure: false,
                 auth: {
                     user: process.env.SMTP_USER,
                     pass: process.env.SMTP_PASS
@@ -381,7 +381,7 @@ console.log("✅ Cookie refreshToken créé lors du login2");
             const mailOptions = {
                 from: process.env.SMTP_FROM,
                 to: email,
-                subject: 'Code de récupération - Toy Universe',
+                subject: 'Code de récupération - Bamby Joy',
                 html: `<div style="max-width: 600px; margin: 0 auto; padding: 20px; font-family: Arial, sans-serif;">
                         <div style="text-align: center; margin-bottom: 30px;">
                             <h1 style="color: #9333ea;">Toy Universe</h1>
