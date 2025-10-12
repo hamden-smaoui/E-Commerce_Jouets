@@ -1,8 +1,10 @@
 const cron = require('node-cron');
 const NewsletterCampaign = require('../models/NewsletterCampaign');
 const Newsletter = require('../models/NewsLetter');
-const nodemailer = require('nodemailer');
+const SibApiV3Sdk = require('@getbrevo/brevo');
 const { Op } = require('sequelize');
+const path = require('path');
+const fs = require('fs').promises;
 
 class SchedulerService {
   constructor() {
@@ -64,36 +66,46 @@ class SchedulerService {
       return;
     }
 
-    const transporter = nodemailer.createTransport({
-      service: 'gmail',
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASSWORD
-      }
-    });
+    // ✅ CONFIGURATION API BREVO
+    let apiInstance = new SibApiV3Sdk.TransactionalEmailsApi();
+    let apiKey = apiInstance.authentications['apiKey'];
+    apiKey.apiKey = process.env.BREVO_API_KEY;
 
     let successCount = 0;
     let errorCount = 0;
 
+    // ✅ PRÉPARER L'IMAGE (SI EXISTE)
+    let imageBase64 = null;
+    let imageExtension = null;
+    if (campaign.imageUrl) {
+      try {
+        const imagePath = path.join(__dirname, '..', campaign.imageUrl);
+        const imageBuffer = await fs.readFile(imagePath);
+        imageBase64 = imageBuffer.toString('base64');
+        imageExtension = path.extname(campaign.imageUrl).substring(1);
+      } catch (err) {
+        console.error("Erreur lecture image:", err);
+      }
+    }
+
+    // ✅ ENVOI À CHAQUE ABONNÉ
     for (const subscriber of subscribers) {
       try {
-        // Préparer les pièces jointes si une image existe
-        let attachments = [];
+        // Construction du HTML avec l'image inline
         let imgTag = '';
-        
-        if (campaign.imageUrl) {
-          const path = require('path');
-          attachments.push({
-            filename: path.basename(campaign.imageUrl),
-            path: path.join(__dirname, '..', campaign.imageUrl),
-            cid: 'newsletter-image'
-          });
-          imgTag = `<div class="image-container">
-            <img src="cid:newsletter-image" alt="Newsletter Image" style="max-width: 100%; height: auto; border-radius: 8px;">
-          </div>`;
+        if (imageBase64 && imageExtension) {
+          imgTag = `
+            <div style="text-align: center; margin: 20px 0;">
+              <img src="data:image/${imageExtension};base64,${imageBase64}" 
+                   alt="Newsletter Image" 
+                   style="max-width: 100%; height: auto; border-radius: 8px;">
+            </div>
+          `;
         }
 
-        // Construire le HTML
+        // URL de désinscription
+        const unsubscribeUrl = `${process.env.BASE_URL_Email}/unsubscribe?email=${encodeURIComponent(subscriber.email)}`;
+
         const emailHtml = `
           <!DOCTYPE html>
           <html lang="fr">
@@ -103,18 +115,39 @@ class SchedulerService {
               <title>${campaign.subject}</title>
               <style>
                   body { font-family: Arial, sans-serif; margin: 0; padding: 0; background-color: #f4f4f4; }
-                  .container { max-width: 600px; margin: 0 auto; background-color: white; padding: 20px; }
+                  .container { max-width: 600px; margin: 0 auto; background-color: white; }
                   .header { background: linear-gradient(135deg, #9333ea 0%, #7c3aed 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
                   .content { padding: 30px 20px; }
-                  .image-container { text-align: center; margin: 20px 0; }
-                  .footer { background-color: #f8f9fa; padding: 20px; text-align: center; color: #666; font-size: 14px; }
                   .content p { line-height: 1.6; color: #333; }
+                  .footer { background-color: #f8f9fa; padding: 20px; text-align: center; color: #666; font-size: 14px; }
+                  .badge { 
+                      display: inline-block; 
+                      background-color: #fbbf24; 
+                      color: #78350f; 
+                      padding: 4px 12px; 
+                      border-radius: 12px; 
+                      font-size: 12px; 
+                      font-weight: bold; 
+                      margin-bottom: 10px;
+                  }
+                  .unsubscribe-btn { 
+                      display: inline-block; 
+                      padding: 10px 20px; 
+                      background-color: #e5e7eb; 
+                      color: #374151; 
+                      text-decoration: none; 
+                      border-radius: 6px; 
+                      margin-top: 15px;
+                      font-size: 13px;
+                  }
+                  .unsubscribe-btn:hover { background-color: #d1d5db; }
               </style>
           </head>
           <body>
               <div class="container">
                   <div class="header">
                       <h1>🧸 Bamby Joy</h1>
+                      <span class="badge">📅 Envoi automatique programmé</span>
                       <h2>${campaign.subject}</h2>
                   </div>
                   <div class="content">
@@ -123,23 +156,30 @@ class SchedulerService {
                   </div>
                   <div class="footer">
                       <p>© 2024 Bamby Joy. Tous droits réservés.</p>
-                      <p><small>Envoi automatique programmé</small></p>
+                      <p><small>Cette newsletter a été envoyée automatiquement selon le planning défini.</small></p>
+                      <a href="${unsubscribeUrl}" class="unsubscribe-btn">
+                          Se désabonner de la newsletter
+                      </a>
                   </div>
               </div>
           </body>
           </html>
         `;
 
-        await transporter.sendMail({
-          from: process.env.EMAIL_FROM,
-          to: subscriber.email,
-          subject: `${campaign.subject}`,
-          html: emailHtml,
-          attachments
-        });
+        // ✅ ENVOI VIA API BREVO
+        let sendSmtpEmail = new SibApiV3Sdk.SendSmtpEmail();
+        sendSmtpEmail.subject = campaign.subject;
+        sendSmtpEmail.htmlContent = emailHtml;
+        sendSmtpEmail.sender = { 
+          name: process.env.BREVO_SENDER_NAME || "Bamby Joy", 
+          email: process.env.BREVO_SENDER_EMAIL 
+        };
+        sendSmtpEmail.to = [{ email: subscriber.email }];
 
+        await apiInstance.sendTransacEmail(sendSmtpEmail);
         successCount++;
-        // Petit délai pour éviter le spam
+        
+        // Petit délai pour éviter le rate limiting
         await new Promise(resolve => setTimeout(resolve, 100));
         
       } catch (emailError) {
@@ -148,7 +188,7 @@ class SchedulerService {
       }
     }
 
-    // Mettre à jour la campagne
+    // ✅ MISE À JOUR DE LA CAMPAGNE
     await campaign.update({
       status: 'sent',
       sentDate: new Date(),
@@ -164,7 +204,7 @@ class SchedulerService {
 
   // Méthode pour arrêter le scheduler (utile pour les tests)
   stop() {
-    cron.destroy();
+    cron.getTasks().forEach(task => task.stop());
     console.log('🛑 Scheduler arrêté');
   }
 }
