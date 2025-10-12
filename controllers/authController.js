@@ -5,6 +5,8 @@ const { Utilisateur } = require('../models');
 const nodemailer = require('nodemailer');
 const crypto = require('crypto');
 const { Op } = require('sequelize');
+const SibApiV3Sdk = require('@getbrevo/brevo');
+
 function generateAccessToken(user) {
   return jwt.sign(
     {
@@ -350,62 +352,77 @@ console.log("✅ Cookie refreshToken créé lors du login2");
         }
     }
 
-    async forgotPassword(req, res, next) {
-        try {
-            const { email } = req.body;
-            const user = await Utilisateur.findOne({ where: { email } });
-            if (!user) {
-                const error = new Error('Aucun compte associé à cet email');
-                error.code = "AUTH_ERROR";
-                return next(error);
-            }
 
-            const resetCode = Math.floor(100000 + Math.random() * 900000).toString();
-            const resetCodeExpiry = new Date(Date.now() + 10 * 60 * 1000);
-
-            await user.update({
-                resetCode,
-                resetCodeExpiry
-            });
-    
-            const transporter = nodemailer.createTransport({
-                host: process.env.SMTP_HOST,
-                port: process.env.SMTP_PORT,
-                secure: false,
-                auth: {
-                    user: process.env.SMTP_USER,
-                    pass: process.env.SMTP_PASS
-                }
-            });
-
-            const mailOptions = {
-                from: process.env.SMTP_FROM,
-                to: email,
-                subject: 'Code de récupération - Bamby Joy',
-                html: `<div style="max-width: 600px; margin: 0 auto; padding: 20px; font-family: Arial, sans-serif;">
-                        <div style="text-align: center; margin-bottom: 30px;">
-                            <h1 style="color: #9333ea;">Toy Universe</h1>
-                        </div>
-                        <div style="background: #f8fafc; padding: 30px; border-radius: 10px; border-left: 4px solid #9333ea;">
-                            <h2 style="color: #1f2937; margin-bottom: 20px;">Récupération de mot de passe</h2>
-                            <p style="color: #4b5563; margin-bottom: 20px;">Bonjour ${user.prenom},</p>
-                            <p style="color: #4b5563; margin-bottom: 20px;">Vous avez demandé la réinitialisation de votre mot de passe. Voici votre code de vérification :</p>
-                            <div style="text-align: center; margin: 30px 0;">
-                                <div style="background: #9333ea; color: white; padding: 15px 25px; border-radius: 8px; font-size: 24px; font-weight: bold; letter-spacing: 3px; display: inline-block;">
-                                    ${resetCode}
-                                </div>
-                            </div>
-                            <p style="color: #4b5563; margin-bottom: 10px;"><strong>Ce code expire dans 10 minutes.</strong></p>
-                            <p style="color: #6b7280; font-size: 14px;">Si vous n'avez pas demandé cette réinitialisation, ignorez cet email. Votre mot de passe restera inchangé.</p>
-                        </div>
-                        <div style="text-align: center; margin-top: 30px; color: #6b7280; font-size: 12px;">
-                            <p>© 2024 Toy Universe. Tous droits réservés.</p>
-                        </div>
-                    </div>`
-            };
-
-        const info = await transporter.sendMail(mailOptions);
+async forgotPassword(req, res, next) {
+    try {
+        const { email } = req.body;
         
+        console.log("📧 Demande de réinitialisation pour:", email);
+        
+        const user = await Utilisateur.findOne({ where: { email } });
+        if (!user) {
+            const error = new Error('Aucun compte associé à cet email');
+            error.code = "AUTH_ERROR";
+            return next(error);
+        }
+
+        // Génère le code de réinitialisation
+        const resetCode = Math.floor(100000 + Math.random() * 900000).toString();
+        const resetCodeExpiry = new Date(Date.now() + 10 * 60 * 1000);
+
+        await user.update({
+            resetCode,
+            resetCodeExpiry
+        });
+
+        console.log("🔑 Code de réinitialisation généré:", resetCode);
+
+        // ✅ CONFIGURATION DE L'API BREVO
+        let apiInstance = new SibApiV3Sdk.TransactionalEmailsApi();
+        let apiKey = apiInstance.authentications['apiKey'];
+        apiKey.apiKey = process.env.BREVO_API_KEY;
+
+        // ✅ PRÉPARATION DE L'EMAIL
+        let sendSmtpEmail = new SibApiV3Sdk.SendSmtpEmail();
+        
+        sendSmtpEmail.subject = "Code de récupération - Bamby Joy";
+        
+        sendSmtpEmail.htmlContent = `
+            <div style="max-width: 600px; margin: 0 auto; padding: 20px; font-family: Arial, sans-serif;">
+                <div style="text-align: center; margin-bottom: 30px;">
+                    <h1 style="color: #9333ea;">Bamby Joy</h1>
+                </div>
+                <div style="background: #f8fafc; padding: 30px; border-radius: 10px; border-left: 4px solid #9333ea;">
+                    <h2 style="color: #1f2937; margin-bottom: 20px;">Récupération de mot de passe</h2>
+                    <p style="color: #4b5563; margin-bottom: 20px;">Bonjour ${user.prenom},</p>
+                    <p style="color: #4b5563; margin-bottom: 20px;">Vous avez demandé la réinitialisation de votre mot de passe. Voici votre code de vérification :</p>
+                    <div style="text-align: center; margin: 30px 0;">
+                        <div style="background: #9333ea; color: white; padding: 15px 25px; border-radius: 8px; font-size: 24px; font-weight: bold; letter-spacing: 3px; display: inline-block;">
+                            ${resetCode}
+                        </div>
+                    </div>
+                    <p style="color: #4b5563; margin-bottom: 10px;"><strong>Ce code expire dans 10 minutes.</strong></p>
+                    <p style="color: #6b7280; font-size: 14px;">Si vous n'avez pas demandé cette réinitialisation, ignorez cet email. Votre mot de passe restera inchangé.</p>
+                </div>
+                <div style="text-align: center; margin-top: 30px; color: #6b7280; font-size: 12px;">
+                    <p>© 2024 Bamby Joy. Tous droits réservés.</p>
+                </div>
+            </div>
+        `;
+        
+        sendSmtpEmail.sender = { 
+            name: process.env.BREVO_SENDER_NAME || "Bamby Joy", 
+            email: process.env.BREVO_SENDER_EMAIL 
+        };
+        
+        sendSmtpEmail.to = [
+            { email: email, name: user.prenom }
+        ];
+
+        // ✅ ENVOI DE L'EMAIL
+        console.log("📤 Envoi de l'email via API Brevo...");
+        const result = await apiInstance.sendTransacEmail(sendSmtpEmail);
+        console.log("✅ Email envoyé avec succès! MessageID:", result.messageId);
 
         res.status(200).json({
             message: 'Code de vérification envoyé par email'
@@ -413,6 +430,12 @@ console.log("✅ Cookie refreshToken créé lors du login2");
 
     } catch (error) {
         console.error("❌ ERREUR complète:", error);
+        console.error("   Message:", error.message);
+        
+        // Gestion des erreurs spécifiques Brevo
+        if (error.response) {
+            console.error("   Réponse Brevo:", error.response.text);
+        }
         
         next(error);
     }
