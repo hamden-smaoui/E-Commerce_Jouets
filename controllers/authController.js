@@ -367,7 +367,7 @@ console.log("✅ Cookie refreshToken créé lors du login2");
                 resetCode,
                 resetCodeExpiry
             });
-
+    
             const transporter = nodemailer.createTransport({
                 host: process.env.SMTP_HOST,
                 port: process.env.SMTP_PORT,
@@ -404,18 +404,19 @@ console.log("✅ Cookie refreshToken créé lors du login2");
                     </div>`
             };
 
-            await transporter.sendMail(mailOptions);
+        const info = await transporter.sendMail(mailOptions);
+        
 
-            res.status(200).json({
-                message: 'Code de vérification envoyé par email'
-            });
+        res.status(200).json({
+            message: 'Code de vérification envoyé par email'
+        });
 
-        } catch (error) {
-          console.log("Erreur dans forgotPassword:", error);
-            next(error);
-        }
+    } catch (error) {
+        console.error("❌ ERREUR complète:", error);
+        
+        next(error);
     }
-
+}
     async resetPassword(req, res, next) {
         try {
             const { email, code, newPassword } = req.body;
