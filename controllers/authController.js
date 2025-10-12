@@ -411,6 +411,7 @@ console.log("✅ Cookie refreshToken créé lors du login2");
             });
 
         } catch (error) {
+          console.log("Erreur dans forgotPassword:", error);
             next(error);
         }
     }
