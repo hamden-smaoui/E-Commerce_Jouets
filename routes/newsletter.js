@@ -10,6 +10,8 @@ router.post('/subscribe', NewsletterController.subscribe);
 router.get('/',authMiddleware , NewsletterController.getAll);
 
 router.post('/unsubscribe', NewsletterController.unsubscribe);
+router.get('/unsubscribe', NewsletterController.unsubscribeByEmail);
+
 router.post('/campaigns',authMiddleware ,adminMiddleware, NewsletterController.createCampaign);
 router.get('/campaigns',authMiddleware ,adminMiddleware, NewsletterController.getCampaigns);
 router.post('/campaigns/:campaignId/send',authMiddleware ,adminMiddleware, NewsletterController.sendCampaign);

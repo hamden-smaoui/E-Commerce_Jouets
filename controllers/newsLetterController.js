@@ -32,7 +32,35 @@ class NewsletterController {
       next(err);
     }
   }
+async unsubscribeByEmail(req, res, next) {
+  try {
+    const { email } = req.query; // Récupère depuis l'URL (?email=...)
+    
+    if (!email) {
+      const error = new Error("Email requis");
+      error.code = "VALIDATION_ERROR";
+      return next(error);
+    }
 
+    const entry = await Newsletter.findOne({ where: { email } });
+    
+    if (!entry) {
+      const error = new Error("Email non trouvé dans notre liste d'abonnés");
+      error.code = "NOT_FOUND";
+      return next(error);
+    }
+
+    await entry.destroy();
+    
+    res.status(200).json({ 
+      message: "Désinscription réussie",
+      email: email 
+    });
+    
+  } catch (err) {
+    next(err);
+  }
+}
   async unsubscribe(req, res, next) {
     try {
       const { email } = req.body;
@@ -147,7 +175,7 @@ class NewsletterController {
           }
 
           // URL de désinscription
-          const unsubscribeUrl = `${process.env.BASE_URL_Email}/unsubscribe?email=${encodeURIComponent(subscriber.email)}`;
+          const unsubscribeUrl = `${process.env.FRONTEND_URL_PROD}/unsubscribe?email=${encodeURIComponent(subscriber.email)}`;
 
           const emailHtml = `
             <!DOCTYPE html>

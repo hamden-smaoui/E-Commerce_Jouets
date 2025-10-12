@@ -104,7 +104,7 @@ class SchedulerService {
         }
 
         // URL de désinscription
-        const unsubscribeUrl = `${process.env.BASE_URL_Email}/unsubscribe?email=${encodeURIComponent(subscriber.email)}`;
+        const unsubscribeUrl = `${process.env.FRONTEND_URL_PROD}/unsubscribe?email=${encodeURIComponent(subscriber.email)}`;
 
         const emailHtml = `
           <!DOCTYPE html>
