@@ -32,7 +32,7 @@ const utilisateurRoutes = require('./routes/utilisateur');
 const errorHandler = require('./middlewares/errorHandler');
 const app = express();
 const server = http.createServer(app);
-
+app.set('trust proxy', 1);
 app.use(cookieParser());
 // Middleware CORS avec configuration pour les cookies
 app.use(cors({
