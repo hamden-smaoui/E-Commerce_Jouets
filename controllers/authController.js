@@ -369,15 +369,17 @@ console.log("✅ Cookie refreshToken créé lors du login2");
             });
 
             const transporter = nodemailer.createTransport({
-                service: 'gmail',
+                host: process.env.SMTP_HOST,
+                port: process.env.SMTP_PORT,
+                secure: false,
                 auth: {
-                    user: process.env.EMAIL_USER,
-                    pass: process.env.EMAIL_PASSWORD
+                    user: process.env.SMTP_USER,
+                    pass: process.env.SMTP_PASS
                 }
             });
 
             const mailOptions = {
-                from: process.env.EMAIL_FROM,
+                from: process.env.SMTP_FROM,
                 to: email,
                 subject: 'Code de récupération - Toy Universe',
                 html: `<div style="max-width: 600px; margin: 0 auto; padding: 20px; font-family: Arial, sans-serif;">
