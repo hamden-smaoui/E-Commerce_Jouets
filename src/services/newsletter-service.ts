@@ -9,6 +9,7 @@ export interface NewsletterEntry {
 export interface NewsletterFormData {
   email: string;
 }
+
 export interface NewsletterCampaign {
   idCampaign: number;
   subject: string;
@@ -22,6 +23,7 @@ export interface NewsletterCampaign {
   createdAt: string;
   updatedAt: string;
 }
+
 export interface CampaignFormData {
   subject: string;
   content: string;
@@ -42,7 +44,14 @@ class NewsletterService {
     return response.data;
   }
 
+  // ✅ Méthode mise à jour - supporte les deux méthodes (POST et GET)
   async unsubscribe(email: string, token?: string): Promise<void> {
+    // Utilise GET avec query params (comme dans l'email)
+    await api.get(`/newsletter/unsubscribe?email=${encodeURIComponent(email)}`);
+  }
+
+  // ✅ Méthode alternative si besoin (POST avec body)
+  async unsubscribeWithBody(email: string, token?: string): Promise<void> {
     const headers = token ? { Authorization: `Bearer ${token}` } : {};
     await api.post('/newsletter/unsubscribe', { email }, { headers });
   }
