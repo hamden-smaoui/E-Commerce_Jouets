@@ -2,12 +2,8 @@
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { useCart } from "@/hooks/useCart";
 import { useRouter } from "next/navigation";
-import { useFavorites } from "@/hooks/useFavorites";
-import { useStoreInfo } from "@/hooks/useStoreInfo";
-import SearchInput from '../ui/SearchInput';
-import authService from "@/services/auth-service";
+import { useSession, signOut } from "next-auth/react";
 import {
   EnvelopeIcon,
   HeartIcon,
@@ -17,8 +13,11 @@ import {
   ShoppingCartIcon,
   UserCircleIcon,
 } from "@heroicons/react/24/solid";
+import { useFavorites } from "@/hooks/useFavorites";
+import { useStoreInfo } from "@/hooks/useStoreInfo";
+import authService from "@/services/auth-service";
 import CartDropdown from "./CartDropdown";
-import { useSession, signOut } from "next-auth/react";
+import SearchInput from '../ui/SearchInput';
 
 export default function Navbar() {
   const { data: session, status } = useSession();
@@ -26,29 +25,18 @@ export default function Navbar() {
   const isAuthenticated = status === "authenticated";
   const { storeInfo } = useStoreInfo();
   const [isDropdownOpen, setIsDropdownOpen] = useState<boolean>(false);
-  const mobileDropdownRef = useRef<HTMLDivElement>(null);
-  const desktopDropdownRef = useRef<HTMLDivElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
   const { favorites } = useFavorites();
 
-  const [logoLoading, setLogoLoading] = useState(true);
-  const [logoError, setLogoError] = useState(false);
-
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (
-        mobileDropdownRef.current &&
-        !mobileDropdownRef.current.contains(event.target as Node) &&
-        desktopDropdownRef.current &&
-        !desktopDropdownRef.current.contains(event.target as Node)
-      ) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setIsDropdownOpen(false);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   const toggleDropdown = (e: React.MouseEvent) => {
@@ -58,11 +46,16 @@ export default function Navbar() {
 
   const handleLogout = async () => {
     try {
+      // Logout du backend
       await authService.logout();
       sessionStorage.removeItem('accessToken');
-      setIsDropdownOpen(false);
+      
+      // Logout de NextAuth
       await signOut({ redirect: false });
+      
+      setIsDropdownOpen(false);
       router.push("/signIn");
+      router.refresh();
     } catch (error) {
       console.error("Erreur de déconnexion:", error);
       sessionStorage.removeItem('accessToken');
@@ -73,23 +66,10 @@ export default function Navbar() {
 
   if (status === "loading") {
     return (
-      <div className="navbar bg-base-100 shadow-md px-4 py-2 font-[Comic_Sans_MS,sans-serif]">
-        <div className="flex flex-col w-full md:flex-row md:items-center">
-          <div className="flex items-center justify-between w-full md:justify-start md:w-auto">
-            <Link href="/site" className="flex items-center">
-              <div className="relative h-16 w-auto sm:h-20 min-w-[80px]">
-                <div className="absolute inset-0 flex items-center justify-center z-10 bg-white">
-                  <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-pink-500"></div>
-                </div>
-              </div>
-            </Link>
-            <div className="flex space-x-2 md:hidden">
-              <div className="animate-pulse h-10 w-10 bg-gray-200 rounded-full"></div>
-              <div className="animate-pulse h-10 w-10 bg-gray-200 rounded-full"></div>
-              <div className="animate-pulse h-10 w-10 bg-gray-200 rounded-full"></div>
-              <div className="animate-pulse h-10 w-10 bg-gray-200 rounded-full"></div>
-            </div>
-          </div>
+      <div className="navbar bg-base-100 shadow-md px-4 py-2">
+        <div className="animate-pulse flex space-x-4">
+          <div className="h-16 w-32 bg-gray-200 rounded"></div>
+          <div className="flex-1 h-10 bg-gray-200 rounded"></div>
         </div>
       </div>
     );
@@ -98,78 +78,62 @@ export default function Navbar() {
   return (
     <div className="navbar bg-base-100 shadow-md px-4 py-2 font-[Comic_Sans_MS,sans-serif]">
       <div className="flex flex-col w-full md:flex-row md:items-center">
-        {/* Logo and Mobile Icons */}
+        {/* Logo */}
         <div className="flex items-center justify-between w-full md:justify-start md:w-auto">
           <Link href="/site" className="flex items-center">
             <div className="relative h-16 w-auto sm:h-20 min-w-[80px]">
-              {logoLoading && (
-                <div className="absolute inset-0 flex items-center justify-center z-10 bg-white">
-                  <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-pink-500"></div>
-                </div>
-              )}
-              {storeInfo?.logo1 && !logoError ? (
+              {storeInfo?.logo1 ? (
                 <Image
                   src={`${process.env.NEXT_PUBLIC_API_BASE_URL_IMAGE}${storeInfo.logo1}`}
                   alt={storeInfo.nom || "Logo"}
                   height={80}
                   width={240}
-                  className={`h-16 w-auto sm:h-20 object-contain transition-opacity duration-500 ${logoLoading ? "opacity-0" : "opacity-100"}`}
+                  className="h-16 w-auto sm:h-20 object-contain"
                   priority
-                  onLoad={() => setLogoLoading(false)}
-                  onError={() => {
-                    setLogoLoading(false);
-                    setLogoError(true);
-                  }}
                 />
               ) : (
-                !logoLoading && (
-                  <img
-                    src="/images/logoBamby.png"
-                    alt="Bamby Joy"
-                    className="h-16 w-auto sm:h-20 object-contain transition-opacity duration-500 opacity-100"
-                  />
-                )
+                <img
+                  src="/images/logoBamby.png"
+                  alt="Bamby Joy"
+                  className="h-16 w-auto sm:h-20 object-contain"
+                />
               )}
             </div>
           </Link>
+
+          {/* Mobile Icons */}
           <div className="flex space-x-2 md:hidden">
-            <Link href="/site/contact" className="btn btn-ghost btn-circle btn-sm bg-pink-100 hover:bg-pink-200 transition-all" title="Contact">
-              <EnvelopeIcon className="h-5 w-5 text-pink-600 drop-shadow-lg" />
+            <Link href="/site/contact" className="btn btn-ghost btn-circle btn-sm bg-pink-100 hover:bg-pink-200" title="Contact">
+              <EnvelopeIcon className="h-5 w-5 text-pink-600" />
             </Link>
             <div className="indicator">
               <span className="indicator-item badge badge-primary badge-xs">
                 {favorites.length}
               </span>
-              <Link href="/site/favoris" className="btn btn-ghost btn-circle btn-sm bg-blue-100 hover:bg-blue-200 transition-all" title="Favoris">
-                <HeartIcon className="h-5 w-5 text-blue-500 drop-shadow-lg" />
+              <Link href="/site/favoris" className="btn btn-ghost btn-circle btn-sm bg-blue-100 hover:bg-blue-200" title="Favoris">
+                <HeartIcon className="h-5 w-5 text-blue-500" />
               </Link>
             </div>
             <CartDropdown />
+            
             {/* Mobile User Dropdown */}
-            <div className="relative" ref={mobileDropdownRef}>
+            <div className="relative" ref={dropdownRef}>
               <button
-                tabIndex={0}
                 onClick={toggleDropdown}
-                className="btn btn-ghost btn-circle btn-sm bg-yellow-100 hover:bg-yellow-200 transition-all"
+                className="btn btn-ghost btn-circle btn-sm bg-yellow-100 hover:bg-yellow-200"
                 title={isAuthenticated ? "Mon compte" : "Se connecter"}
               >
-                <div className="flex items-center space-x-1">
-                  <UserIcon className="h-5 w-5 text-yellow-500 drop-shadow-lg" />
-                </div>
+                <UserIcon className="h-5 w-5 text-yellow-500" />
               </button>
               {isDropdownOpen && (
                 <ul className="absolute right-0 mt-2 p-2 shadow-xl bg-white rounded-lg w-56 border border-gray-200 z-[1000]">
                   {isAuthenticated && user ? (
                     <>
                       <li className="px-4 py-2 border-b border-gray-100">
-                        <div className="flex items-center space-x-3">
-                          <div>
-                            <p className="font-extrabold text-pink-600 text-lg drop-shadow-lg">
-                              {user.prenom} {user.nom}
-                            </p>
-                            <p className="text-xs text-gray-500 mt-1">{user.email}</p>
-                          </div>
-                        </div>
+                        <p className="font-extrabold text-pink-600 text-lg">
+                          {user.prenom} {user.nom}
+                        </p>
+                        <p className="text-xs text-gray-500 mt-1">{user.email}</p>
                       </li>
                       <li>
                         <button
@@ -252,13 +216,15 @@ export default function Navbar() {
             </div>
           </div>
         </div>
+
         {/* Search Bar */}
         <div className="relative w-full mt-2 md:mt-0 md:flex-1 md:mx-4">
           <SearchInput 
             placeholder="Rechercher vos jouets..."
-            className="w-full rounded-xl bg-pink-50 shadow-inner border-2 border-pink-100 focus:border-blue-300 transition-all"
+            className="w-full rounded-xl bg-pink-50 shadow-inner border-2 border-pink-100 focus:border-blue-300"
           />
         </div>
+
         {/* Desktop menu */}
         <div className="hidden md:flex space-x-2 md:ml-2">
           <Link href="/site/contact" className="btn btn-ghost btn-circle bg-pink-100 hover:bg-pink-200 shadow-md hover:scale-105 transition-all" title="Contact">
@@ -273,9 +239,9 @@ export default function Navbar() {
             </Link>
           </div>
           <CartDropdown />
-          <div className="relative" ref={desktopDropdownRef}>
+          
+          <div className="relative" ref={dropdownRef}>
             <button
-              tabIndex={0}
               onClick={toggleDropdown}
               className="btn btn-ghost bg-yellow-100 hover:bg-yellow-200 shadow-md hover:scale-105 transition-all"
               title={isAuthenticated ? "Mon compte" : "Se connecter"}

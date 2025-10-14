@@ -9,17 +9,16 @@ const api = axios.create({
   headers: {
     'Accept': 'application/json',
   },
-  withCredentials: true,
+  withCredentials: true, // IMPORTANT pour les cookies
 });
 
-// ✅ Types explicites pour la queue
 interface QueueItem {
   resolve: (token: string) => void;
   reject: (error: any) => void;
 }
 
 let isRefreshing = false;
-let failedQueue: QueueItem[] = []; // ✅ Type explicite
+let failedQueue: QueueItem[] = [];
 
 const processQueue = (error: any = null, token: string | null = null): void => {
   failedQueue.forEach(prom => {
@@ -35,7 +34,7 @@ const processQueue = (error: any = null, token: string | null = null): void => {
 // Intercepteur REQUEST : Ajoute l'access token
 api.interceptors.request.use(
   (config) => {
-    const token = sessionStorage.getItem('accessToken') || localStorage.getItem('accessToken');
+    const token = sessionStorage.getItem('accessToken');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -68,9 +67,9 @@ api.interceptors.response.use(
       isRefreshing = true;
 
       try {
-        // Appelle l'endpoint refresh
+        // ✅ Appelle le proxy refresh token
         const { data } = await axios.post(
-          `${API_BASE_URL}/auth/refresh-token`,
+          `/api/auth/refresh-token-proxy`,
           {},
           { withCredentials: true }
         );
@@ -92,7 +91,6 @@ api.interceptors.response.use(
         
         // Refresh token invalide → déconnexion
         sessionStorage.removeItem('accessToken');
-        localStorage.removeItem('accessToken');
         
         if (typeof window !== "undefined") {
           toast.error('Session expirée, veuillez vous reconnecter.', { id: "session-expired" });

@@ -1,14 +1,15 @@
-// pages/reset-password.tsx
 "use client";
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { EyeIcon, EyeSlashIcon, LockClosedIcon, KeyIcon } from "@heroicons/react/24/solid";
-import authService from '../../services/auth-service';
+import authService from '@/services/auth-service';
+import { toast } from 'react-hot-toast';
 
-export default function ResetPassword() {
+function ResetPasswordContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [formData, setFormData] = useState({
     email: "",
     code: "",
@@ -19,6 +20,13 @@ export default function ResetPassword() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [errors, setErrors] = useState<{[key: string]: string}>({});
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const emailParam = searchParams.get('email');
+    if (emailParam) {
+      setFormData(prev => ({ ...prev, email: emailParam }));
+    }
+  }, [searchParams]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -75,11 +83,14 @@ export default function ResetPassword() {
         newPassword: formData.newPassword
       });
       
-      // Rediriger vers la page de connexion avec un message de succès
-      router.push("/signIn?message=Mot de passe réinitialisé avec succès");
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Erreur inconnue';
-      setErrors({ submit: message });
+      toast.success("Mot de passe réinitialisé avec succès!");
+      router.push("/signIn?message=Mot de passe réinitialisé! Vous pouvez maintenant vous connecter.");
+      
+    } catch (err: any) {
+      console.error("Erreur reset password:", err);
+      const errorMessage = err?.response?.data?.message || "Code invalide ou expiré";
+      setErrors({ submit: errorMessage });
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -162,7 +173,7 @@ export default function ResetPassword() {
                   className={`w-full pl-10 pr-12 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 ${
                     errors.newPassword ? "border-red-500" : "border-gray-300"
                   }`}
-                  placeholder="Nouveau mot de passe"
+                  placeholder="Minimum 6 caractères"
                 />
                 <button
                   type="button"
@@ -229,5 +240,13 @@ export default function ResetPassword() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function ResetPassword() {
+  return (
+    <Suspense fallback={<div>Chargement...</div>}>
+      <ResetPasswordContent />
+    </Suspense>
   );
 }

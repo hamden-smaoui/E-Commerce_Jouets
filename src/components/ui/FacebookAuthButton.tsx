@@ -1,28 +1,27 @@
-// components/FacebookAuthButton.tsx
-"use client"
-import { signIn } from "next-auth/react"
-import { useState } from "react"
+"use client";
+import { signIn } from "next-auth/react";
+import { useState } from "react";
 
 interface FacebookAuthButtonProps {
-  mode: 'signin' | 'signup'
+  mode: 'signin' | 'signup';
 }
 
 export default function FacebookAuthButton({ mode }: FacebookAuthButtonProps) {
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(false);
 
   const handleFacebookAuth = async () => {
-    setLoading(true)
+    setLoading(true);
     try {
       await signIn('facebook', { 
         callbackUrl: '/site',
         redirect: true 
-      })
+      });
     } catch (error) {
-      console.error('Erreur lors de la connexion Facebook:', error)
+      console.error('Erreur lors de la connexion Facebook:', error);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   return (
     <button
@@ -47,5 +46,5 @@ export default function FacebookAuthButton({ mode }: FacebookAuthButtonProps) {
         </div>
       )}
     </button>
-  )
+  );
 }

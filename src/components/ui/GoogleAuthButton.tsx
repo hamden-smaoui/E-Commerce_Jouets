@@ -1,28 +1,27 @@
-// components/GoogleAuthButton.tsx
-"use client"
-import { signIn } from "next-auth/react"
-import { useState } from "react"
+"use client";
+import { signIn } from "next-auth/react";
+import { useState } from "react";
 
 interface GoogleAuthButtonProps {
-  mode: 'signin' | 'signup'
+  mode: 'signin' | 'signup';
 }
 
 export default function GoogleAuthButton({ mode }: GoogleAuthButtonProps) {
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(false);
 
   const handleGoogleAuth = async () => {
-    setLoading(true)
+    setLoading(true);
     try {
       await signIn('google', { 
         callbackUrl: '/site',
         redirect: true 
-      })
+      });
     } catch (error) {
-      console.error('Erreur lors de la connexion Google:', error)
+      console.error('Erreur lors de la connexion Google:', error);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   return (
     <button
@@ -50,5 +49,5 @@ export default function GoogleAuthButton({ mode }: GoogleAuthButtonProps) {
         </div>
       )}
     </button>
-  )
+  );
 }

@@ -1,14 +1,14 @@
 "use client";
 import Image from "next/image";
 import Link from "next/link";
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { EyeIcon, EyeSlashIcon, LockClosedIcon } from "@heroicons/react/24/solid";
-import { signIn } from "next-auth/react"; // ✅ Import NextAuth
 import GoogleAuthButton from "@/components/ui/GoogleAuthButton";
 import FacebookAuthButton from '@/components/ui/FacebookAuthButton';
-import { Suspense } from "react";
 import KidsCornerLoader from "@/components/ui/KidsCornerLoader";
+import authService from "@/services/auth-service";
+import { toast } from "react-hot-toast";
 
 function SignInContent() {
   const [rememberMe, setRememberMe] = useState(false);
@@ -22,7 +22,10 @@ function SignInContent() {
 
   useEffect(() => {
     const message = searchParams.get('message');
-    setSuccessMessage(message);
+    if (message) {
+      setSuccessMessage(message);
+      toast.success(message);
+    }
   }, [searchParams]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -51,38 +54,28 @@ function SignInContent() {
     return Object.keys(newErrors).length === 0;
   };
 
-  // ✅ NOUVELLE VERSION : Utilise NextAuth signIn
+  // ✅ LOGIN MANUEL avec authService
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validateForm()) return;
     setLoading(true);
 
     try {
-      // ✅ Utilise le provider "credentials" de NextAuth
-      const result = await signIn("credentials", {
-        emailOrPhone: formData.emailOrPhone,
-        password: formData.motDePasse,
-        redirect: false, // Ne redirige pas automatiquement
-      });
-
-      if (result?.error) {
-        setErrors({ submit: "Email ou mot de passe incorrect" });
-        setLoading(false);
-        return;
-      }
-
-      if (result?.ok) {
-        // ✅ Connexion réussie, redirige vers /site
-        console.log("✅ Connexion réussie via NextAuth");
+      const result = await authService.login(formData.emailOrPhone, formData.motDePasse);
+      
+      if (result.token && result.user) {
+        toast.success('Connexion réussie!');
         router.push("/site");
-        router.refresh(); // Force le rafraîchissement pour charger la session
+        router.refresh();
       }
     } catch (error: any) {
       console.error("Erreur lors de la connexion:", error);
-      setErrors({ submit: "Une erreur est survenue" });
+      const errorMessage = error?.response?.data?.message || "Email ou mot de passe incorrect";
+      setErrors({ submit: errorMessage });
+      toast.error(errorMessage);
+    } finally {
+      setLoading(false);
     }
-    
-    setLoading(false);
   };
 
   return (
@@ -94,11 +87,13 @@ function SignInContent() {
           </div>
           <h2 className="text-3xl font-bold text-gray-900 mb-2">Connexion</h2>
         </div>
+        
         {successMessage && (
           <div className="bg-green-50 border border-green-200 text-green-600 px-4 py-3 rounded-lg mb-6">
             {successMessage}
           </div>
         )}
+        
         <div className="bg-white rounded-xl shadow-lg p-8">
           <form onSubmit={handleSubmit} className="space-y-6">
             {errors.submit && (
@@ -116,7 +111,7 @@ function SignInContent() {
                 name="emailOrPhone"
                 value={formData.emailOrPhone}
                 onChange={handleInputChange}
-                className={`w-full pl-10 pr-3 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 ${
+                className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 ${
                   errors.emailOrPhone ? "border-red-500" : "border-gray-300"
                 }`}
                 placeholder="votre.email@example.com ou 12345678"
@@ -186,6 +181,7 @@ function SignInContent() {
               {loading ? "Connexion..." : "Se connecter"}
             </button>
           </form>
+          
           <div className="mt-6">
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
@@ -202,14 +198,17 @@ function SignInContent() {
               <FacebookAuthButton mode="signin" />
             </div>
           </div>
+          
           <div className="mt-6 text-center">
             <p className="text-gray-600">
+              Pas encore inscrit ?{" "}
               <Link href="/signUp" className="text-purple-600 hover:text-purple-800 font-semibold">
                 Créer un compte
               </Link>
             </p>
           </div>
         </div>
+        
         <div className="text-center">
           <Link href="/site" className="text-purple-600 hover:text-purple-800 font-medium">
             ← Retour à l'accueil
@@ -222,12 +221,8 @@ function SignInContent() {
 
 export default function SignIn() {
   return (
-    <Suspense fallback={<KidsCornerLoader
-      message="Chargement..."
-      size="lg"
-      showMessage={true}
-    />}>
+    <Suspense fallback={<KidsCornerLoader message="Chargement..." size="lg" showMessage={true} />}>
       <SignInContent />
     </Suspense>
   );
-} 
+}

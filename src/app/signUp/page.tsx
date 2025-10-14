@@ -2,11 +2,9 @@
 import Image from "next/image";
 import Link from "next/link";
 import GoogleAuthButton from "@/components/ui/GoogleAuthButton";
-import FacebookAuthButton from '@/components/ui/FacebookAuthButton'
+import FacebookAuthButton from '@/components/ui/FacebookAuthButton';
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-
-import { signIn } from "next-auth/react"; // ✅ Import signIn
 import { 
   EyeIcon, 
   EyeSlashIcon,
@@ -15,7 +13,8 @@ import {
   PhoneIcon,
   LockClosedIcon
 } from '@heroicons/react/24/solid';
-import authService from '../../services/auth-service';
+import authService from '@/services/auth-service';
+import { toast } from 'react-hot-toast';
 
 export default function SignUp() {
   const router = useRouter();
@@ -84,14 +83,13 @@ export default function SignUp() {
     return Object.keys(newErrors).length === 0;
   };
 
-  // ✅ NOUVELLE VERSION : Register + Auto-Login
+  // ✅ INSCRIPTION MANUELLE
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validateForm()) return;
     setLoading(true);
 
     try {
-      // 1️⃣ Inscription via authService (crée le compte + cookies)
       await authService.register({
         prenom: formData.prenom,
         nom: formData.nom,
@@ -100,31 +98,14 @@ export default function SignUp() {
         motDePasse: formData.motDePasse,
       });
 
-      console.log("✅ Inscription réussie, connexion automatique...");
+      toast.success('Inscription réussie!');
+      router.push("/signIn?message=Inscription réussie! Veuillez vous connecter.");
 
-      // 2️⃣ Connexion automatique via NextAuth
-      const result = await signIn("credentials", {
-        emailOrPhone: formData.email, // Utilise l'email pour se connecter
-        password: formData.motDePasse,
-        redirect: false,
-      });
-
-      if (result?.error) {
-        console.error("❌ Erreur lors de la connexion automatique:", result.error);
-        // Si la connexion auto échoue, redirige vers login avec message
-        router.push("/signIn");
-        return;
-      }
-
-      if (result?.ok) {
-        console.log("✅ Connexion automatique réussie");
-        // 3️⃣ Redirige vers le site
-        router.push("/site");
-        router.refresh(); // Force le rechargement de la session
-      }
     } catch (err: any) {
-      console.error("❌ Erreur lors de l'inscription:", err);
-      setErrors({ submit: err?.response?.data?.message || "Erreur lors de l'inscription" });
+      console.error("Erreur lors de l'inscription:", err);
+      const errorMessage = err?.response?.data?.message || "Erreur lors de l'inscription";
+      setErrors({ submit: errorMessage });
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -146,7 +127,7 @@ export default function SignUp() {
             Créer un compte
           </h2>
           <p className="text-gray-600">
-            Rejoignez Toy Universe pour une expérience personnalisée
+            Rejoignez Bamby Joy pour une expérience personnalisée
           </p>
         </div>
 
@@ -182,6 +163,7 @@ export default function SignUp() {
                   <p className="mt-1 text-sm text-red-600">{errors.prenom}</p>
                 )}
               </div>
+              
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Nom *
@@ -247,7 +229,7 @@ export default function SignUp() {
                   className={`w-full pl-10 pr-3 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 ${
                     errors.telephone ? 'border-red-500' : 'border-gray-300'
                   }`}
-                  placeholder="12 345 678"
+                  placeholder="12345678"
                 />
               </div>
               {errors.telephone && (
@@ -271,7 +253,7 @@ export default function SignUp() {
                   className={`w-full pl-10 pr-12 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 ${
                     errors.motDePasse ? 'border-red-500' : 'border-gray-300'
                   }`}
-                  placeholder="Votre mot de passe"
+                  placeholder="Minimum 6 caractères"
                 />
                 <button
                   type="button"
