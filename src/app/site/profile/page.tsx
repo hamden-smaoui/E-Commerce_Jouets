@@ -24,7 +24,6 @@ import {
 } from '@heroicons/react/24/outline';
 import { useRouter } from "next/navigation";
 
-// Type for profile fields
 type ProfileFields = {
   prenom: string;
   nom: string;
@@ -38,7 +37,6 @@ type ProfileFields = {
 
 export default function ProfilePage() {
   const { data: session, status } = useSession();
-  const token = session?.customToken;
   const searchParams = useSearchParams();
   const initialTab = searchParams.get('tab') === 'orders' ? 'orders' : 'profile';
   const [activeTab, setActiveTab] = useState<'profile' | 'orders'>(initialTab);
@@ -67,49 +65,61 @@ export default function ProfilePage() {
   const [newsletterEmail, setNewsletterEmail] = useState('');
   const [newsletterMsg, setNewsletterMsg] = useState<string | null>(null);
 
-  // Fetch profile on auth
+  // ✅ CORRECTION 1 : Vérifier l'authentification ET rediriger correctement
   useEffect(() => {
-    if (status === "unauthenticated") {
-      router.replace("/signIn");
-      setGlobalLoading(false);
+    if (status === "loading") {
+      // Attendre que NextAuth finisse de charger
       return;
     }
-    if (status !== "authenticated" || !token) return;
 
-    async function fetchProfile() {
-      setGlobalLoading(true);
-      try {
-        const response = await AuthService.getProfile();
-        const profile = response.user || response;
-        setProfileData({
-          prenom: profile.prenom || '',
-          nom: profile.nom || '',
-          email: profile.email || '',
-          telephone: profile.telephone || '',
-          adresseRue: profile.adresseRue || '',
-          adresseVille: profile.adresseVille || '',
-          adresseCodePostal: profile.adresseCodePostal || '',
-          adressePays: profile.adressePays || 'Tunisie',
-        });
-        setNewsletterEmail(profile.email || '');
-      } catch (err) {
-        toast.error("Impossible de charger le profil.");
-      } finally {
-        setGlobalLoading(false);
-      }
+    if (status === "unauthenticated") {
+      // L'utilisateur n'est vraiment pas connecté
+      console.log("Utilisateur non authentifié, redirection vers sign in");
+      router.replace("/signIn");
+      return;
     }
-    fetchProfile();
-  }, [status, router, token]);
 
-  // Loader lors du changement d'onglet
+    // ✅ À ce stade, status === "authenticated"
+    if (status === "authenticated" && session?.userData) {
+      console.log("Utilisateur authentifié :", session.userData);
+      fetchProfile();
+    }
+  }, [status, router, session]);
+
+  // ✅ CORRECTION 2 : Fonction séparée pour charger le profil
+  async function fetchProfile() {
+    setGlobalLoading(true);
+    try {
+      const response = await AuthService.getProfile();
+      const profile = response.user || response;
+      setProfileData({
+        prenom: profile.prenom || '',
+        nom: profile.nom || '',
+        email: profile.email || '',
+        telephone: profile.telephone || '',
+        adresseRue: profile.adresseRue || '',
+        adresseVille: profile.adresseVille || '',
+        adresseCodePostal: profile.adresseCodePostal || '',
+        adressePays: profile.adressePays || 'Tunisie',
+      });
+      setNewsletterEmail(profile.email || '');
+      console.log("Profil chargé avec succès");
+    } catch (err) {
+      console.error("Erreur lors du chargement du profil:", err);
+      toast.error("Impossible de charger le profil.");
+    } finally {
+      setGlobalLoading(false);
+    }
+  }
+
+  // Charger les commandes quand l'onglet change
   useEffect(() => {
-    if (activeTab === 'orders' && status === "authenticated" && token) {
-      setGlobalLoading(true);
-      fetchUserOrders().finally(() => setGlobalLoading(false));
+    if (activeTab === 'orders' && status === "authenticated" && session?.customToken) {
+      fetchUserOrders();
     }
-  }, [activeTab, status, token]);
+  }, [activeTab, status, session?.customToken]);
 
-  // Filtrer les commandes selon la recherche
+  // Filtrer les commandes
   useEffect(() => {
     const filtered = orders.filter((order) => {
       const searchLower = searchQuery.toLowerCase();
@@ -122,7 +132,7 @@ export default function ProfilePage() {
     setFilteredOrders(filtered.slice(0, 5));
   }, [searchQuery, orders]);
 
-  // Newsletter effect
+  // Newsletter check
   useEffect(() => {
     const checkNewsletter = async () => {
       if (!profileData.email) {
@@ -131,7 +141,7 @@ export default function ProfilePage() {
       }
       try {
         setNewsletterStatus('loading');
-        const all = await NewsletterService.getAllEntries(token);
+        const all = await NewsletterService.getAllEntries(session?.customToken);
         const found = all.some(entry => entry.email === profileData.email);
         setNewsletterStatus(found ? 'subscribed' : 'not_subscribed');
       } catch {
@@ -139,23 +149,24 @@ export default function ProfilePage() {
       }
     };
     checkNewsletter();
-  }, [profileData.email]);
+  }, [profileData.email, session?.customToken]);
 
   // Fetch user orders
   const fetchUserOrders = async () => {
     try {
       setOrdersLoading(true);
-      const userOrders = await CommandesService.getCommandesByClient(token!);
+      const userOrders = await CommandesService.getCommandesByClient(session?.customToken!);
       setOrders(userOrders);
       setFilteredOrders(userOrders.slice(0, 5));
     } catch (error) {
+      console.error("Erreur lors du chargement des commandes:", error);
       toast.error('Erreur lors du chargement des commandes');
     } finally {
       setOrdersLoading(false);
     }
   };
 
-  // Validation logic
+  // Validation
   const validateField = (name: keyof ProfileFields, value: string) => {
     switch (name) {
       case 'prenom':
@@ -176,7 +187,6 @@ export default function ProfilePage() {
     }
   };
 
-  // Handle input change
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setProfileData(prev => ({
@@ -191,7 +201,6 @@ export default function ProfilePage() {
     }
   };
 
-  // Handle blur for instant error
   const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setErrors(prev => ({
@@ -200,10 +209,8 @@ export default function ProfilePage() {
     }));
   };
 
-  // Save profile with full validation
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Validate all fields
     const fields: (keyof ProfileFields)[] = Object.keys(profileData) as (keyof ProfileFields)[];
     const newErrors: Partial<Record<keyof ProfileFields, string>> = {};
     for (const field of fields) {
@@ -221,7 +228,6 @@ export default function ProfilePage() {
       await AuthService.updateProfile(updateData);
       toast.success('Profil mis à jour avec succès!');
       setIsEditing(false);
-      // Reload profile
       const response = await AuthService.getProfile();
       const profile = response.user || response;
       setProfileData({
@@ -235,16 +241,16 @@ export default function ProfilePage() {
         adressePays: profile.adressePays || 'Tunisie',
       });
     } catch (error) {
+      console.error("Erreur lors de la mise à jour:", error);
       toast.error('Erreur lors de la mise à jour du profil');
     } finally {
       setLoading(false);
     }
   };
 
-  // Cancel edit
   const handleCancelEdit = () => {
     setIsEditing(false);
-    if (token) {
+    if (session?.customToken) {
       AuthService.getProfile().then(response => {
         const profile = response.user || response;
         setProfileData({
@@ -262,7 +268,6 @@ export default function ProfilePage() {
     setErrors({});
   };
 
-  // Newsletter subscribe/unsubscribe
   const handleNewsletterSubscribe = async () => {
     setNewsletterMsg(null);
     try {
@@ -275,11 +280,12 @@ export default function ProfilePage() {
       setNewsletterMsg(e.message || "Erreur lors de l'inscription.");
     }
   };
+
   const handleNewsletterUnsubscribe = async () => {
     setNewsletterMsg(null);
     try {
       setNewsletterStatus('loading');
-      await NewsletterService.unsubscribe(newsletterEmail, token);
+      await NewsletterService.unsubscribe(newsletterEmail, session?.customToken);
       setNewsletterStatus('not_subscribed');
       setNewsletterMsg("Vous avez été désinscrit de la newsletter.");
     } catch (e: any) {
@@ -287,6 +293,19 @@ export default function ProfilePage() {
       setNewsletterMsg(e.message || "Erreur lors de la désinscription.");
     }
   };
+
+  // ✅ CORRECTION 3 : Afficher le loader tant que NextAuth charge
+  if (status === "loading") {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-50 via-blue-50 to-white font-[Comic_Sans_MS,sans-serif]">
+        <KidsCornerLoader 
+          message="Chargement..."
+          size="lg"
+          showMessage={true}
+        />
+      </div>
+    );
+  }
 
   if (globalLoading) {
     return (
