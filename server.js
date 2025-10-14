@@ -4,13 +4,12 @@ const sequelize = require('./config/database');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
 require('dotenv').config();
-const syncDatabase = require('./syncDatabase');
-const SchedulerService = require('./services/SchedulerService');
+
 const jouetsRoutes = require('./routes/jouetsRoutes');
 const authRoutes = require('./routes/auth');
 const panierRoutes = require('./routes/panier');
 const favoriRoutes = require('./routes/favori');
-const reclamationRoutes  = require('./routes/reclamation');
+const reclamationRoutes = require('./routes/reclamation');
 const storeInfoRoutes = require('./routes/storeInfo');
 const avisRoutes = require('./routes/avis');
 const commentaireRoutes = require('./routes/commentaire');
@@ -30,27 +29,51 @@ const newsletterRoutes = require('./routes/newsletter');
 const utilisateurRoutes = require('./routes/utilisateur');      
 
 const errorHandler = require('./middlewares/errorHandler');
+
 const app = express();
 const server = http.createServer(app);
+
+// Trust proxy (important pour les cookies sécurisés derrière un proxy)
 app.set('trust proxy', 1);
+
+// Cookie parser AVANT les routes
 app.use(cookieParser());
-// Middleware CORS avec configuration pour les cookies
+
+// ✅ CORS avec configuration complète pour les cookies cross-origin
+const isProduction = process.env.NODE_ENV === 'production';
+const allowedOrigins = [
+  process.env.FRONTEND_URL || 'http://localhost:3000',
+  process.env.FRONTEND_URL_PROD || 'https://e-commerce-jouets.vercel.app'
+].filter(Boolean);
+
 app.use(cors({
-  origin:process.env.FRONTEND_URL_PROD || 'https://e-commerce-jouets.vercel.app', // ✅ URL exacte du frontend
-  credentials: true,
+  origin: function (origin, callback) {
+    // Permet les requêtes sans origin (comme les apps mobiles ou Postman)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error('Non autorisé par CORS'));
+    }
+  },
+  credentials: true, // ✅ ESSENTIEL pour les cookies
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-  exposedHeaders: ['set-cookie'],
-  preflightContinue: false, // ✅ Ajouter
-  optionsSuccessStatus: 204 // ✅ Ajouter
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  exposedHeaders: ['Set-Cookie'],
+  optionsSuccessStatus: 204
 }));
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ limit: '10mb', extended: true }));
+
+// Body parsers
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
+
+// Static files
 app.use('/uploads', express.static('uploads'));
 
 // **Accueil**
 app.get('/', (req, res) => {
-  res.send('🚀 Bienvenue dans le microservice unifié Gestion Centre et Réservation');
+  res.send('🚀 Bienvenue dans le backend E-Commerce Jouets');
 });
 
 // Routes
@@ -83,35 +106,35 @@ app.use((req, res, next) => {
   next(error);
 });
 
-// Handler d’erreur centralisé
+// Handler d'erreur centralisé
 app.use(errorHandler);
 
 const waitForDatabase = async (maxRetries = 30, delay = 3000) => {
   for (let i = 0; i < maxRetries; i++) {
     try {
       await sequelize.authenticate();
-      console.log('Connexion réussie à centre-db');
+      console.log('✅ Connexion réussie à la base de données');
       return true;
     } catch (err) {
-      console.log(`Tentative ${i + 1}/${maxRetries} : centre-db non prête, nouvelle tentative dans ${delay/1000} secondes...`);
+      console.log(`Tentative ${i + 1}/${maxRetries} : Base de données non prête, nouvelle tentative dans ${delay/1000} secondes...`);
       await new Promise(resolve => setTimeout(resolve, delay));
     }
   }
-  throw new Error('Impossible de se connecter à centre-db après plusieurs tentatives');
+  throw new Error('Impossible de se connecter à la base de données après plusieurs tentatives');
 };
-
- 
 
 const startServer = async () => {
   try {
     await waitForDatabase();
-    await syncDatabase();
-    const PORT = process.env.PORT || 3001;
+    
+    const PORT = process.env.PORT || 5000;
     server.listen(PORT, '0.0.0.0', () => {
-      console.log(`Microservice Gestion Centre running on port ${PORT}`);
+      console.log(`✅ Backend E-Commerce Jouets running on port ${PORT}`);
+      console.log(`   Mode: ${process.env.NODE_ENV || 'development'}`);
+      console.log(`   CORS: ${allowedOrigins.join(', ')}`);
     });
   } catch (err) {
-    console.error('Erreur lors du démarrage du microservice :', err);
+    console.error('❌ Erreur lors du démarrage du serveur:', err);
     process.exit(1);
   }
 };

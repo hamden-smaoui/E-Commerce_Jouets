@@ -4,24 +4,21 @@ const AuthController = require('../controllers/authController');
 const { authMiddleware } = require('../middlewares/auth');
 const { sensitiveLimiter } = require('../middlewares/rateLimit');
 
-// Sensitive endpoints protected
+// Routes publiques
 router.post('/register', sensitiveLimiter, AuthController.register);
 router.post('/login', sensitiveLimiter, AuthController.login);
 router.post('/forgot-password', sensitiveLimiter, AuthController.forgotPassword);
 router.post('/reset-password', sensitiveLimiter, AuthController.resetPassword);
+router.post('/refresh-token', AuthController.refreshToken);
 
-// Public/other endpoints
+// Routes OAuth
 router.post('/google-auth', AuthController.googleAuth);
 router.post('/facebook-auth', AuthController.facebookAuth);
 
-// AJOUT : endpoint refresh token
-router.post('/refresh-token', AuthController.refreshToken);
-
-// AJOUT : endpoint logout
-router.post('/logout', AuthController.logout);
-
+// Routes protégées
 router.get('/profile', authMiddleware, AuthController.getProfile);
 router.put('/profile', authMiddleware, AuthController.updateProfile);
 router.put('/change-password', authMiddleware, AuthController.changePassword);
+router.post('/logout', AuthController.logout);
 
 module.exports = router;

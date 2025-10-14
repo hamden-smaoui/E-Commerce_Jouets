@@ -7,6 +7,7 @@ const crypto = require('crypto');
 const { Op } = require('sequelize');
 const SibApiV3Sdk = require('@getbrevo/brevo');
 
+// Génère l'access token (court terme - 15m)
 function generateAccessToken(user) {
   return jwt.sign(
     {
@@ -16,10 +17,11 @@ function generateAccessToken(user) {
       tokenVersion: user.tokenVersion
     },
     process.env.JWT_SECRET,
-    { expiresIn: process.env.JWT_EXPIRES_IN || '30m' }
+    { expiresIn: '15m' }
   );
 }
 
+// Génère le refresh token (long terme - 7 jours)
 function generateRefreshToken(user) {
   return jwt.sign(
     {
@@ -27,61 +29,81 @@ function generateRefreshToken(user) {
       tokenVersion: user.tokenVersion
     },
     process.env.JWT_REFRESH_SECRET,
-    { expiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '7d' }
+    { expiresIn: '7d' }
   );
 }
+
 class AuthController {
- // Inscription - VERSION SIMPLIFIÉE
-async register(req, res, next) {
-  try {
-    const { prenom, nom, email, motDePasse, telephone, role = 'client' } = req.body;
+  
+  // ============ INSCRIPTION ============
+  async register(req, res, next) {
+    try {
+      const { prenom, nom, email, motDePasse, telephone, role = 'client' } = req.body;
 
-    const existingUser = await Utilisateur.findOne({ where: { email } });
-    if (existingUser) {
-      const error = new Error('Un utilisateur avec cet email existe déjà');
-      error.code = "VALIDATION_ERROR";
-      return next(error);
+      // Validation
+      if (!prenom || !nom || !email || !motDePasse || !telephone) {
+        const error = new Error('Tous les champs sont requis');
+        error.code = "VALIDATION_ERROR";
+        return next(error);
+      }
+
+      if (!validator.isEmail(email)) {
+        const error = new Error('Email invalide');
+        error.code = "VALIDATION_ERROR";
+        return next(error);
+      }
+
+      if (motDePasse.length < 6) {
+        const error = new Error('Le mot de passe doit contenir au moins 6 caractères');
+        error.code = "VALIDATION_ERROR";
+        return next(error);
+      }
+
+      // Vérifie si l'utilisateur existe déjà
+      const existingUser = await Utilisateur.findOne({ where: { email } });
+      if (existingUser) {
+        const error = new Error('Un utilisateur avec cet email existe déjà');
+        error.code = "VALIDATION_ERROR";
+        return next(error);
+      }
+
+      // Hash du mot de passe
+      const saltRounds = 12;
+      const hashedPassword = await bcrypt.hash(motDePasse, saltRounds);
+
+      // Crée l'utilisateur
+      const newUser = await Utilisateur.create({
+        prenom: validator.escape(prenom.trim()),
+        nom: validator.escape(nom.trim()),
+        email: validator.normalizeEmail(email),
+        motDePasse: hashedPassword,
+        telephone: validator.escape(telephone.trim()),
+        role,
+        isGoogleUser: false,
+        isFacebookUser: false
+      });
+
+      const userResponse = {
+        idUtilisateur: newUser.idUtilisateur,
+        prenom: newUser.prenom,
+        nom: newUser.nom,
+        email: newUser.email,
+        telephone: newUser.telephone,
+        role: newUser.role
+      };
+
+      res.status(201).json({
+        message: 'Inscription réussie',
+        user: userResponse
+      });
+
+    } catch (error) {
+      console.error("Erreur dans register:", error);
+      next(error);
     }
-
-    const saltRounds = 12;
-    const hashedPassword = await bcrypt.hash(motDePasse, saltRounds);
-
-    const newUser = await Utilisateur.create({
-      prenom,
-      nom,
-      email,
-      motDePasse: hashedPassword,
-      telephone,
-      role
-    });
-
-    // ✅ Prépare la réponse utilisateur (SANS tokens ni cookies)
-    const userResponse = {
-      idUtilisateur: newUser.idUtilisateur,
-      prenom: newUser.prenom,
-      nom: newUser.nom,
-      email: newUser.email,
-      telephone: newUser.telephone,
-      adresseRue: newUser.adresseRue,
-      adresseVille: newUser.adresseVille,
-      adresseCodePostal: newUser.adresseCodePostal,
-      adressePays: newUser.adressePays,
-      role: newUser.role
-    };
-
-    // ✅ Retourne seulement les infos de l'utilisateur créé
-    res.status(201).json({
-      message: 'Inscription réussie',
-      user: userResponse
-    });
-
-  } catch (error) {
-    console.log("Erreur dans register:", error);
-    next(error);
   }
-}
 
-  // Connexion
+  // ============ LOGIN ============
   async login(req, res, next) {
     try {
       const { emailOrPhone, motDePasse } = req.body;
@@ -102,15 +124,16 @@ async register(req, res, next) {
       });
 
       if (!user) {
-        const error = new Error('Identifiant ou mot de passe incorrect');
+        const error = new Error('Email/téléphone ou mot de passe incorrect');
         error.code = "AUTH_ERROR";
         return next(error);
       }
 
-      if (user.isGoogleUser && !user.motDePasse) {
-        const error = new Error('Ce compte utilise l\'authentification Google. Veuillez vous connecter avec Google.');
+      // Vérifie si c'est un compte Google/Facebook sans password
+      if ((user.isGoogleUser || user.isFacebookUser) && !user.motDePasse) {
+        const error = new Error('Ce compte utilise une authentification sociale. Veuillez vous connecter avec Google ou Facebook.');
         error.code = "AUTH_ERROR";
-        error.isGoogleUser = true;
+        error.isSocialUser = true;
         return next(error);
       }
 
@@ -120,29 +143,29 @@ async register(req, res, next) {
         return next(error);
       }
 
+      // Vérifie le mot de passe
       const isValidPassword = await bcrypt.compare(motDePasse, user.motDePasse);
       if (!isValidPassword) {
-        const error = new Error('Email ou mot de passe incorrect');
+        const error = new Error('Email/téléphone ou mot de passe incorrect');
         error.code = "AUTH_ERROR";
         return next(error);
       }
 
-      // Generate tokens
+      // Génère les tokens
       const accessToken = generateAccessToken(user);
       const refreshToken = generateRefreshToken(user);
-console.log("✅ Cookie refreshToken créé lors du login1");
 
-  res.cookie("refreshToken", refreshToken, {
-  httpOnly: true,
-  secure: true,
-  sameSite: "none",
-  path: "/",
-  maxAge: 7 * 24 * 60 * 60 * 1000
-  // pas de domain
-});
- console.log("🍪 Cookie refreshToken configuré !");
-    console.log("   Token value:", refreshToken.substring(0, 20) + "...");
-    console.log("   Headers Set-Cookie:", res.getHeaders()['set-cookie']);
+      // Définit le refresh token dans un cookie sécurisé
+      const isProduction = process.env.NODE_ENV === "production";
+      
+      res.cookie("refreshToken", refreshToken, {
+        httpOnly: true,
+        secure: isProduction,
+        sameSite: isProduction ? "none" : "lax",
+        path: "/",
+        maxAge: 7 * 24 * 60 * 60 * 1000 // 7 jours
+      });
+
       const userResponse = {
         idUtilisateur: user.idUtilisateur,
         prenom: user.prenom,
@@ -155,7 +178,6 @@ console.log("✅ Cookie refreshToken créé lors du login1");
         adressePays: user.adressePays,
         role: user.role
       };
-console.log("✅ Cookie refreshToken créé lors du login2");
 
       res.status(200).json({
         message: 'Connexion réussie',
@@ -164,486 +186,508 @@ console.log("✅ Cookie refreshToken créé lors du login2");
       });
 
     } catch (error) {
+      console.error("Erreur dans login:", error);
       next(error);
     }
   }
 
+  // ============ REFRESH TOKEN ============
   async refreshToken(req, res, next) {
-  try {
-    console.log("[refreshToken] Début - Requête reçue");
-    console.log("[refreshToken] Tous les cookies reçus:", req.cookies);
-    console.log("[refreshToken] Headers:", req.headers.cookie);
-    
-    const token = req.cookies.refreshToken;
-    if (!token) {
-      console.log("[refreshToken] ❌ Échec : Aucun refresh token trouvé");
-      return res.status(401).json({ message: "No refresh token" });
-    }
-
-
-    console.log("[refreshToken] Refresh token présent :", token);
-    let payload;
     try {
-      payload = jwt.verify(token, process.env.JWT_REFRESH_SECRET);
-      console.log("[refreshToken] Payload du refresh token :", payload);
-    } catch (e) {
-      console.log("[refreshToken] Échec : Refresh token invalide ou expiré", e);
-      return res.status(401).json({ message: "Refresh token invalid" });
-    }
+      const token = req.cookies.refreshToken;
+      
+      if (!token) {
+        return res.status(401).json({ message: "Refresh token manquant" });
+      }
 
-    const user = await Utilisateur.findByPk(payload.userId);
-    if (!user) {
-      console.log("[refreshToken] Échec : Utilisateur non trouvé avec l'id", payload.userId);
-      return res.status(401).json({ message: "User not found" });
-    }
-    if (user.tokenVersion !== payload.tokenVersion) {
-      console.log("[refreshToken] Échec : tokenVersion mismatch (user:", user.tokenVersion, "payload:", payload.tokenVersion, ")");
-      return res.status(401).json({ message: "Token version mismatch" });
-    }
+      let payload;
+      try {
+        payload = jwt.verify(token, process.env.JWT_REFRESH_SECRET);
+      } catch (e) {
+        return res.status(401).json({ message: "Refresh token invalide ou expiré" });
+      }
 
-    const newAccessToken = generateAccessToken(user);
-    console.log("[refreshToken] Succès : Nouveau access token généré", newAccessToken);
+      const user = await Utilisateur.findByPk(payload.userId);
+      if (!user) {
+        return res.status(401).json({ message: "Utilisateur non trouvé" });
+      }
 
-    res.status(200).json({ token: newAccessToken });
-    console.log("[refreshToken] Fin - Token envoyé au client");
-  } catch (error) {
-     console.log("[refreshToken] Exception:", error);
-    next(error);
+      if (user.tokenVersion !== payload.tokenVersion) {
+        return res.status(401).json({ message: "Token invalidé" });
+      }
+
+      const newAccessToken = generateAccessToken(user);
+
+      res.status(200).json({ token: newAccessToken });
+
+    } catch (error) {
+      console.error("Erreur dans refreshToken:", error);
+      next(error);
+    }
   }
-}
 
-  // Logout: clear refresh token
+  // ============ LOGOUT ============
   async logout(req, res, next) {
     try {
+      const isProduction = process.env.NODE_ENV === "production";
+      
       res.clearCookie("refreshToken", {
         httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "strict",
+        secure: isProduction,
+        sameSite: isProduction ? "none" : "lax",
+        path: "/"
       });
+      
       res.status(200).json({ message: "Déconnexion réussie" });
     } catch (error) {
       next(error);
     }
   }
 
-    // Profil utilisateur
-    async getProfile(req, res, next) {
-        try {
-            const user = await Utilisateur.findByPk(req.user.idUtilisateur, {
-                attributes: { exclude: ['motDePasse'] }
-            });
-            if (!user) {
-                const error = new Error("Utilisateur non trouvé");
-                error.code = "AUTH_ERROR";
-                return next(error);
-            }
-            res.status(200).json({ user });
-        } catch (error) {
-            next(error);
-        }
-    }
-
-    async updateProfile(req, res, next) {
-        try {
-            let { prenom, nom, telephone, adresseRue, adresseVille, adresseCodePostal, adressePays } = req.body;
-            prenom = prenom ? validator.escape(prenom.trim()) : "";
-            nom = nom ? validator.escape(nom.trim()) : "";
-            telephone = telephone ? validator.escape(telephone.trim()) : "";
-            adresseRue = adresseRue ? validator.escape(adresseRue.trim()) : "";
-            adresseVille = adresseVille ? validator.escape(adresseVille.trim()) : "";
-            adresseCodePostal = adresseCodePostal ? validator.escape(adresseCodePostal.trim()) : "";
-            adressePays = adressePays ? validator.escape(adressePays.trim()) : "";
-
-            if (!prenom || !validator.isLength(prenom, { min: 2, max: 50 }) || !validator.matches(prenom, /^[A-Za-zÀ-ÿ\s\-]+$/)) {
-                const error = new Error("Prénom invalide");
-                error.code = "VALIDATION_ERROR";
-                return next(error);
-            }
-            if (!nom || !validator.isLength(nom, { min: 2, max: 50 }) || !validator.matches(nom, /^[A-Za-zÀ-ÿ\s\-]+$/)) {
-                const error = new Error("Nom invalide");
-                error.code = "VALIDATION_ERROR";
-                return next(error);
-            }
-            if (!telephone || !validator.isLength(telephone, { min: 6, max: 20 })) {
-                const error = new Error("Téléphone invalide");
-                error.code = "VALIDATION_ERROR";
-                return next(error);
-            }
-            if (adresseRue && !validator.isLength(adresseRue, { max: 100 })) {
-                const error = new Error("Adresse rue trop longue");
-                error.code = "VALIDATION_ERROR";
-                return next(error);
-            }
-            if (adresseVille && !validator.isLength(adresseVille, { max: 50 })) {
-                const error = new Error("Adresse ville trop longue");
-                error.code = "VALIDATION_ERROR";
-                return next(error);
-            }
-            if (adresseCodePostal && !validator.isLength(adresseCodePostal, { max: 12 })) {
-                const error = new Error("Code postal trop long");
-                error.code = "VALIDATION_ERROR";
-                return next(error);
-            }
-            if (adressePays && !validator.isLength(adressePays, { max: 50 })) {
-                const error = new Error("Pays trop long");
-                error.code = "VALIDATION_ERROR";
-                return next(error);
-            }
-
-            const user = await Utilisateur.findByPk(req.user.idUtilisateur);
-            if (!user) {
-                const error = new Error('Utilisateur non trouvé');
-                error.code = "AUTH_ERROR";
-                return next(error);
-            }
-
-            await user.update({
-                prenom,
-                nom,
-                telephone,
-                adresseRue,
-                adresseVille,
-                adresseCodePostal,
-                adressePays
-            });
-
-            const updatedUser = await Utilisateur.findByPk(req.user.idUtilisateur, {
-                attributes: { exclude: ['motDePasse'] }
-            });
-
-            res.status(200).json({
-                message: 'Profil mis à jour avec succès',
-                user: updatedUser
-            });
-
-        } catch (error) {
-            next(error);
-        }
-    }
-
-    // Changement de mot de passe
-    async changePassword(req, res, next) {
-        try {
-            const { currentPassword, newPassword } = req.body;
-            const user = await Utilisateur.findByPk(req.user.userId);
-            if (!user) {
-                const error = new Error('Utilisateur non trouvé');
-                error.code = "AUTH_ERROR";
-                return next(error);
-            }
-
-            const isValidPassword = await bcrypt.compare(currentPassword, user.motDePasse);
-            if (!isValidPassword) {
-                const error = new Error('Mot de passe actuel incorrect');
-                error.code = "AUTH_ERROR";
-                return next(error);
-            }
-
-            const saltRounds = 12;
-            const hashedNewPassword = await bcrypt.hash(newPassword, saltRounds);
-
-              await user.update({ motDePasse: hashedNewPassword, tokenVersion: user.tokenVersion + 1 });
-            res.status(200).json({
-                message: 'Mot de passe modifié avec succès'
-            });
-
-        } catch (error) {
-            next(error);
-        }
-    }
-
-
-async forgotPassword(req, res, next) {
+  // ============ FORGOT PASSWORD ============
+  async forgotPassword(req, res, next) {
     try {
-        const { email } = req.body;
-        
-        console.log("📧 Demande de réinitialisation pour:", email);
-        
-        const user = await Utilisateur.findOne({ where: { email } });
-        if (!user) {
-            const error = new Error('Aucun compte associé à cet email');
-            error.code = "AUTH_ERROR";
-            return next(error);
-        }
+      const { email } = req.body;
 
-        // Génère le code de réinitialisation
-        const resetCode = Math.floor(100000 + Math.random() * 900000).toString();
-        const resetCodeExpiry = new Date(Date.now() + 10 * 60 * 1000);
+      if (!email || !validator.isEmail(email)) {
+        const error = new Error('Email invalide');
+        error.code = "VALIDATION_ERROR";
+        return next(error);
+      }
 
-        await user.update({
-            resetCode,
-            resetCodeExpiry
+      const user = await Utilisateur.findOne({ where: { email } });
+      if (!user) {
+        // Ne révèle pas si l'email existe (sécurité)
+        return res.status(200).json({
+          message: 'Si cet email existe, un code a été envoyé'
         });
+      }
 
-        console.log("🔑 Code de réinitialisation généré:", resetCode);
+      // Génère un code de réinitialisation (6 chiffres)
+      const resetCode = Math.floor(100000 + Math.random() * 900000).toString();
+      const resetCodeExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
-        // ✅ CONFIGURATION DE L'API BREVO
-        let apiInstance = new SibApiV3Sdk.TransactionalEmailsApi();
-        let apiKey = apiInstance.authentications['apiKey'];
-        apiKey.apiKey = process.env.BREVO_API_KEY;
+      await user.update({
+        resetCode,
+        resetCodeExpiry
+      });
 
-        // ✅ PRÉPARATION DE L'EMAIL
-        let sendSmtpEmail = new SibApiV3Sdk.SendSmtpEmail();
-        
-        sendSmtpEmail.subject = "Code de récupération - Bamby Joy";
-        
-        sendSmtpEmail.htmlContent = `
-            <div style="max-width: 600px; margin: 0 auto; padding: 20px; font-family: Arial, sans-serif;">
-                <div style="text-align: center; margin-bottom: 30px;">
-                    <h1 style="color: #9333ea;">Bamby Joy</h1>
-                </div>
-                <div style="background: #f8fafc; padding: 30px; border-radius: 10px; border-left: 4px solid #9333ea;">
-                    <h2 style="color: #1f2937; margin-bottom: 20px;">Récupération de mot de passe</h2>
-                    <p style="color: #4b5563; margin-bottom: 20px;">Bonjour ${user.prenom},</p>
-                    <p style="color: #4b5563; margin-bottom: 20px;">Vous avez demandé la réinitialisation de votre mot de passe. Voici votre code de vérification :</p>
-                    <div style="text-align: center; margin: 30px 0;">
-                        <div style="background: #9333ea; color: white; padding: 15px 25px; border-radius: 8px; font-size: 24px; font-weight: bold; letter-spacing: 3px; display: inline-block;">
-                            ${resetCode}
-                        </div>
-                    </div>
-                    <p style="color: #4b5563; margin-bottom: 10px;"><strong>Ce code expire dans 10 minutes.</strong></p>
-                    <p style="color: #6b7280; font-size: 14px;">Si vous n'avez pas demandé cette réinitialisation, ignorez cet email. Votre mot de passe restera inchangé.</p>
-                </div>
-                <div style="text-align: center; margin-top: 30px; color: #6b7280; font-size: 12px;">
-                    <p>© 2024 Bamby Joy. Tous droits réservés.</p>
-                </div>
+      // Configure l'API Brevo
+      let apiInstance = new SibApiV3Sdk.TransactionalEmailsApi();
+      let apiKey = apiInstance.authentications['apiKey'];
+      apiKey.apiKey = process.env.BREVO_API_KEY;
+
+      // Prépare l'email
+      let sendSmtpEmail = new SibApiV3Sdk.SendSmtpEmail();
+      
+      sendSmtpEmail.subject = "Code de récupération - Bamby Joy";
+      
+      sendSmtpEmail.htmlContent = `
+        <div style="max-width: 600px; margin: 0 auto; padding: 20px; font-family: Arial, sans-serif;">
+          <div style="text-align: center; margin-bottom: 30px;">
+            <h1 style="color: #9333ea;">Bamby Joy</h1>
+          </div>
+          <div style="background: #f8fafc; padding: 30px; border-radius: 10px; border-left: 4px solid #9333ea;">
+            <h2 style="color: #1f2937; margin-bottom: 20px;">Réinitialisation de mot de passe</h2>
+            <p style="color: #4b5563; margin-bottom: 20px;">Bonjour ${user.prenom},</p>
+            <p style="color: #4b5563; margin-bottom: 20px;">Vous avez demandé la réinitialisation de votre mot de passe. Voici votre code de vérification :</p>
+            <div style="text-align: center; margin: 30px 0;">
+              <div style="background: #9333ea; color: white; padding: 15px 25px; border-radius: 8px; font-size: 24px; font-weight: bold; letter-spacing: 3px; display: inline-block;">
+                ${resetCode}
+              </div>
             </div>
-        `;
-        
-        sendSmtpEmail.sender = { 
-            name: process.env.BREVO_SENDER_NAME || "Bamby Joy", 
-            email: process.env.BREVO_SENDER_EMAIL 
-        };
-        
-        sendSmtpEmail.to = [
-            { email: email, name: user.prenom }
-        ];
+            <p style="color: #4b5563; margin-bottom: 10px;"><strong>Ce code expire dans 10 minutes.</strong></p>
+            <p style="color: #6b7280; font-size: 14px;">Si vous n'avez pas demandé cette réinitialisation, ignorez cet email.</p>
+          </div>
+          <div style="text-align: center; margin-top: 30px; color: #6b7280; font-size: 12px;">
+            <p>© 2024 Bamby Joy. Tous droits réservés.</p>
+          </div>
+        </div>
+      `;
+      
+      sendSmtpEmail.sender = { 
+        name: process.env.BREVO_SENDER_NAME || "Bamby Joy", 
+        email: process.env.BREVO_SENDER_EMAIL 
+      };
+      
+      sendSmtpEmail.to = [
+        { email: email, name: user.prenom }
+      ];
 
-        // ✅ ENVOI DE L'EMAIL
-        console.log("📤 Envoi de l'email via API Brevo...");
-        const result = await apiInstance.sendTransacEmail(sendSmtpEmail);
-        console.log("✅ Email envoyé avec succès! MessageID:", result.messageId);
+      // Envoie l'email
+      await apiInstance.sendTransacEmail(sendSmtpEmail);
 
-        res.status(200).json({
-            message: 'Code de vérification envoyé par email'
-        });
-
-    } catch (error) {
-        console.error("❌ ERREUR complète:", error);
-        console.error("   Message:", error.message);
-        
-        // Gestion des erreurs spécifiques Brevo
-        if (error.response) {
-            console.error("   Réponse Brevo:", error.response.text);
-        }
-        
-        next(error);
-    }
-}
-    async resetPassword(req, res, next) {
-        try {
-            const { email, code, newPassword } = req.body;
-            const user = await Utilisateur.findOne({ where: { email } });
-            if (!user) {
-                const error = new Error('Utilisateur non trouvé');
-                error.code = "AUTH_ERROR";
-                return next(error);
-            }
-
-            if (!user.resetCode || user.resetCode !== code) {
-                const error = new Error('Code de vérification invalide');
-                error.code = "VALIDATION_ERROR";
-                return next(error);
-            }
-
-            if (!user.resetCodeExpiry || new Date() > user.resetCodeExpiry) {
-                const error = new Error('Code de vérification expiré');
-                error.code = "VALIDATION_ERROR";
-                return next(error);
-            }
-
-            const saltRounds = 12;
-            const hashedPassword = await bcrypt.hash(newPassword, saltRounds);
-
-            await user.update({
-                motDePasse: hashedPassword,
-                resetCode: null,
-                resetCodeExpiry: null, tokenVersion: user.tokenVersion + 1
-            });
-
-            res.status(200).json({
-                message: 'Mot de passe réinitialisé avec succès'
-            });
-
-        } catch (error) {
-            next(error);
-        }
-    }
-
-    async googleAuth(req, res, next) {
-        try {
-            const { email, name, googleId, image } = req.body;
-
-            if (!email || !name || !googleId) {
-                const error = new Error('Données Google incomplètes');
-                error.code = "VALIDATION_ERROR";
-                return next(error);
-            }
-
-            const nameParts = name.split(' ');
-            const prenom = nameParts[0] || '';
-            const nom = nameParts.slice(1).join(' ') || '';
-
-            let user = await Utilisateur.findOne({
-                where: {
-                    [Op.or]: [
-                        { email: email },
-                        { googleId: googleId }
-                    ]
-                }
-            });
-
-            if (user) {
-                if (!user.googleId) {
-                    await user.update({ 
-                        googleId, 
-                        profileImage: image 
-                    });
-                }
-            } else {
-                user = await Utilisateur.create({
-                    prenom,
-                    nom,
-                    email,
-                    googleId,
-                    profileImage: image,
-                    telephone: '',
-                    motDePasse: null,
-                    role: 'client',
-                    isGoogleUser: true
-                });
-            }
-
-            const accessToken = generateAccessToken(user);
-        const refreshToken = generateRefreshToken(user);
-            // Met le refresh token dans un cookie sécurisé
-  res.cookie("refreshToken", refreshToken, {
-  httpOnly: true,
-  secure: true,
-  sameSite: "none",
-  path: "/",
-  maxAge: 7 * 24 * 60 * 60 * 1000
-  // pas de domain
-});
-
-        // Prépare la réponse utilisateur
-        const userResponse = {
-            idUtilisateur: user.idUtilisateur,
-            prenom: user.prenom,
-            nom: user.nom,
-            email: user.email,
-            telephone: user.telephone,
-            role: user.role,
-            profileImage: user.profileImage,
-            isGoogleUser: user.isGoogleUser,
-            adresseCodePostal: user.adresseCodePostal,
-            adressePays: user.adressePays,
-            adresseRue: user.adresseRue,
-            adresseVille: user.adresseVille
-        };
-
-        res.status(200).json({
-            message: 'Authentification Google réussie',
-            token: accessToken,
-            user: userResponse
-        });
+      res.status(200).json({
+        message: 'Code de vérification envoyé par email'
+      });
 
     } catch (error) {
-        next(error);
+      console.error("Erreur Brevo:", error);
+      next(error);
     }
-}
-    async facebookAuth(req, res, next) {
+  }
+
+  // ============ RESET PASSWORD ============
+  async resetPassword(req, res, next) {
     try {
-        const { email, name, facebookId, image } = req.body;
+      const { email, code, newPassword } = req.body;
 
-        if (!email || !name || !facebookId) {
-            const error = new Error('Données Facebook incomplètes');
-            error.code = "VALIDATION_ERROR";
-            return next(error);
-        }
+      if (!email || !code || !newPassword) {
+        const error = new Error('Email, code et nouveau mot de passe sont requis');
+        error.code = "VALIDATION_ERROR";
+        return next(error);
+      }
 
-        const nameParts = name.split(' ');
-        const prenom = nameParts[0] || '';
-        const nom = nameParts.slice(1).join(' ') || '';
+      if (newPassword.length < 6) {
+        const error = new Error('Le mot de passe doit contenir au moins 6 caractères');
+        error.code = "VALIDATION_ERROR";
+        return next(error);
+      }
 
-        let user = await Utilisateur.findOne({
-            where: {
-                [Op.or]: [
-                    { email: email },
-                    { facebookId: facebookId }
-                ]
-            }
-        });
+      const user = await Utilisateur.findOne({ where: { email } });
+      if (!user) {
+        const error = new Error('Utilisateur non trouvé');
+        error.code = "AUTH_ERROR";
+        return next(error);
+      }
 
-        if (user) {
-            if (!user.facebookId) {
-                await user.update({ 
-                    facebookId, 
-                    profileImage: image 
-                });
-            }
-        } else {
-            user = await Utilisateur.create({
-                prenom,
-                nom,
-                email,
-                facebookId,
-                profileImage: image,
-                telephone: '',
-                motDePasse: null,
-                role: 'client',
-                isFacebookUser: true
-            });
-        }
+      if (!user.resetCode || user.resetCode !== code) {
+        const error = new Error('Code de vérification invalide');
+        error.code = "VALIDATION_ERROR";
+        return next(error);
+      }
 
-        const accessToken = generateAccessToken(user);
-        const refreshToken = generateRefreshToken(user);
+      if (!user.resetCodeExpiry || new Date() > user.resetCodeExpiry) {
+        const error = new Error('Code de vérification expiré');
+        error.code = "VALIDATION_ERROR";
+        return next(error);
+      }
 
-     res.cookie("refreshToken", refreshToken, {
-  httpOnly: true,
-  secure: true,
-  sameSite: "none",
-  path: "/",
-  maxAge: 7 * 24 * 60 * 60 * 1000
-  // pas de domain
-});
+      // Hash le nouveau mot de passe
+      const saltRounds = 12;
+      const hashedPassword = await bcrypt.hash(newPassword, saltRounds);
 
-        // Prépare la réponse utilisateur
-        const userResponse = {
-            idUtilisateur: user.idUtilisateur,
-            prenom: user.prenom,
-            nom: user.nom,
-            email: user.email,
-            telephone: user.telephone,
-            role: user.role,
-            profileImage: user.profileImage,
-            isFacebookUser: user.isFacebookUser,
-            adresseCodePostal: user.adresseCodePostal,
-            adressePays: user.adressePays,
-            adresseRue: user.adresseRue,
-            adresseVille: user.adresseVille
-        };
+      // Met à jour le mot de passe et invalide les anciens tokens
+      await user.update({
+        motDePasse: hashedPassword,
+        resetCode: null,
+        resetCodeExpiry: null,
+        tokenVersion: user.tokenVersion + 1
+      });
 
-        res.status(200).json({
-            message: 'Authentification Facebook réussie',
-            token: accessToken,
-            user: userResponse
-        });
+      res.status(200).json({
+        message: 'Mot de passe réinitialisé avec succès'
+      });
 
     } catch (error) {
-        next(error);
+      console.error("Erreur dans resetPassword:", error);
+      next(error);
     }
-}
+  }
+
+  // ============ CHANGE PASSWORD ============
+  async changePassword(req, res, next) {
+    try {
+      const { currentPassword, newPassword } = req.body;
+
+      if (!currentPassword || !newPassword) {
+        const error = new Error('Mot de passe actuel et nouveau sont requis');
+        error.code = "VALIDATION_ERROR";
+        return next(error);
+      }
+
+      if (newPassword.length < 6) {
+        const error = new Error('Le mot de passe doit contenir au moins 6 caractères');
+        error.code = "VALIDATION_ERROR";
+        return next(error);
+      }
+
+      const user = await Utilisateur.findByPk(req.user.userId);
+      if (!user) {
+        const error = new Error('Utilisateur non trouvé');
+        error.code = "AUTH_ERROR";
+        return next(error);
+      }
+
+      if (!user.motDePasse) {
+        const error = new Error('Vous devez avoir un mot de passe pour le changer');
+        error.code = "AUTH_ERROR";
+        return next(error);
+      }
+
+      const isValidPassword = await bcrypt.compare(currentPassword, user.motDePasse);
+      if (!isValidPassword) {
+        const error = new Error('Mot de passe actuel incorrect');
+        error.code = "AUTH_ERROR";
+        return next(error);
+      }
+
+      const saltRounds = 12;
+      const hashedNewPassword = await bcrypt.hash(newPassword, saltRounds);
+
+      await user.update({
+        motDePasse: hashedNewPassword,
+        tokenVersion: user.tokenVersion + 1
+      });
+
+      res.status(200).json({
+        message: 'Mot de passe changé avec succès'
+      });
+
+    } catch (error) {
+      console.error("Erreur dans changePassword:", error);
+      next(error);
+    }
+  }
+
+  // ============ GOOGLE AUTH ============
+  async googleAuth(req, res, next) {
+    try {
+      const { email, name, googleId, image } = req.body;
+
+      if (!email || !name || !googleId) {
+        const error = new Error('Données Google incomplètes');
+        error.code = "VALIDATION_ERROR";
+        return next(error);
+      }
+
+      const nameParts = name.split(' ');
+      const prenom = nameParts[0] || '';
+      const nom = nameParts.slice(1).join(' ') || name;
+
+      let user = await Utilisateur.findOne({
+        where: {
+          [Op.or]: [
+            { email: email },
+            { googleId: googleId }
+          ]
+        }
+      });
+
+      if (user) {
+        if (!user.googleId) {
+          await user.update({
+            googleId,
+            profileImage: image || user.profileImage,
+            isGoogleUser: true
+          });
+        }
+      } else {
+        user = await Utilisateur.create({
+          prenom,
+          nom,
+          email,
+          googleId,
+          profileImage: image,
+          telephone: '',
+          motDePasse: null,
+          role: 'client',
+          isGoogleUser: true,
+          isFacebookUser: false
+        });
+      }
+
+      const accessToken = generateAccessToken(user);
+      const refreshToken = generateRefreshToken(user);
+
+      const isProduction = process.env.NODE_ENV === "production";
+
+      res.cookie("refreshToken", refreshToken, {
+        httpOnly: true,
+        secure: isProduction,
+        sameSite: isProduction ? "none" : "lax",
+        path: "/",
+        maxAge: 7 * 24 * 60 * 60 * 1000
+      });
+
+      const userResponse = {
+        idUtilisateur: user.idUtilisateur,
+        prenom: user.prenom,
+        nom: user.nom,
+        email: user.email,
+        telephone: user.telephone,
+        role: user.role,
+        profileImage: user.profileImage,
+        isGoogleUser: user.isGoogleUser,
+        adresseCodePostal: user.adresseCodePostal,
+        adressePays: user.adressePays,
+        adresseRue: user.adresseRue,
+        adresseVille: user.adresseVille
+      };
+
+      res.status(200).json({
+        message: 'Authentification Google réussie',
+        token: accessToken,
+        user: userResponse
+      });
+
+    } catch (error) {
+      console.error("Erreur Google Auth:", error);
+      next(error);
+    }
+  }
+
+  // ============ FACEBOOK AUTH ============
+  async facebookAuth(req, res, next) {
+    try {
+      const { email, name, facebookId, image } = req.body;
+
+      if (!email || !name || !facebookId) {
+        const error = new Error('Données Facebook incomplètes');
+        error.code = "VALIDATION_ERROR";
+        return next(error);
+      }
+
+      const nameParts = name.split(' ');
+      const prenom = nameParts[0] || '';
+      const nom = nameParts.slice(1).join(' ') || name;
+
+      let user = await Utilisateur.findOne({
+        where: {
+          [Op.or]: [
+            { email: email },
+            { facebookId: facebookId }
+          ]
+        }
+      });
+
+      if (user) {
+        if (!user.facebookId) {
+          await user.update({
+            facebookId,
+            profileImage: image || user.profileImage,
+            isFacebookUser: true
+          });
+        }
+      } else {
+        user = await Utilisateur.create({
+          prenom,
+          nom,
+          email,
+          facebookId,
+          profileImage: image,
+          telephone: '',
+          motDePasse: null,
+          role: 'client',
+          isFacebookUser: true,
+          isGoogleUser: false
+        });
+      }
+
+      const accessToken = generateAccessToken(user);
+      const refreshToken = generateRefreshToken(user);
+
+      const isProduction = process.env.NODE_ENV === "production";
+
+      res.cookie("refreshToken", refreshToken, {
+        httpOnly: true,
+        secure: isProduction,
+        sameSite: isProduction ? "none" : "lax",
+        path: "/",
+        maxAge: 7 * 24 * 60 * 60 * 1000
+      });
+
+      const userResponse = {
+        idUtilisateur: user.idUtilisateur,
+        prenom: user.prenom,
+        nom: user.nom,
+        email: user.email,
+        telephone: user.telephone,
+        role: user.role,
+        profileImage: user.profileImage,
+        isFacebookUser: user.isFacebookUser,
+        adresseCodePostal: user.adresseCodePostal,
+        adressePays: user.adressePays,
+        adresseRue: user.adresseRue,
+        adresseVille: user.adresseVille
+      };
+
+      res.status(200).json({
+        message: 'Authentification Facebook réussie',
+        token: accessToken,
+        user: userResponse
+      });
+
+    } catch (error) {
+      console.error("Erreur Facebook Auth:", error);
+      next(error);
+    }
+  }
+
+  // ============ GET PROFILE ============
+  async getProfile(req, res, next) {
+    try {
+      const user = await Utilisateur.findByPk(req.user.userId, {
+        attributes: { exclude: ['motDePasse', 'resetCode', 'resetCodeExpiry'] }
+      });
+      
+      if (!user) {
+        const error = new Error("Utilisateur non trouvé");
+        error.code = "AUTH_ERROR";
+        return next(error);
+      }
+      
+      res.status(200).json({ user });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  // ============ UPDATE PROFILE ============
+  async updateProfile(req, res, next) {
+    try {
+      let { prenom, nom, telephone, adresseRue, adresseVille, adresseCodePostal, adressePays } = req.body;
+
+      prenom = prenom ? validator.escape(prenom.trim()) : "";
+      nom = nom ? validator.escape(nom.trim()) : "";
+      telephone = telephone ? validator.escape(telephone.trim()) : "";
+      adresseRue = adresseRue ? validator.escape(adresseRue.trim()) : "";
+      adresseVille = adresseVille ? validator.escape(adresseVille.trim()) : "";
+      adresseCodePostal = adresseCodePostal ? validator.escape(adresseCodePostal.trim()) : "";
+      adressePays = adressePays ? validator.escape(adressePays.trim()) : "";
+
+      if (prenom && (!validator.isLength(prenom, { min: 2, max: 50 }) || !validator.matches(prenom, /^[A-Za-zÀ-ÿ\s\-]+$/))) {
+        const error = new Error("Prénom invalide");
+        error.code = "VALIDATION_ERROR";
+        return next(error);
+      }
+
+      if (nom && (!validator.isLength(nom, { min: 2, max: 50 }) || !validator.matches(nom, /^[A-Za-zÀ-ÿ\s\-]+$/))) {
+        const error = new Error("Nom invalide");
+        error.code = "VALIDATION_ERROR";
+        return next(error);
+      }
+
+      const user = await Utilisateur.findByPk(req.user.userId);
+      if (!user) {
+        const error = new Error('Utilisateur non trouvé');
+        error.code = "AUTH_ERROR";
+        return next(error);
+      }
+
+      await user.update({
+        prenom: prenom || user.prenom,
+        nom: nom || user.nom,
+        telephone: telephone || user.telephone,
+        adresseRue,
+        adresseVille,
+        adresseCodePostal,
+        adressePays
+      });
+
+      const updatedUser = await Utilisateur.findByPk(req.user.userId, {
+        attributes: { exclude: ['motDePasse', 'resetCode', 'resetCodeExpiry'] }
+      });
+
+      res.status(200).json({
+        message: 'Profil mis à jour avec succès',
+        user: updatedUser
+      });
+
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 module.exports = new AuthController();
