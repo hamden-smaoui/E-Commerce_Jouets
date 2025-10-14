@@ -114,8 +114,15 @@ export default function ProfilePage() {
 
   // Charger les commandes quand l'onglet change
   useEffect(() => {
-    if (activeTab === 'orders' && status === "authenticated" && session?.customToken) {
-      fetchUserOrders();
+    if (activeTab === 'orders' && status === "authenticated") {
+      const token = session?.customToken;
+      if (token) {
+        fetchUserOrders(token);
+      } else {
+        console.warn("Token manquant : impossible de charger les commandes.");
+        // Optionnel : afficher un message utilisateur (toast) si tu veux
+        // toast.error("Session token manquant, reconnectez-vous.");
+      }
     }
   }, [activeTab, status, session?.customToken]);
 
@@ -141,7 +148,13 @@ export default function ProfilePage() {
       }
       try {
         setNewsletterStatus('loading');
-        const all = await NewsletterService.getAllEntries(session?.customToken);
+        const token = session?.customToken;
+        if (!token) {
+          // Si l'API nécessite un token, on évite l'appel et considère non-abonné
+          setNewsletterStatus('not_subscribed');
+          return;
+        }
+        const all = await NewsletterService.getAllEntries(token);
         const found = all.some(entry => entry.email === profileData.email);
         setNewsletterStatus(found ? 'subscribed' : 'not_subscribed');
       } catch {
@@ -151,11 +164,17 @@ export default function ProfilePage() {
     checkNewsletter();
   }, [profileData.email, session?.customToken]);
 
-  // Fetch user orders
-  const fetchUserOrders = async () => {
+  // Fetch user orders — maintenant accepte token?: string et vérifie
+  const fetchUserOrders = async (token?: string) => {
+    if (!token) {
+      console.warn("No token provided to fetchUserOrders; aborting.");
+      toast.error('Session token manquant, impossible de charger les commandes.');
+      return;
+    }
+
     try {
       setOrdersLoading(true);
-      const userOrders = await CommandesService.getCommandesByClient(session?.customToken!);
+      const userOrders = await CommandesService.getCommandesByClient(token);
       setOrders(userOrders);
       setFilteredOrders(userOrders.slice(0, 5));
     } catch (error) {
@@ -250,21 +269,22 @@ export default function ProfilePage() {
 
   const handleCancelEdit = () => {
     setIsEditing(false);
-    if (session?.customToken) {
-      AuthService.getProfile().then(response => {
-        const profile = response.user || response;
-        setProfileData({
-          prenom: profile.prenom || '',
-          nom: profile.nom || '',
-          email: profile.email || '',
-          telephone: profile.telephone || '',
-          adresseRue: profile.adresseRue || '',
-          adresseVille: profile.adresseVille || '',
-          adresseCodePostal: profile.adresseCodePostal || '',
-          adressePays: profile.adressePays || 'Tunisie',
-        });
+    // On recharge le profil (AuthService.getProfile ne nécessite pas forcément le token ici)
+    AuthService.getProfile().then(response => {
+      const profile = response.user || response;
+      setProfileData({
+        prenom: profile.prenom || '',
+        nom: profile.nom || '',
+        email: profile.email || '',
+        telephone: profile.telephone || '',
+        adresseRue: profile.adresseRue || '',
+        adresseVille: profile.adresseVille || '',
+        adresseCodePostal: profile.adresseCodePostal || '',
+        adressePays: profile.adressePays || 'Tunisie',
       });
-    }
+    }).catch(err => {
+      console.error("Erreur lors du rechargement du profil:", err);
+    });
     setErrors({});
   };
 
@@ -283,9 +303,15 @@ export default function ProfilePage() {
 
   const handleNewsletterUnsubscribe = async () => {
     setNewsletterMsg(null);
+    const token = session?.customToken;
+    if (!token) {
+      setNewsletterStatus('not_subscribed');
+      setNewsletterMsg("Session invalide, impossible de se désinscrire.");
+      return;
+    }
     try {
       setNewsletterStatus('loading');
-      await NewsletterService.unsubscribe(newsletterEmail, session?.customToken);
+      await NewsletterService.unsubscribe(newsletterEmail, token);
       setNewsletterStatus('not_subscribed');
       setNewsletterMsg("Vous avez été désinscrit de la newsletter.");
     } catch (e: any) {
