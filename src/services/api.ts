@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { toast } from 'react-hot-toast';
+import { getSession } from 'next-auth/react';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
@@ -9,7 +10,7 @@ const api = axios.create({
   headers: {
     'Accept': 'application/json',
   },
-  withCredentials: true, // IMPORTANT pour les cookies
+  withCredentials: true,
 });
 
 interface QueueItem {
@@ -31,7 +32,7 @@ const processQueue = (error: any = null, token: string | null = null): void => {
   failedQueue = [];
 };
 
-// Intercepteur REQUEST : Ajoute l'access token
+// Intercepteur REQUEST
 api.interceptors.request.use(
   (config) => {
     const token = sessionStorage.getItem('accessToken');
@@ -43,16 +44,14 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Intercepteur RESPONSE : Gère le refresh automatique
+// Intercepteur RESPONSE avec refresh intelligent
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
 
-    // 1. Token expiré (401) → tente un refresh
     if (error.response?.status === 401 && !originalRequest._retry) {
       if (isRefreshing) {
-        // Mise en file d'attente si refresh en cours
         return new Promise<string>((resolve, reject) => {
           failedQueue.push({ resolve, reject });
         })
@@ -67,51 +66,76 @@ api.interceptors.response.use(
       isRefreshing = true;
 
       try {
-        // ✅ Appelle le proxy refresh token
-        const { data } = await axios.post(
-          `/api/auth/refresh-token-proxy`,
-          {},
-          { withCredentials: true }
-        );
-
-        const newToken = data.token;
-
-        // Sauvegarde le nouveau token
-        sessionStorage.setItem('accessToken', newToken);
+        console.log("🔄 Token expiré, tentative de refresh...");
         
-        // Met à jour l'authorization header
-        api.defaults.headers.common['Authorization'] = `Bearer ${newToken}`;
-        originalRequest.headers.Authorization = `Bearer ${newToken}`;
+        // ✅ ÉTAPE 1: Essaie d'abord avec le refreshToken cookie (email/password)
+        try {
+          const { data } = await axios.post(
+            `/api/auth/refresh-token-proxy`,
+            {},
+            { withCredentials: true }
+          );
 
-        processQueue(null, newToken);
-        return api(originalRequest);
+          const newToken = data.token;
+          console.log("✅ Refresh réussi via refreshToken cookie");
 
-      } catch (refreshError) {
-        processQueue(refreshError, null);
+          sessionStorage.setItem('accessToken', newToken);
+          api.defaults.headers.common['Authorization'] = `Bearer ${newToken}`;
+          originalRequest.headers.Authorization = `Bearer ${newToken}`;
+
+          processQueue(null, newToken);
+          return api(originalRequest);
+
+        } catch (refreshError: any) {
+          console.log("⚠️ Refresh via cookie échoué, tentative via session NextAuth...");
+          
+          // ✅ ÉTAPE 2: Si échec, essaie avec la session NextAuth (Google/Facebook)
+          const session = await getSession();
+          
+          if (session?.userId) {
+            const { data } = await axios.post(
+              `/api/auth/refresh-token-from-session-proxy`,
+              { userId: session.userId }
+            );
+
+            const newToken = data.token;
+            console.log("✅ Refresh réussi via session NextAuth");
+
+            sessionStorage.setItem('accessToken', newToken);
+            api.defaults.headers.common['Authorization'] = `Bearer ${newToken}`;
+            originalRequest.headers.Authorization = `Bearer ${newToken}`;
+
+            processQueue(null, newToken);
+            return api(originalRequest);
+          } else {
+            throw new Error('Session invalide');
+          }
+        }
+
+      } catch (finalError) {
+        console.error("❌ Échec complet du refresh:", finalError);
+        processQueue(finalError, null);
         
-        // Refresh token invalide → déconnexion
         sessionStorage.removeItem('accessToken');
         
         if (typeof window !== "undefined") {
           toast.error('Session expirée, veuillez vous reconnecter.', { id: "session-expired" });
-         window.location.href = '/signIn';
+          window.location.href = '/signIn';
         }
         
-        return Promise.reject(refreshError);
+        return Promise.reject(finalError);
       } finally {
         isRefreshing = false;
       }
     }
 
-    // 2. Timeout
+    // Gestion des autres erreurs
     if (error.code === 'ECONNABORTED') {
       const errorMsg = "La connexion est trop lente ou le serveur ne répond pas.";
       if (typeof window !== "undefined") {
         toast.error(errorMsg, { id: "timeout" });
       }
-    }
-    // 3. Autres erreurs
-    else if (error.response?.status !== 401) {
+    } else if (error.response?.status !== 401) {
       const errorMsg = error.response?.data?.message || error.message || 'Erreur inconnue';
       if (typeof window !== "undefined") {
         toast.error(errorMsg, { id: "api-error" });
