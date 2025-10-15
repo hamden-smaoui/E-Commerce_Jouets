@@ -41,7 +41,7 @@ app.use(cookieParser());
 
 // ✅ CORS avec configuration complète pour les cookies cross-origin
 const isProduction = process.env.NODE_ENV === 'production';
-const allowedOrigins = [
+const allowedOrigins = ['http://localhost:3000',
   process.env.FRONTEND_URL || 'http://localhost:3000',
   process.env.FRONTEND_URL_PROD || 'https://e-commerce-jouets.vercel.app'
 ].filter(Boolean);
