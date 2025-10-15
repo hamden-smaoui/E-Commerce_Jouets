@@ -16,6 +16,30 @@ export interface ResetPasswordData {
 }
 
 class AuthService {
+
+   async loginWithBackend(emailOrPhone: string, motDePasse: string): Promise<{ token: string; user: any }> {
+    const response = await fetch('/api/auth/login-proxy', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include', // ✅ Important pour recevoir les cookies
+      body: JSON.stringify({
+        emailOrPhone,
+        motDePasse
+      })
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Erreur de connexion');
+    }
+
+    if (data.token) {
+      sessionStorage.setItem('accessToken', data.token);
+    }
+
+    return data;
+  }
   // ============ REGISTER ============
   async register(userData: RegisterData): Promise<{ message: string; user: any }> {
     const response = await api.post('/auth/register', userData);

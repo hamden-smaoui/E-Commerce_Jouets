@@ -7,8 +7,9 @@ import { EyeIcon, EyeSlashIcon, LockClosedIcon } from "@heroicons/react/24/solid
 import GoogleAuthButton from "@/components/ui/GoogleAuthButton";
 import FacebookAuthButton from '@/components/ui/FacebookAuthButton';
 import KidsCornerLoader from "@/components/ui/KidsCornerLoader";
-import authService from "@/services/auth-service";
 import { toast } from "react-hot-toast";
+import { signIn } from "next-auth/react";
+import authService from "@/services/auth-service";
 
 function SignInContent() {
   const [rememberMe, setRememberMe] = useState(false);
@@ -54,29 +55,47 @@ function SignInContent() {
     return Object.keys(newErrors).length === 0;
   };
 
-  // ✅ LOGIN MANUEL avec authService
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!validateForm()) return;
-    setLoading(true);
+  // signIn/page.tsx
+const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  if (!validateForm()) return;
+  setLoading(true);
 
-    try {
-      const result = await authService.login(formData.emailOrPhone, formData.motDePasse);
-      
-      if (result.token && result.user) {
-        toast.success('Connexion réussie!');
-        router.push("/site");
-        router.refresh();
-      }
-    } catch (error: any) {
-      console.error("Erreur lors de la connexion:", error);
-      const errorMessage = error?.response?.data?.message || "Email ou mot de passe incorrect";
+  try {
+    // 1️⃣ Appelle d'abord le backend pour créer le refreshToken cookie
+    await authService.loginWithBackend(formData.emailOrPhone, formData.motDePasse);
+    
+    console.log("✅ Backend login réussi, cookie refreshToken défini");
+
+    // 2️⃣ PUIS appelle NextAuth pour créer la session
+    const result = await signIn("credentials", {
+      emailOrPhone: formData.emailOrPhone,
+      password: formData.motDePasse,
+      redirect: false,
+    });
+
+    if (result?.error) {
+      const errorMessage = result.error || "Email ou mot de passe incorrect";
       setErrors({ submit: errorMessage });
       toast.error(errorMessage);
-    } finally {
       setLoading(false);
+      return;
     }
-  };
+
+    if (result?.ok) {
+      toast.success('Connexion réussie!');
+      router.push("/site");
+      router.refresh();
+    }
+  } catch (error: any) {
+    console.error("Erreur lors de la connexion:", error);
+    const errorMessage = error?.message || "Une erreur est survenue";
+    setErrors({ submit: errorMessage });
+    toast.error(errorMessage);
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">

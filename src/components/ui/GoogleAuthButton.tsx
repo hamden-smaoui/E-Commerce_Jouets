@@ -50,4 +50,4 @@ export default function GoogleAuthButton({ mode }: GoogleAuthButtonProps) {
       )}
     </button>
   );
-}
+}   

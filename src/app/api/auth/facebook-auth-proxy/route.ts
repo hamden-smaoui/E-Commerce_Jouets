@@ -3,11 +3,11 @@ import { NextRequest, NextResponse } from 'next/server';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    console.log("📥 Login proxy - Requête reçue:", body);
+    console.log("📥 Facebook auth proxy - Requête reçue:", body);
 
     // ✅ Appelle le backend Express
     const response = await fetch(
-      `${process.env.NEXT_PUBLIC_API_BASE_URL}/auth/login`,
+      `${process.env.NEXT_PUBLIC_API_BASE_URL}/auth/facebook-auth`,
       {
         method: 'POST',
         headers: {
@@ -39,11 +39,11 @@ export async function POST(request: NextRequest) {
       nextResponse.headers.append('Set-Cookie', cookie);
     });
 
-    console.log("✅ Réponse envoyée au client avec cookies");
+    console.log("✅ Réponse Facebook auth envoyée avec cookies");
     return nextResponse;
 
   } catch (error: any) {
-    console.error('❌ Erreur login-proxy:', error);
+    console.error('❌ Erreur facebook-auth-proxy:', error);
     return NextResponse.json(
       { message: error.message || 'Erreur serveur' },
       { status: 500 }

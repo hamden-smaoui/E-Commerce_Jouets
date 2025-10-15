@@ -65,26 +65,26 @@ export default function ProfilePage() {
   const [newsletterEmail, setNewsletterEmail] = useState('');
   const [newsletterMsg, setNewsletterMsg] = useState<string | null>(null);
 
-  // ✅ CORRECTION 1 : Vérifier l'authentification ET rediriger correctement
-  useEffect(() => {
-    if (status === "loading") {
-      // Attendre que NextAuth finisse de charger
-      return;
-    }
+ useEffect(() => {
+  console.log("🔍 Status:", status);
+  console.log("🔍 Session:", session);
+  
+  if (status === "loading") {
+    console.log("⏳ NextAuth encore en chargement...");
+    return;
+  }
 
-    if (status === "unauthenticated") {
-      // L'utilisateur n'est vraiment pas connecté
-      console.log("Utilisateur non authentifié, redirection vers sign in");
-      router.replace("/signIn");
-      return;
-    }
+  if (status === "unauthenticated") {
+    console.log("❌ Non authentifié, redirection...");
+    router.replace("/signIn");
+    return;
+  }
 
-    // ✅ À ce stade, status === "authenticated"
-    if (status === "authenticated" && session?.userData) {
-      console.log("Utilisateur authentifié :", session.userData);
-      fetchProfile();
-    }
-  }, [status, router, session]);
+  if (status === "authenticated") {
+    console.log("✅ Authentifié! Chargement du profil...");
+    fetchProfile();
+  }
+}, [status, router]);
 
   // ✅ CORRECTION 2 : Fonction séparée pour charger le profil
   async function fetchProfile() {

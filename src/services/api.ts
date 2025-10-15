@@ -94,7 +94,7 @@ api.interceptors.response.use(
         
         if (typeof window !== "undefined") {
           toast.error('Session expirée, veuillez vous reconnecter.', { id: "session-expired" });
-          window.location.href = '/signIn';
+         window.location.href = '/signIn';
         }
         
         return Promise.reject(refreshError);

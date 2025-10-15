@@ -239,7 +239,7 @@ export default function Categories({ categories }: CategoriesProps) {
       }}
       aria-label="Catégorie suivante"
     >
-              <ArrowLeftIcon className="h-8 w-8 text-white" aria-label="right arrow" />
+              <ArrowRightIcon className="h-8 w-8 text-white" aria-label="right arrow" />
     </button>
   </>
 )}
