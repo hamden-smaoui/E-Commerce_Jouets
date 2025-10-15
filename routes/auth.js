@@ -20,5 +20,6 @@ router.get('/profile', authMiddleware, AuthController.getProfile);
 router.put('/profile', authMiddleware, AuthController.updateProfile);
 router.put('/change-password', authMiddleware, AuthController.changePassword);
 router.post('/logout', AuthController.logout);
-
+// Après les autres routes
+router.post('/refresh-token-from-session', AuthController.refreshTokenFromSession);
 module.exports = router;

@@ -688,6 +688,33 @@ class AuthController {
       next(error);
     }
   }
+
+  // ============ REFRESH TOKEN FROM SESSION ============
+async refreshTokenFromSession(req, res, next) {
+  try {
+    const { userId } = req.body;
+
+    if (!userId) {
+      const error = new Error('User ID requis');
+      error.code = "VALIDATION_ERROR";
+      return next(error);
+    }
+
+    const user = await Utilisateur.findByPk(userId);
+    if (!user) {
+      return res.status(401).json({ message: "Utilisateur non trouvé" });
+    }
+
+    // Génère un nouveau access token
+    const newAccessToken = generateAccessToken(user);
+
+    res.status(200).json({ token: newAccessToken });
+
+  } catch (error) {
+    console.error("Erreur dans refreshTokenFromSession:", error);
+    next(error);
+  }
+}
 }
 
 module.exports = new AuthController();
