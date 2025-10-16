@@ -53,9 +53,7 @@ export default function Navbar() {
 
   const handleNavigate = (path: string) => {
     setIsDropdownOpen(false);
-    setTimeout(() => {
-      router.push(path);
-    }, 100);
+    router.push(path);
   };
 
   const handleLogout = async () => {
@@ -64,11 +62,8 @@ export default function Navbar() {
       sessionStorage.removeItem('accessToken');
       await signOut({ redirect: false });
       setIsDropdownOpen(false);
-      
-      setTimeout(() => {
-        router.push("/signIn");
-        router.refresh();
-      }, 100);
+      router.push("/signIn");
+      router.refresh();
     } catch (error) {
       console.error("Erreur de déconnexion:", error);
       sessionStorage.removeItem('accessToken');
@@ -130,13 +125,9 @@ export default function Navbar() {
             <CartDropdown />
             
             {/* Mobile User Dropdown */}
-            <div className="relative z-50" ref={dropdownRef}>
+            <div className="relative z-50">
               <button
                 onClick={toggleDropdown}
-                onTouchEnd={(e) => {
-                  e.preventDefault();
-                  toggleDropdown(e);
-                }}
                 className="btn btn-ghost btn-circle btn-sm bg-yellow-100 hover:bg-yellow-200"
                 title={isAuthenticated ? "Mon compte" : "Se connecter"}
               >
@@ -147,11 +138,14 @@ export default function Navbar() {
                 <>
                   {/* Overlay pour fermer le dropdown */}
                   <div 
-                    className="fixed inset-0 z-40 md:hidden" 
+                    className="fixed inset-0 z-40" 
                     onClick={() => setIsDropdownOpen(false)}
                   />
                   
-                  <ul className="absolute right-0 mt-2 p-2 shadow-xl bg-white rounded-lg w-56 border border-gray-200 z-50">
+                  {/* Menu dropdown */}
+                  <ul 
+                    className="absolute right-0 mt-2 p-2 shadow-xl bg-white rounded-lg w-56 border border-gray-200 z-50"
+                  >
                     {isAuthenticated && user ? (
                       <>
                         <li className="px-4 py-2 border-b border-gray-100">
@@ -162,12 +156,8 @@ export default function Navbar() {
                         </li>
                         <li>
                           <button
-                            className="flex items-center px-4 py-3 hover:bg-pink-50 font-bold text-blue-600 w-full text-left rounded-md touch-manipulation"
+                            className="flex items-center px-4 py-3 hover:bg-pink-50 font-bold text-blue-600 w-full text-left rounded-md"
                             onClick={() => handleNavigate("/site/profile")}
-                            onTouchEnd={(e) => {
-                              e.preventDefault();
-                              handleNavigate("/site/profile");
-                            }}
                           >
                             <UserCircleIcon className="h-5 w-5 text-blue-400 mr-3" />
                             Mon profil
@@ -175,12 +165,8 @@ export default function Navbar() {
                         </li>
                         <li>
                           <button
-                            className="flex items-center px-4 py-3 hover:bg-yellow-50 font-bold text-yellow-600 w-full text-left rounded-md touch-manipulation"
+                            className="flex items-center px-4 py-3 hover:bg-yellow-50 font-bold text-yellow-600 w-full text-left rounded-md"
                             onClick={() => handleNavigate("/site/profile?tab=orders")}
-                            onTouchEnd={(e) => {
-                              e.preventDefault();
-                              handleNavigate("/site/profile?tab=orders");
-                            }}
                           >
                             <ShoppingCartIcon className="h-5 w-5 text-yellow-500 mr-3" />
                             Mes commandes
@@ -189,12 +175,8 @@ export default function Navbar() {
                         {user.role === "admin" && (
                           <li>
                             <button
-                              className="flex items-center px-4 py-3 hover:bg-purple-50 font-bold text-purple-600 w-full text-left rounded-md touch-manipulation"
+                              className="flex items-center px-4 py-3 hover:bg-purple-50 font-bold text-purple-600 w-full text-left rounded-md"
                               onClick={() => handleNavigate("/admin/dashboard")}
-                              onTouchEnd={(e) => {
-                                e.preventDefault();
-                                handleNavigate("/admin/dashboard");
-                              }}
                             >
                               <Cog6ToothIcon className="h-5 w-5 text-purple-500 mr-3" />
                               Administration
@@ -204,11 +186,7 @@ export default function Navbar() {
                         <li className="border-t border-gray-100 mt-2 pt-2">
                           <button
                             onClick={handleLogout}
-                            onTouchEnd={(e) => {
-                              e.preventDefault();
-                              handleLogout();
-                            }}
-                            className="flex items-center px-4 py-3 w-full text-red-600 hover:bg-red-50 font-extrabold rounded-md touch-manipulation"
+                            className="flex items-center px-4 py-3 w-full text-red-600 hover:bg-red-50 font-extrabold rounded-md"
                           >
                             <ArrowRightOnRectangleIcon className="h-5 w-5 mr-3" />
                             Se déconnecter
@@ -219,12 +197,8 @@ export default function Navbar() {
                       <>
                         <li>
                           <button
-                            className="flex items-center px-4 py-3 hover:bg-blue-50 font-bold text-blue-600 w-full text-left rounded-md touch-manipulation"
+                            className="flex items-center px-4 py-3 hover:bg-blue-50 font-bold text-blue-600 w-full text-left rounded-md"
                             onClick={() => handleNavigate("/signIn")}
-                            onTouchEnd={(e) => {
-                              e.preventDefault();
-                              handleNavigate("/signIn");
-                            }}
                           >
                             <ArrowRightOnRectangleIcon className="h-5 w-5 text-blue-500 mr-3" />
                             Se connecter
@@ -232,12 +206,8 @@ export default function Navbar() {
                         </li>
                         <li>
                           <button
-                            className="flex items-center px-4 py-3 hover:bg-pink-50 font-bold text-pink-600 w-full text-left rounded-md touch-manipulation"
+                            className="flex items-center px-4 py-3 hover:bg-pink-50 font-bold text-pink-600 w-full text-left rounded-md"
                             onClick={() => handleNavigate("/signUp")}
-                            onTouchEnd={(e) => {
-                              e.preventDefault();
-                              handleNavigate("/signUp");
-                            }}
                           >
                             <UserIcon className="h-5 w-5 text-pink-500 mr-3" />
                             S'inscrire
@@ -275,7 +245,7 @@ export default function Navbar() {
           </div>
           <CartDropdown />
           
-          <div className="relative z-50" ref={dropdownRef}>
+          <div className="relative z-50">
             <button
               onClick={toggleDropdown}
               className="btn btn-ghost bg-yellow-100 hover:bg-yellow-200 shadow-md hover:scale-105 transition-all"
