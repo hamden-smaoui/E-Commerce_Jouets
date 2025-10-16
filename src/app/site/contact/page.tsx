@@ -136,6 +136,14 @@ export default function Contact() {
     return Object.keys(newErrors).length === 0;
   };
 
+  const getInputClassName = (fieldName: keyof ContactFormFields) => {
+    const baseClass = "w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 text-sm transition-colors";
+    const errorClass = errors[fieldName] 
+      ? "border-red-500 focus:ring-red-500 bg-red-50" 
+      : "border-gray-200 focus:ring-pink-500";
+    return `${baseClass} ${errorClass}`;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validateForm()) {
@@ -181,23 +189,23 @@ export default function Contact() {
   // Affiche le loader uniquement lors du chargement de la page
   if (pageLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-pink-50 via-blue-50 to-white">
         <KidsCornerLoader message="Chargement de la page contact..." size="lg" showMessage={true} />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-blue-50 to-white font-[Comic_Sans_MS,sans-serif]">
       <div className="container mx-auto px-4 py-8 max-w-7xl">
         {/* Header */}
         <div className="flex items-center justify-between mb-8 w-full">
           <div className="flex items-center gap-2 sm:gap-3">
-            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-purple-100 rounded-full flex items-center justify-center flex-shrink-0">
-              <ChatBubbleLeftRightIcon className="w-5 h-5 sm:w-6 sm:h-6 text-purple-600" />
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-pink-100 rounded-full flex items-center justify-center flex-shrink-0 shadow">
+              <ChatBubbleLeftRightIcon className="w-6 h-6 sm:w-7 sm:h-7 text-purple-600" />
             </div>
             <div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 truncate">
+              <h1 className="text-2xl sm:text-3xl font-extrabold text-purple-600 drop-shadow-lg">
                 Contactez-nous
               </h1>
               {isAuthenticated && user && (
@@ -213,11 +221,12 @@ export default function Contact() {
         <div className="grid grid-cols-1 xl:grid-cols-4 gap-8">
           {/* Colonne gauche : Formulaire de contact */}
           <div className="xl:col-span-3">
-            <div className="bg-white rounded-2xl shadow-sm border overflow-hidden">
-              <div className="p-6 bg-gray-50 border-b">
-                <h2 className="text-xl font-bold text-gray-900">
+            <div className="bg-white rounded-2xl shadow-xl border-2 border-pink-200 overflow-hidden">
+              <div className="p-6 bg-pink-50 border-b-2 border-pink-100">
+                <h2 className="text-l sm:text-xl font-extrabold text-pink-600">
                   {isAuthenticated ? 'Envoyez-nous votre réclamation' : 'Envoyez-nous un message'}
                 </h2>
+                <p className="text-sm text-gray-600 mt-1">Les champs marqués d'un * sont obligatoires</p>
               </div>
               <div className="p-6">
                 {isSubmitted ? (
@@ -236,6 +245,7 @@ export default function Contact() {
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                           Nom *
+                          {errors.nom && <span className="text-red-500 ml-1">- {errors.nom}</span>}
                         </label>
                         <div className="relative">
                           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -247,21 +257,17 @@ export default function Contact() {
                             value={formData.nom}
                             onChange={handleInputChange}
                             onBlur={handleBlur}
-                            className={`w-full pl-10 pr-3 py-2 border rounded-lg focus:outline-none focus:ring-2 text-sm transition-colors ${
-                              errors.nom ? 'border-red-500 focus:ring-red-500 bg-red-50' : 'border-gray-200 focus:ring-purple-500'
-                            }`}
+                            className={`${getInputClassName('nom')} pl-10`}
                             placeholder="Votre nom"
                             maxLength={50}
                           />
                         </div>
-                        {errors.nom && (
-                          <p className="mt-1 text-xs text-red-600">{errors.nom}</p>
-                        )}
                       </div>
                       {/* Prénom */}
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                           Prénom *
+                          {errors.prenom && <span className="text-red-500 ml-1">- {errors.prenom}</span>}
                         </label>
                         <div className="relative">
                           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -273,22 +279,18 @@ export default function Contact() {
                             value={formData.prenom}
                             onChange={handleInputChange}
                             onBlur={handleBlur}
-                            className={`w-full pl-10 pr-3 py-2 border rounded-lg focus:outline-none focus:ring-2 text-sm transition-colors ${
-                              errors.prenom ? 'border-red-500 focus:ring-red-500 bg-red-50' : 'border-gray-200 focus:ring-purple-500'
-                            }`}
+                            className={`${getInputClassName('prenom')} pl-10`}
                             placeholder="Votre prénom"
                             maxLength={50}
                           />
                         </div>
-                        {errors.prenom && (
-                          <p className="mt-1 text-xs text-red-600">{errors.prenom}</p>
-                        )}
                       </div>
                     </div>
                     {/* Email */}
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
                         Email *
+                        {errors.email && <span className="text-red-500 ml-1">- {errors.email}</span>}
                       </label>
                       <div className="relative">
                         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -300,21 +302,17 @@ export default function Contact() {
                           value={formData.email}
                           onChange={handleInputChange}
                           onBlur={handleBlur}
-                          className={`w-full pl-10 pr-3 py-2 border rounded-lg focus:outline-none focus:ring-2 text-sm transition-colors ${
-                            errors.email ? 'border-red-500 focus:ring-red-500 bg-red-50' : 'border-gray-200 focus:ring-purple-500'
-                          }`}
+                          className={`${getInputClassName('email')} pl-10`}
                           placeholder="votre.email@example.com"
                           maxLength={80}
                         />
                       </div>
-                      {errors.email && (
-                        <p className="mt-1 text-xs text-red-600">{errors.email}</p>
-                      )}
                     </div>
                     {/* Téléphone */}
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
                         Téléphone *
+                        {errors.telephone && <span className="text-red-500 ml-1">- {errors.telephone}</span>}
                       </label>
                       <div className="relative">
                         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -326,29 +324,24 @@ export default function Contact() {
                           value={formData.telephone}
                           onChange={handleInputChange}
                           onBlur={handleBlur}
-                          className={`w-full pl-10 pr-3 py-2 border rounded-lg focus:outline-none focus:ring-2 text-sm transition-colors ${
-                            errors.telephone ? 'border-red-500 focus:ring-red-500 bg-red-50' : 'border-gray-200 focus:ring-purple-500'
-                          }`}
+                          className={`${getInputClassName('telephone')} pl-10`}
                           placeholder="12 345 678"
                           maxLength={20}
                         />
                       </div>
-                      {errors.telephone && (
-                        <p className="mt-1 text-xs text-red-600">{errors.telephone}</p>
-                      )}
                     </div>
                     {/* Sujet */}
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Sujet *</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Sujet *
+                        {errors.sujet && <span className="text-red-500 ml-1">- {errors.sujet}</span>}
+                      </label>
                       <select
                         name="sujet"
                         value={formData.sujet}
                         onChange={handleInputChange}
                         onBlur={handleBlur}
-                        className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 text-sm transition-colors ${
-                          errors.sujet ? 'border-red-500 focus:ring-red-500 bg-red-50' : 'border-gray-200 focus:ring-purple-500'
-                        }`}
-                        required={false}
+                        className={getInputClassName('sujet')}
                       >
                         <option value="">Sélectionnez un sujet</option>
                         <option value="commande">Question sur une commande</option>
@@ -359,69 +352,65 @@ export default function Contact() {
                         <option value="partenariat">Partenariat</option>
                         <option value="autre">Autre</option>
                       </select>
-                      {errors.sujet && (
-                        <p className="mt-1 text-xs text-red-600">{errors.sujet}</p>
-                      )}
                     </div>
                     {/* Message */}
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Message *</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Message *
+                        {errors.message && <span className="text-red-500 ml-1">- {errors.message}</span>}
+                      </label>
                       <textarea 
                         name="message"
                         value={formData.message}
                         onChange={handleInputChange}
                         onBlur={handleBlur}
                         rows={6}
-                        className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 text-sm resize-none transition-colors ${
-                          errors.message ? 'border-red-500 focus:ring-red-500 bg-red-50' : 'border-gray-200 focus:ring-purple-500'
-                        }`}
+                        className={`${getInputClassName('message')} resize-none`}
                         placeholder="Décrivez votre demande en détail..."
                         maxLength={1000}
                       />
-                      {errors.message && (
-                        <p className="mt-1 text-xs text-red-600">{errors.message}</p>
-                      )}
                     </div>
                     {/* Bouton d'envoi */}
-                   <button
-                           type="submit"
-                           disabled={isSubmitting || Object.values(errors).some(v => v)}
-                           className="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white py-4 rounded-xl hover:from-purple-700 hover:to-blue-700 font-semibold transition-all transform hover:scale-105 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                         >
-                           {isSubmitting ? (
-                             <>
-                               <svg className="animate-spin h-5 w-5 text-white" viewBox="0 0 24 24">
-                                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"/>
-                                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
-                               </svg>
-                               <span>Envoi en cours...</span>
-                             </>
-                           ) : (
-                             <>
-                               <PaperAirplaneIcon className="w-5 h-5" />
-                               Envoyer le message
-                             </>
-                           )}
-                         </button>
+                    <button
+                      type="submit"
+                      disabled={isSubmitting || Object.values(errors).some(v => v)}
+                      className="w-full bg-pink-500 text-white py-4 rounded-xl hover:bg-pink-600 font-extrabold transition-all transform hover:scale-105 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    >
+                      {isSubmitting ? (
+                        <>
+                          <svg className="animate-spin h-5 w-5 text-white" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"/>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+                          </svg>
+                          <span>Envoi en cours...</span>
+                        </>
+                      ) : (
+                        <>
+                          <PaperAirplaneIcon className="w-5 h-5" />
+                          Envoyer le message
+                        </>
+                      )}
+                    </button>
                   </form>
                 )}
               </div>
             </div>
-            {/* Bouton Retour */}
-            <div className="mt-6">
-              <Link href="/site" className="inline-flex items-center gap-2 text-purple-600 hover:text-purple-800 transition-colors font-medium">
+            {/* Bouton Retour (desktop) */}
+            <div className="mt-6 hidden xl:block">
+              <Link href="/site" className="inline-flex items-center gap-2 text-purple-600 hover:text-purple-800 transition-colors font-extrabold">
                 <ArrowLeftIcon className="w-5 h-5" />
                 Retour à l'accueil
               </Link>
             </div>
           </div>
-          {/* ...right column unchanged... */}
+
+          {/* Colonne droite : Informations de contact */}
           <div className="xl:col-span-1">
             <div className="sticky top-6 space-y-6">
               {/* Card des coordonnées */}
-              <div className="bg-white rounded-2xl shadow-sm border overflow-hidden min-w-[350px] md:min-w-[400px]">
-                <div className="p-6 bg-gray-50 border-b">
-                  <h2 className="text-xl font-bold text-gray-900">Nos coordonnées</h2>
+              <div className="bg-white rounded-2xl shadow-xl border-2 border-pink-200 overflow-hidden min-w-[350px] md:min-w-[400px]">
+                <div className="p-6 bg-pink-50 border-b-2 border-pink-100">
+                  <h2 className="text-xl font-extrabold text-pink-600">Nos coordonnées</h2>
                 </div>
                 <div className="p-6">
                   <div className="space-y-6">
@@ -430,7 +419,7 @@ export default function Contact() {
                         <PhoneIcon className="w-5 h-5 text-green-600" />
                       </div>
                       <div>
-                        <h4 className="font-medium text-gray-900">Téléphone</h4>
+                        <h4 className="font-bold text-gray-900 text-sm">Téléphone</h4>
                         <p className="text-sm text-gray-600">
                           {storeInfo?.telephonePrincipal || '+216 71 123 456'}
                           {storeInfo?.telephoneSecondaire && (
@@ -447,7 +436,7 @@ export default function Contact() {
                         <EnvelopeIcon className="h-5 w-5 text-blue-600" />
                       </div>
                       <div>
-                        <h4 className="font-medium text-gray-900">Email</h4>
+                        <h4 className="font-bold text-gray-900 text-sm">Email</h4>
                         <p className="text-sm text-gray-600">
                           {storeInfo?.emailPrincipal || 'contact@toyuniverse.tn'}
                           {storeInfo?.emailSecondaire && (
@@ -464,7 +453,7 @@ export default function Contact() {
                         <MapPinIcon className="h-5 w-5 text-purple-600" />
                       </div>
                       <div>
-                        <h4 className="font-medium text-gray-900">Adresse</h4>
+                        <h4 className="font-bold text-gray-900 text-sm">Adresse</h4>
                         <p className="text-sm text-gray-600">
                           {storeInfo?.adresse || '123 Rue des Jouets'}
                           <br />
@@ -486,7 +475,7 @@ export default function Contact() {
                         <ClockIcon className="h-5 w-5 text-orange-600" />
                       </div>
                       <div>
-                        <h4 className="font-medium text-gray-900">Heures d'ouverture</h4>
+                        <h4 className="font-bold text-gray-900 text-sm">Heures d'ouverture</h4>
                         <p className="text-sm text-gray-600 whitespace-pre-line">
                           {storeInfo?.heuresOuverture || 'Lun-Sam: 9h-19h\nDim: Fermé'}
                         </p>
@@ -496,30 +485,35 @@ export default function Contact() {
                 </div>
               </div>
               {/* Card FAQ rapide */}
-              <div className="bg-white rounded-2xl shadow-sm border overflow-hidden min-w-[350px] md:min-w-[400px]">
-                <div className="p-6 bg-gray-50 border-b">
-                  <h2 className="text-xl font-bold text-gray-900">Questions fréquentes</h2>
+              <div className="bg-white rounded-2xl shadow-xl border-2 border-pink-200 overflow-hidden min-w-[350px] md:min-w-[400px]">
+                <div className="p-6 bg-pink-50 border-b-2 border-pink-100">
+                  <h2 className="text-xl font-extrabold text-pink-600">Questions fréquentes</h2>
                 </div>
                 <div className="p-6">
                   <div className="space-y-4">
                     <div>
-                      <p className="font-medium text-gray-900 text-sm">Délai de livraison ?</p>
-                      <p className="text-gray-600 text-xs">2-5 jours ouvrables en Tunisie</p>
+                      <p className="font-bold text-gray-900 text-sm">Délai de livraison ?</p>
+                      <p className="text-gray-600 text-xs">2-3 jours ouvrables en Tunisie</p>
                     </div>
                     <div>
-                      <p className="font-medium text-gray-900 text-sm">Retours possibles ?</p>
-                      <p className="text-gray-600 text-xs">14 jours pour échanger/retourner</p>
+                      <p className="font-bold text-gray-900 text-sm">Retours possibles ?</p>
+                      <p className="text-gray-600 text-xs">7 jours pour échanger/retourner</p>
                     </div>
                     <div>
-                      <p className="font-medium text-gray-900 text-sm">Paiement sécurisé ?</p>
-                      <p className="text-gray-600 text-xs">Carte bancaire ou à la livraison</p>
+                      <p className="font-bold text-gray-900 text-sm">Paiement sécurisé ?</p>
+                      <p className="text-gray-600 text-xs">à la livraison</p>
                     </div>
-                    <Link href="/site/faq" className="inline-flex items-center gap-2 text-purple-600 hover:text-purple-800 font-medium text-sm transition-colors">
-                      <QuestionMarkCircleIcon className="w-5 h-5" />
-                      Voir toutes les FAQ
-                    </Link>
+                   
                   </div>
                 </div>
+              </div>
+              
+              {/* Bouton Retour (mobile) */}
+              <div className="mt-4 xl:hidden">
+                <Link href="/site" className="inline-flex items-center gap-2 text-purple-600 hover:text-purple-800 transition-colors font-extrabold">
+                  <ArrowLeftIcon className="w-5 h-5" />
+                  Retour à l'accueil
+                </Link>
               </div>
             </div>
           </div>

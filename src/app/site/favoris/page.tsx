@@ -9,7 +9,8 @@ import KidsCornerLoader from '@/components/ui/KidsCornerLoader';
 import { 
   HeartIcon, 
   XMarkIcon,
-  ArrowLeftIcon
+  ArrowLeftIcon,
+  SparklesIcon
 } from '@heroicons/react/24/solid';
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
@@ -20,17 +21,20 @@ export default function Favoris() {
   const { favorites, loading, removeFromFavorites, clearFavorites } = useFavorites();
   const { data: session, status } = useSession();
   const router = useRouter();
+  
   useEffect(() => {
     // Si pas connecté, redirige vers /signIn
     if (status === "unauthenticated") {
       router.replace("/signIn");
     }
   }, [status, router]);
- const calculateTotalStock = (variations: ProduitVariation[] | undefined): number => {
-  console.log("Calculating total stock for variations:", variations);
+
+  const calculateTotalStock = (variations: ProduitVariation[] | undefined): number => {
+    console.log("Calculating total stock for variations:", variations);
     if (!variations || variations.length === 0) return 0;
     return variations.reduce((total, variation) => total + (variation.quantiteStock || 0), 0);
   };
+
   // Map favorites to products for ProductCard  
   const products = favorites.map(fav => ({
     idProduit: fav.idProduit,
@@ -77,14 +81,14 @@ export default function Favoris() {
   };
 
   const handleClearFavorites = () => {
-    if (window.confirm('Êtes-vous sûr de vouloir supprimer tous vos favoris ?')) {
+    if (window.confirm('Êtes-vous sûr de vouloir supprimer tous vos favoris ? 💔')) {
       clearFavorites();
     }
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-pink-50 via-red-50 to-white">
         <KidsCornerLoader 
           message="Chargement de vos favoris..."
           size="lg"
@@ -95,40 +99,54 @@ export default function Favoris() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-red-50 to-white font-[Comic_Sans_MS,sans-serif]">
       <div className="container mx-auto px-4 py-8 max-w-7xl">
         {/* Header */}
-        {/* Header */}
-<div className="flex items-center justify-between mb-8 w-full">
-  <div className="flex items-center gap-2 sm:gap-3">
-    <div className="w-8 h-8 sm:w-10 sm:h-10 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0">
-      <HeartIcon className="w-5 h-5 sm:w-6 sm:h-6 text-red-600" />
-    </div>
-    <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 truncate">
-      Mes Favoris
-    </h1>
-  </div>
-  {products.length > 0 && (
-    <button
-      onClick={handleClearFavorites}
-      className="flex items-center gap-1 sm:gap-2 text-red-500 hover:text-red-700 transition-colors px-3 py-1 sm:px-4 sm:py-2 rounded-lg hover:bg-red-50 text-sm sm:text-base font-medium"
-    >
-      <XMarkIcon className="w-4 h-4 sm:w-5 sm:h-5" />
-      <span>Vider</span>
-    </button>
-  )}
-</div>
+        <div className="flex items-center justify-between mb-8 w-full">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0 shadow-lg">
+              <HeartIcon className="w-6 h-6 sm:w-7 sm:h-7 text-red-600 animate-pulse" />
+            </div>
+            <div>
+              <h1 className="text-l sm:text-2xl font-extrabold text-red-600 drop-shadow-lg">
+                Mes Coups de Cœur
+              </h1>
+              {products.length > 0 && (
+                <p className="text-xs sm:text-sm text-gray-600 mt-1">
+                  {products.length} produit{products.length > 1 ? 's' : ''} favori{products.length > 1 ? 's' : ''}
+                </p>
+              )}
+            </div>
+          </div>
+          {products.length > 0 && (
+            <button
+              onClick={handleClearFavorites}
+              className="flex items-center gap-1 sm:gap-2 text-white bg-red-500 hover:bg-red-600 transition-all px-3 py-2 sm:px-4 sm:py-2 rounded-full text-sm sm:text-base font-bold shadow-lg hover:shadow-xl transform hover:scale-105"
+            >
+              <XMarkIcon className="w-4 h-4 sm:w-5 sm:h-5" />
+              <span> vider</span>
+            </button>
+          )}
+        </div>
 
         {products.length === 0 ? (
           <div className="text-center py-20">
             <div className="max-w-md mx-auto">
-              <div className="w-24 h-24 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                <HeartIcon className="h-12 w-12 text-red-400" />
+              <div className="relative w-32 h-32 mx-auto mb-6">
+                <div className="absolute inset-0 bg-gradient-to-br from-red-100 to-pink-100 rounded-full animate-pulse"></div>
+                <div className="relative w-32 h-32 bg-gradient-to-br from-red-200 to-pink-200 rounded-full flex items-center justify-center shadow-2xl">
+                  <HeartIcon className="h-16 w-16 text-red-400" />
+                </div>
               </div>
-              <h3 className="text-2xl font-bold text-gray-900 mb-3">Aucun favori pour le moment</h3>
-              <p className="text-gray-600 mb-8">Découvrez notre sélection de produits et ajoutez vos coups de cœur !</p>
+              <h3 className="text-2xl sm:text-3xl font-extrabold text-gray-900 mb-3">
+                Aucun favori pour le moment 💭
+              </h3>
+              <p className="text-gray-600 mb-8 text-sm sm:text-base">
+                Découvrez notre sélection magique de produits et ajoutez vos coups de cœur ! ✨
+              </p>
               <Link href="/site">
-                <button className="bg-gradient-to-r from-purple-600 to-blue-600 text-white px-8 py-3 rounded-xl hover:from-purple-700 hover:to-blue-700 transition-all transform hover:scale-105 font-medium shadow-lg">
+                <button className="bg-gradient-to-r from-red-500 to-pink-600 text-white px-8 py-4 rounded-full hover:from-red-600 hover:to-pink-700 transition-all transform hover:scale-105 font-extrabold shadow-2xl flex items-center gap-2 mx-auto">
+                  <SparklesIcon className="w-5 h-5" />
                   Découvrir nos produits
                 </button>
               </Link>
@@ -137,25 +155,36 @@ export default function Favoris() {
         ) : (
           <>
             {/* Top Bar with Sort Dropdown */}
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-              <div className="flex items-center gap-4">
-                <p className="text-sm sm:text-base text-gray-600">
-                  <span className="font-medium">{products.length}</span> produit{products.length > 1 ? 's' : ''} en favoris
-                </p>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 bg-white p-4 sm:p-6 rounded-2xl shadow-xl border-2 border-red-200">
+              <div className="flex items-center gap-3">
+                
+                <div>
+                  <p className="text-sm sm:text-base font-bold text-gray-900">
+                    {products.length} produit{products.length > 1 ? 's' : ''} en favoris
+                  </p>
+                  <p className="text-xs text-gray-500">Vos préférés vous attendent !</p>
+                </div>
               </div>
               
               {/* Sort Dropdown */}
-              <select
-                className="select select-bordered select-sm sm:select-md w-full sm:w-auto"
-                value={sortBy}
-                onChange={handleSortChange}
-              >
-                <option value="">Trier par</option>
-                <option value="a-z">A-Z</option>
-                <option value="z-a">Z-A</option>
-                <option value="price-asc">Prix croissant</option>
-                <option value="price-desc">Prix décroissant</option>
-              </select>
+              <div className="relative">
+                <select
+                  className="w-full sm:w-auto px-4 py-2 sm:py-3 border-2 border-red-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 text-sm font-medium bg-white appearance-none cursor-pointer pr-10"
+                  value={sortBy}
+                  onChange={handleSortChange}
+                >
+                  <option value=""> Trier par</option>
+                  <option value="a-z"> A → Z</option>
+                  <option value="z-a"> Z → A</option>
+                  <option value="price-asc"> Prix croissant</option>
+                  <option value="price-desc"> Prix décroissant</option>
+                </select>
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                  <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </div>
+              </div>
             </div>
 
             {/* Products Grid */}
@@ -166,8 +195,8 @@ export default function Favoris() {
             </div>
 
             {/* Continue Shopping */}
-            <div className="flex justify-center">
-              <Link href="/site" className="inline-flex items-center gap-2 text-purple-600 hover:text-purple-800 transition-colors font-medium">
+            <div className="flex flex-col items-center gap-4">
+              <Link href="/site" className="inline-flex items-center gap-2 text-red-600 hover:text-red-800 transition-colors font-extrabold bg-white px-6 py-3 rounded-full shadow-lg hover:shadow-xl transform hover:scale-105">
                 <ArrowLeftIcon className="w-5 h-5" />
                 Continuer vos achats
               </Link>

@@ -5,6 +5,7 @@ import SiteShell from "./SiteShell";
 import { CartProvider } from "@/hooks/useCart";
 import { FavoritesProvider } from "@/hooks/useFavorites";
 import MetaPixel from "@/components/MetaPixel";
+import CookieBanner from "@/components/CookieBanner";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
@@ -22,6 +23,7 @@ export default function RootLayout({
         <CartProvider>
           <FavoritesProvider>
             <SiteShell>{children}</SiteShell>
+            <CookieBanner />
           </FavoritesProvider>
         </CartProvider>
       </body>

@@ -90,9 +90,22 @@ api.interceptors.response.use(
           console.log("⚠️ Refresh via cookie échoué, tentative via session NextAuth...");
           
           // ✅ ÉTAPE 2: Si échec, essaie avec la session NextAuth (Google/Facebook)
-          const session = await getSession();
-          
-          if (session?.userId) {
+          try {
+            const session = await getSession();
+            
+            // ✅ Debug: Affiche les infos de session
+            console.log("🔍 Session NextAuth:", session);
+            console.log("🔍 Session expires:", session?.expires);
+            console.log("🔍 Maintenant:", new Date().toISOString());
+            
+            // ✅ Vérifie que la session existe et est valide
+            if (!session || !session.userId) {
+              console.error("❌ Session NextAuth invalide ou expirée");
+              throw new Error('Session NextAuth expirée');
+            }
+
+            console.log("✅ Session NextAuth valide, demande nouveau token...");
+            
             const { data } = await axios.post(
               `/api/auth/refresh-token-from-session-proxy`,
               { userId: session.userId }
@@ -107,8 +120,10 @@ api.interceptors.response.use(
 
             processQueue(null, newToken);
             return api(originalRequest);
-          } else {
-            throw new Error('Session invalide');
+            
+          } catch (sessionError) {
+            console.error("❌ Erreur session NextAuth:", sessionError);
+            throw sessionError; // Propage l'erreur pour déconnecter
           }
         }
 

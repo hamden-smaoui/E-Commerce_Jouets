@@ -102,12 +102,10 @@ export default function Footer() {
               Liens Rapides
             </h3>
             <ul className="space-y-3">
-              <li><a href="/about" className="text-purple-100 hover:text-pink-400 font-semibold transition-colors duration-300">À Propos</a></li>
+              <li><a href="/contact" className="text-purple-100 hover:text-pink-400 font-semibold transition-colors duration-300">À Propos</a></li>
               <li><a href="/products" className="text-purple-100 hover:text-pink-400 font-semibold transition-colors duration-300">Nos Produits</a></li>
-              <li><a href="/categories" className="text-purple-100 hover:text-pink-400 font-semibold transition-colors duration-300">Catégories</a></li>
-              <li><a href="/promotions" className="text-purple-100 hover:text-pink-400 font-semibold transition-colors duration-300">Promotions</a></li>
+              <li><a href="/products" className="text-purple-100 hover:text-pink-400 font-semibold transition-colors duration-300">Promotions</a></li>
               <li><a href="/contact" className="text-purple-100 hover:text-pink-400 font-semibold transition-colors duration-300">Contact</a></li>
-              <li><a href="/blog" className="text-purple-100 hover:text-pink-400 font-semibold transition-colors duration-300">Blog</a></li>
             </ul>
           </div>
 
@@ -210,18 +208,16 @@ export default function Footer() {
               © 2024 {storeInfo?.nom || 'Bamby Joy'}. Tous droits réservés.
             </div>
             <div className="flex flex-wrap justify-center md:justify-end gap-6 text-sm">
-              <a href="/privacy" className="text-purple-200 hover:text-pink-400 transition-colors duration-300 font-semibold">
+              <a href="/privacy-policy" className="text-purple-200 hover:text-pink-400 transition-colors duration-300 font-semibold">
                 Politique de Confidentialité
               </a>
-              <a href="/terms" className="text-purple-200 hover:text-pink-400 transition-colors duration-300 font-semibold">
-                Conditions d'Utilisation
+              <a href="/mentions-legales" className="text-purple-200 hover:text-pink-400 transition-colors duration-300 font-semibold">
+                  Mentions Legales
               </a>
-              <a href="/cookies" className="text-purple-200 hover:text-pink-400 transition-colors duration-300 font-semibold">
+              <a href="/cookie-policy" className="text-purple-200 hover:text-pink-400 transition-colors duration-300 font-semibold">
                 Politique des Cookies
               </a>
-              <a href="/sitemap" className="text-purple-200 hover:text-pink-400 transition-colors duration-300 font-semibold">
-                Plan du Site
-              </a>
+              
             </div>
           </div>
         </div>

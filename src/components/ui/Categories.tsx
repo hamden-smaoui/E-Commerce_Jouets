@@ -155,16 +155,18 @@ export default function Categories({ categories }: CategoriesProps) {
 
   const getDropdownStyles = (category: CategorieWithTypes) => {
     if (isMobile) {
+      // Sur mobile : centré horizontalement, positionné sous les catégories
       return {
-        position: 'fixed' as const,
-        top: '50%',
+        position: 'absolute' as const,
+        top: 'calc(100% + 14px)',
         left: '50%',
-        transform: 'translate(-50%, -50%)',
+        transform: 'translateX(-50%)',
         width: '90vw',
-        maxWidth: '350px',
-        zIndex: 9999,
+        maxWidth: '320px',
+        zIndex: 100,
       };
     } else {
+      // Sur desktop : positionné sous la catégorie spécifique
       return activeCategoryPosition ? {
         position: 'absolute' as const,
         top: 'calc(100% + 14px)',
@@ -203,46 +205,44 @@ export default function Categories({ categories }: CategoriesProps) {
       <div className="max-w-7xl mx-auto px-4">
         {/* Section Header */}
         
-
         <div ref={containerRef} className="relative">
           {/* Desktop nav arrows */}
-          {/* Desktop nav arrows */}
-{!isMobile && needsScroll && (
-  <>
-    <button
-      onClick={() => scrollToDirection('left')}
-      disabled={!canScrollLeft}
-      className={`absolute left-0 top-1/2 -translate-y-1/2 z-10 w-14 h-14 rounded-full flex items-center justify-center transition-all hover:scale-110 active:scale-95 border-4 border-white shadow-2xl ${
-        canScrollLeft
-          ? 'bg-pink-300/90 hover:bg-pink-400/90 text-white'
-          : 'bg-gray-200 text-gray-400 cursor-not-allowed'
-      }`}
-      style={{
-        filter: canScrollLeft ? "drop-shadow(0 2px 12px #f472b6aa)" : undefined,
-        outline: "none",
-      }}
-      aria-label="Catégorie précédente"
-    >
-              <ArrowLeftIcon className="h-8 w-8 text-white" aria-label="left arrow" />
-    </button>
-    <button
-      onClick={() => scrollToDirection('right')}
-      disabled={!canScrollRight}
-      className={`absolute right-0 top-1/2 -translate-y-1/2 z-10 w-14 h-14 rounded-full flex items-center justify-center transition-all hover:scale-110 active:scale-95 border-4 border-white shadow-2xl ${
-        canScrollRight
-          ? 'bg-sky-300/90 hover:bg-sky-400/90 text-white'
-          : 'bg-gray-200 text-gray-400 cursor-not-allowed'
-      }`}
-      style={{
-        filter: canScrollRight ? "drop-shadow(0 2px 12px #38bdf8aa)" : undefined,
-        outline: "none",
-      }}
-      aria-label="Catégorie suivante"
-    >
-              <ArrowRightIcon className="h-8 w-8 text-white" aria-label="right arrow" />
-    </button>
-  </>
-)}
+          {!isMobile && needsScroll && (
+            <>
+              <button
+                onClick={() => scrollToDirection('left')}
+                disabled={!canScrollLeft}
+                className={`absolute left-0 top-1/2 -translate-y-1/2 z-10 w-14 h-14 rounded-full flex items-center justify-center transition-all hover:scale-110 active:scale-95 border-4 border-white shadow-2xl ${
+                  canScrollLeft
+                    ? 'bg-pink-300/90 hover:bg-pink-400/90 text-white'
+                    : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                }`}
+                style={{
+                  filter: canScrollLeft ? "drop-shadow(0 2px 12px #f472b6aa)" : undefined,
+                  outline: "none",
+                }}
+                aria-label="Catégorie précédente"
+              >
+                <ArrowLeftIcon className="h-8 w-8 text-white" aria-label="left arrow" />
+              </button>
+              <button
+                onClick={() => scrollToDirection('right')}
+                disabled={!canScrollRight}
+                className={`absolute right-0 top-1/2 -translate-y-1/2 z-10 w-14 h-14 rounded-full flex items-center justify-center transition-all hover:scale-110 active:scale-95 border-4 border-white shadow-2xl ${
+                  canScrollRight
+                    ? 'bg-sky-300/90 hover:bg-sky-400/90 text-white'
+                    : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                }`}
+                style={{
+                  filter: canScrollRight ? "drop-shadow(0 2px 12px #38bdf8aa)" : undefined,
+                  outline: "none",
+                }}
+                aria-label="Catégorie suivante"
+              >
+                <ArrowRightIcon className="h-8 w-8 text-white" aria-label="right arrow" />
+              </button>
+            </>
+          )}
 
           {/* Scrollable categories */}
           <div className={`${!isMobile && needsScroll ? 'px-12' : ''}`}>
@@ -260,49 +260,40 @@ export default function Categories({ categories }: CategoriesProps) {
                     onMouseEnter={() => handleCategoryHover(category)}
                   >
                     <button
-  onClick={(e) => handleCategoryClick(e, category)}
-  className={`
-    inline-flex items-center gap-2 
-    px-3 py-2 sm:px-6 sm:py-3 md:px-8 md:py-4
-    text-white font-bold text-sm sm:text-base rounded-xl sm:rounded-2xl shadow-lg sm:shadow-xl
-    hover:shadow-xl sm:hover:shadow-2xl hover:scale-105 hover:-translate-y-1
-    transition-all duration-300 ease-out
-    border-2 border-white/30
-    whitespace-nowrap font-extrabold font-[Comic_Sans_MS,sans-serif]
-    ${categoryColors[index % categoryColors.length]}
-  `}
->
-  <span>{category.nom}</span>
-  {category.types && category.types.length > 0 && (
-    <ChevronDownIcon
-      className={`w-4 h-4 sm:w-5 sm:h-5 transition-transform duration-300 ${
-        activeCategory === category.idCategorie ? 'rotate-180' : ''
-      }`}
-    />
-  )}
-</button>
+                      onClick={(e) => handleCategoryClick(e, category)}
+                      className={`
+                        inline-flex items-center gap-2 
+                        px-3 py-2 sm:px-6 sm:py-3 md:px-8 md:py-4
+                        text-white font-bold text-sm sm:text-base rounded-xl sm:rounded-2xl shadow-lg sm:shadow-xl
+                        hover:shadow-xl sm:hover:shadow-2xl hover:scale-105 hover:-translate-y-1
+                        transition-all duration-300 ease-out
+                        border-2 border-white/30
+                        whitespace-nowrap font-extrabold font-[Comic_Sans_MS,sans-serif]
+                        ${categoryColors[index % categoryColors.length]}
+                      `}
+                    >
+                      <span>{category.nom}</span>
+                      {category.types && category.types.length > 0 && (
+                        <ChevronDownIcon
+                          className={`w-4 h-4 sm:w-5 sm:h-5 transition-transform duration-300 ${
+                            activeCategory === category.idCategorie ? 'rotate-180' : ''
+                          }`}
+                        />
+                      )}
+                    </button>
                   </div>
                 ))}
               </div>
             </div>
           </div>
 
-          {/* Mobile: overlay for dropdown */}
-          {isMobile && activeCategory && (
-            <div
-              className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[9998]"
-              onClick={() => {
-                setActiveCategory(null);
-                setActiveCategoryPosition(null);
-              }}
-            />
-          )}
-
           {/* Dropdown */}
           {categories.map((category) => {
             const isOpen = activeCategory === category.idCategorie;
             if (!category.types || category.types.length === 0 || !isOpen) return null;
+            // Sur desktop, vérifier activeCategoryPosition, sur mobile non nécessaire
             if (!isMobile && !activeCategoryPosition) return null;
+            
             return (
               <div
                 key={`dropdown-${category.idCategorie}`}
@@ -375,8 +366,6 @@ export default function Categories({ categories }: CategoriesProps) {
               </div>
             );
           })}
-
-          
         </div>
       </div>
       <style jsx>{`

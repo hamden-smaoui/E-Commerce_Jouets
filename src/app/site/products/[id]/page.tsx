@@ -66,7 +66,7 @@ export default function ProduitDetails() {
   const [pixelTracked, setPixelTracked] = useState(false);
   const { addToCart } = useCart();
   const { promotions, calculatePriceWithPromotion, hasPromotions } = usePromotions(produit?.idProduit || 0);
-
+  const [linkCopied, setLinkCopied] = useState(false);
   const priceData = produit ? calculatePriceWithPromotion(produit.prix) : null;
 
   useEffect(() => {
@@ -352,7 +352,32 @@ export default function ProduitDetails() {
       setIsTogglingFavorite(false);
     }
   };
-
+// Ajoutez cette fonction avec vos autres fonctions
+const handleCopyLink = async () => {
+  try {
+    const currentUrl = window.location.href;
+    await navigator.clipboard.writeText(currentUrl);
+    setLinkCopied(true);
+    
+    // Réinitialiser après 2 secondes
+    setTimeout(() => {
+      setLinkCopied(false);
+    }, 2000);
+  } catch (error) {
+    console.error('Erreur lors de la copie:', error);
+    // Fallback pour les navigateurs plus anciens
+    const textArea = document.createElement('textarea');
+    textArea.value = window.location.href;
+    document.body.appendChild(textArea);
+    textArea.select();
+    document.execCommand('copy');
+    document.body.removeChild(textArea);
+    setLinkCopied(true);
+    setTimeout(() => {
+      setLinkCopied(false);
+    }, 2000);
+  }
+};
   const availableCouleurs = getAvailableCouleurs();
   const availableTailles = getAvailableTailles();
   const availableAges = getAvailableAges();
@@ -393,7 +418,7 @@ export default function ProduitDetails() {
   ] as const;
 
   return (
-    <div className="min-h-screen bg-white font-[Comic_Sans_MS,sans-serif]">
+    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-blue-50 to-white  font-[Comic_Sans_MS,sans-serif]">
       <div className="container mx-auto px-4 py-6 max-w-7xl">
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 lg:gap-10">
           {/* Images */}
@@ -510,8 +535,8 @@ export default function ProduitDetails() {
                   {priceData && hasPromotions && priceData.reduction > 0 ? (
                     <div className="flex-shrink-0 text-right">
                       <div className="flex items-center gap-2 justify-end">
-                        <span className="text-xl lg:text-2xl xl:text-3xl font-bold text-red-600">
-                          {priceData.prixFinal.toFixed(2)} TND
+                        <span className="text-l lg:text-2xl xl:text-3xl font-bold text-red-600">
+                          {priceData.prixFinal.toFixed(2)} <span className="text-xs">TND</span>
                         </span>
                         <span className="text-xs bg-red-100 text-red-600 px-2 py-1 rounded-full font-medium">
                           -{priceData.pourcentageReduction}%
@@ -519,16 +544,16 @@ export default function ProduitDetails() {
                       </div>
                       <div className="space-y-1">
                         <div className="text-sm text-gray-500 line-through">
-                          {produit.prix.toFixed(2)} TND
+                          {produit.prix.toFixed(2)} <span className="text-xs">TND</span>
                         </div>
                         <div className="text-xs text-green-600 font-medium">
-                          Économie: {priceData.reduction.toFixed(2)} TND
+                          Économie: {priceData.reduction.toFixed(2)} <span className="text-xs">TND</span>
                         </div>
                       </div>
                     </div>
                   ) : (
                     <span className="text-xl lg:text-2xl xl:text-3xl font-bold text-gray-900">
-                      {produit.prix.toFixed(2)} TND
+                      {produit.prix.toFixed(2)} <span className="text-xs">TND</span>
                     </span>
                   )}
                 </div>
@@ -674,7 +699,7 @@ export default function ProduitDetails() {
                   </div>
                 )}
 
-                <div className="flex flex-wrap gap-3 py-4 border-t border-b border-gray-200">
+                <div className="flex flex-wrap gap-3 py-4 border-b border-gray-200">
                   {produit.marque && (
                     <span className="text-sm bg-blue-50 text-blue-700 px-3 py-2 rounded-full font-bold">
                       {produit.marque.nom}
@@ -785,12 +810,32 @@ export default function ProduitDetails() {
                         )}
                       </button>
                       
-                      <button className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-extrabold py-3 px-6 rounded-lg transition-colors duration-200 flex items-center justify-center space-x-2 border-2 border-gray-200">
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z" />
-                        </svg>
-                        <span className="hidden sm:inline">Partager</span>
-                      </button>
+                      <button 
+  onClick={handleCopyLink}
+  className={`flex-1 font-extrabold py-3 px-6 rounded-lg transition-all duration-200 flex items-center justify-center space-x-2 border-2 ${
+    linkCopied 
+      ? 'bg-green-100 border-green-300 text-green-700' 
+      : 'bg-gray-100 hover:bg-gray-200 border-gray-200 text-gray-700'
+  }`}
+>
+  {linkCopied ? (
+    <>
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+      </svg>
+      <span className="hidden sm:inline">Lien copié !</span>
+      <span className="sm:hidden">Copié !</span>
+    </>
+  ) : (
+    <>
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
+      </svg>
+      <span className="hidden sm:inline">Copier le lien</span>
+      <span className="sm:hidden">Copier</span>
+    </>
+  )}
+</button>
                     </div>
                   </div>
                 </div>

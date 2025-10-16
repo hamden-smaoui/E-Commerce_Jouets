@@ -126,6 +126,8 @@ export const authOptions: NextAuthOptions = {
     strategy: 'jwt',
     maxAge: 7 * 24 * 60 * 60, // 7 jours
   },
-
+jwt: {
+    maxAge: 7 * 24 * 60 * 60, // ✅ 7 jours aussi
+  },
   secret: process.env.NEXTAUTH_SECRET,
 };
