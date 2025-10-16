@@ -88,7 +88,7 @@ export default function Favoris() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-pink-50 via-red-50 to-white">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-pink-50 via-blue-50 to-white to-white">
         <KidsCornerLoader 
           message="Chargement de vos favoris..."
           size="lg"
@@ -99,7 +99,7 @@ export default function Favoris() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-red-50 to-white font-[Comic_Sans_MS,sans-serif]">
+    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-blue-50 to-white font-[Comic_Sans_MS,sans-serif]">
       <div className="container mx-auto px-4 py-8 max-w-7xl">
         {/* Header */}
         <div className="flex items-center justify-between mb-8 w-full">
@@ -144,7 +144,7 @@ export default function Favoris() {
               <p className="text-gray-600 mb-8 text-sm sm:text-base">
                 Découvrez notre sélection magique de produits et ajoutez vos coups de cœur ! ✨
               </p>
-              <Link href="/site">
+              <Link href="/site/products">
                 <button className="bg-gradient-to-r from-red-500 to-pink-600 text-white px-8 py-4 rounded-full hover:from-red-600 hover:to-pink-700 transition-all transform hover:scale-105 font-extrabold shadow-2xl flex items-center gap-2 mx-auto">
                   <SparklesIcon className="w-5 h-5" />
                   Découvrir nos produits
@@ -196,7 +196,7 @@ export default function Favoris() {
 
             {/* Continue Shopping */}
             <div className="flex flex-col items-center gap-4">
-              <Link href="/site" className="inline-flex items-center gap-2 text-red-600 hover:text-red-800 transition-colors font-extrabold bg-white px-6 py-3 rounded-full shadow-lg hover:shadow-xl transform hover:scale-105">
+              <Link href="/site/products" className="inline-flex items-center gap-2 text-red-600 hover:text-red-800 transition-colors font-extrabold bg-white px-6 py-3 rounded-full shadow-lg hover:shadow-xl transform hover:scale-105">
                 <ArrowLeftIcon className="w-5 h-5" />
                 Continuer vos achats
               </Link>

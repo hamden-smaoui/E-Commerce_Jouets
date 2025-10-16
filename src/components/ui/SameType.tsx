@@ -1,7 +1,7 @@
 "use client";
-import React, { useRef } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import ProductCard from "./ProductCard";
-import { ArrowRightIcon,ArrowLeftIcon  } from '@heroicons/react/24/solid';
+import { ArrowRightIcon, ArrowLeftIcon } from '@heroicons/react/24/solid';
 
 interface Product {
   idProduit: number;
@@ -21,6 +21,18 @@ interface SameTypeProps {
 
 export default function SameType({ offers }: SameTypeProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   const scrollBy = (dir: "prev" | "next") => {
     const el = containerRef.current;
@@ -34,8 +46,19 @@ export default function SameType({ offers }: SameTypeProps) {
     });
   };
 
+  // Détermine si les boutons doivent être affichés
+  const shouldShowButtons = () => {
+    if (isMobile) {
+      // Sur mobile: afficher si plus d'1 produit
+      return offers.length > 1;
+    } else {
+      // Sur desktop: afficher si 4 produits ou plus
+      return offers.length >= 4;
+    }
+  };
+
   return (
-    <section className="py-8 w-full bg-white">
+    <section className="py-8 w-full bg-transparent">
       <div className="mx-auto px-2 sm:px-6 max-w-7xl">
         {/* HEADER */}
         <div className="text-center mb-10">
@@ -97,37 +120,38 @@ export default function SameType({ offers }: SameTypeProps) {
             ))}
           </div>
 
-          {/* Navigation Buttons BELOW the carousel */}
-          <div className="flex justify-center gap-8 mt-4">
-            <button
-              onClick={() => scrollBy("prev")}
-              className="w-14 h-14 bg-purple-300/90 hover:bg-purple-400/90 border-4 border-white shadow-2xl text-white rounded-full flex items-center justify-center transition-all hover:scale-110 active:scale-95"
-              style={{
-                filter: "drop-shadow(0 2px 12px #a855f7aa)",
-                outline: "none",
-              }}
-              aria-label="Précédent"
-            >
-              <ArrowLeftIcon className="h-8 w-8 text-white" aria-label="left arrow" />
-            </button>
-            <button
-              onClick={() => scrollBy("next")}
-              className="w-14 h-14 bg-pink-300/90 hover:bg-pink-400/90 border-4 border-white shadow-2xl text-white rounded-full flex items-center justify-center transition-all hover:scale-110 active:scale-95"
-              style={{
-                filter: "drop-shadow(0 2px 12px #ec4899aa)",
-                outline: "none",
-              }}
-              aria-label="Suivant"
-            >
-            <ArrowRightIcon className="h-8 w-8 text-white" aria-label="right arrow" />
-            </button>
-          </div>
+          {/* Navigation Buttons BELOW the carousel - Affichage conditionnel */}
+          {shouldShowButtons() && (
+            <div className="flex justify-center gap-8 mt-4">
+              <button
+                onClick={() => scrollBy("prev")}
+                className="w-14 h-14 bg-purple-300/90 hover:bg-purple-400/90 border-4 border-white shadow-2xl text-white rounded-full flex items-center justify-center transition-all hover:scale-110 active:scale-95"
+                style={{
+                  filter: "drop-shadow(0 2px 12px #a855f7aa)",
+                  outline: "none",
+                }}
+                aria-label="Précédent"
+              >
+                <ArrowLeftIcon className="h-8 w-8 text-white" aria-label="left arrow" />
+              </button>
+              <button
+                onClick={() => scrollBy("next")}
+                className="w-14 h-14 bg-pink-300/90 hover:bg-pink-400/90 border-4 border-white shadow-2xl text-white rounded-full flex items-center justify-center transition-all hover:scale-110 active:scale-95"
+                style={{
+                  filter: "drop-shadow(0 2px 12px #ec4899aa)",
+                  outline: "none",
+                }}
+                aria-label="Suivant"
+              >
+                <ArrowRightIcon className="h-8 w-8 text-white" aria-label="right arrow" />
+              </button>
+            </div>
+          )}
         </div>
 
         {/* SEE ALL BUTTON */}
         <div className="text-center mt-8 sm:mt-12">
-          
-           <a href="/site/products"
+          <a href="/site/products"
             className="inline-flex items-center gap-2 px-8 py-3 bg-gradient-to-r from-purple-400 to-pink-400 text-white font-bold rounded-xl shadow-lg hover:from-purple-500 hover:to-pink-500 transition-all transform hover:scale-105"
           >
             Voir tous les produits

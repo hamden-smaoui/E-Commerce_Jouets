@@ -457,13 +457,13 @@ function CommandeConfirmation() {
 
         <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center">
           <Link
-            href="/site"
+            href="/site/products"
             className="bg-pink-600 text-white px-6 sm:px-8 py-3 rounded-lg hover:bg-pink-700 font-semibold transition-colors text-center text-sm sm:text-base"
           >
             Continuer vos achats
           </Link>
           <Link
-            href="/site/mes-commandes"
+            href="/site/profile?tab=orders"
             className="bg-gray-200 text-gray-800 px-6 sm:px-8 py-3 rounded-lg hover:bg-gray-300 font-semibold transition-colors text-center text-sm sm:text-base"
           >
             Voir mes commandes

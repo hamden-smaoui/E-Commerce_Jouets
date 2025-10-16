@@ -7,6 +7,7 @@ import AuthService from '@/services/auth-service';
 import CommandesService, { CommandeResponse } from '@/services/commandes-service';
 import NewsletterService from '@/services/newsletter-service';
 import KidsCornerLoader from '@/components/ui/KidsCornerLoader';
+import Footer from '@/components/ui/Footer';
 import { toast } from 'react-hot-toast';
 import {
   UserCircleIcon,
@@ -335,7 +336,7 @@ export default function ProfilePage() {
 
   if (globalLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-50 via-blue-50 to-white font-[Comic_Sans_MS,sans-serif]">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-pink-50 via-blue-50 to-white font-[Comic_Sans_MS,sans-serif]">
         <KidsCornerLoader 
           message="Chargement de votre profil..."
           size="lg"
@@ -346,9 +347,8 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-white font-[Comic_Sans_MS,sans-serif] py-6 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-4xl mx-auto">
-        {/* Header */}
+    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-blue-50 to-white font-[Comic_Sans_MS,sans-serif] py-6 px-4  sm:px-6 lg:px-8">
+<div className="max-w-4xl mx-auto mb-8 sm:mb-12 lg:mb-16">        {/* Header */}
         <div className="bg-white shadow-xl rounded-2xl mb-6 border-2 border-purple-100">
           <div className="px-4 sm:px-6 py-4 border-b-2 border-purple-50">
             <div className="flex items-center space-x-4">
@@ -397,18 +397,20 @@ export default function ProfilePage() {
         {activeTab === 'profile' ? (
           <div className="bg-white shadow-xl rounded-2xl border-2 border-purple-100">
             <div className="px-4 sm:px-6 py-4 border-b-2 border-purple-50 flex items-center justify-between">
-              <UserCircleIcon className="h-5 w-5 text-purple-600" />
-              <h2 className="text-lg font-extrabold text-purple-600">
-                Infos personnelles
-              </h2>
-              <button
-                onClick={() => isEditing ? handleCancelEdit() : setIsEditing(true)}
-                className="btn btn-outline btn-sm flex items-center space-x-2 text-purple-600 hover:text-purple-700 hover:border-purple-300"
-              >
-                <PencilIcon className="h-4 w-4" />
-                <span>{isEditing ? 'Annuler' : 'Modifier'}</span>
-              </button>
-            </div>
+  <div className="flex items-center space-x-2">
+    <UserCircleIcon className="h-5 w-5 text-purple-600" />
+    <h2 className="text-lg font-extrabold text-purple-600">
+      Infos personnelles
+    </h2>
+  </div>
+  <button
+    onClick={() => isEditing ? handleCancelEdit() : setIsEditing(true)}
+    className="btn btn-outline btn-sm flex items-center space-x-2 text-purple-600 hover:text-purple-700 hover:border-purple-300"
+  >
+    <PencilIcon className="h-4 w-4" />
+    <span>{isEditing ? 'Annuler' : 'Modifier'}</span>
+  </button>
+</div>
             <div className="px-4 sm:px-6 py-6">
               {isEditing ? (
                 <form onSubmit={handleSaveProfile} noValidate>
@@ -815,6 +817,7 @@ export default function ProfilePage() {
           </div>
         )}
       </div>
+      <Footer />
     </div>
   );
 }
