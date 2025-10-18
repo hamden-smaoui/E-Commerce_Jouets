@@ -72,28 +72,51 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
     ? sortedImages[currentImageIndex].url 
     : product.image;
 
-  const getStockStatus = () => {
+const getStockStatus = () => {
   if (product.variations && product.variations.length > 0) {
     const totalStock = product.variations.reduce(
       (sum, v) => sum + (v.quantiteStock || 0),
       0
     );
     if (totalStock === 0) {
-      return { text: "Rupture de stock", class: "bg-red-500", available: false };
+      return { 
+        text: "Rupture", 
+        class: "bg-white/60 backdrop-blur-md text-red-600 font-bold", 
+        available: false 
+      };
     } else if (totalStock <= 5) {
-      return { text: `Stock limité`, class: "bg-orange-500", available: true };
+      return { 
+        text: `limité`, 
+        class: "bg-white/60 backdrop-blur-md text-amber-600 font-bold", 
+        available: true 
+      };
     } else {
-      return { text: "En stock", class: "bg-green-500 text-white", available: true };
+      return { 
+        text: "En stock", 
+        class: "bg-white/60 backdrop-blur-md text-green-600 font-bold", 
+        available: true 
+      };
     }
   }
-
   // Stock général (fallback)
   if (product.quantiteStock === 0) {
-    return { text: "Rupture de stock", class: "bg-red-500", available: false };
+    return { 
+      text: "Rupture", 
+      class: "bg-white/60 backdrop-blur-md text-red-600 font-bold", 
+      available: false 
+    };
   } else if (product.quantiteStock <= 5) {
-    return { text: `Stock limité`, class: "bg-orange-500", available: true };
+    return { 
+      text: `limité`, 
+      class: "bg-white/60 backdrop-blur-md text-amber-600 font-bold", 
+      available: true 
+    };
   } else {
-    return { text: "En stock", class: "bg-green-500 text-white", available: true };
+    return { 
+      text: "En stock", 
+      class: "bg-white/60 backdrop-blur-md text-green-600 font-bold", 
+      available: true 
+    };
   }
 };
 
@@ -211,12 +234,12 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
 
   const isProductFavorite = isFavorite(product.idProduit);
 
- return (
+return (
     <Link href={`/site/products/${product.idProduit}`} className="block h-full">
-      <div className="group bg-white rounded-2xl shadow-xl hover:shadow-2xl transition-all duration-300 overflow-hidden h-full flex flex-col border-2 border-white/40 hover:border-pink-300 cursor-pointer font-[Comic_Sans_MS,sans-serif]">
+      <div className="group bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden h-full flex flex-col border border-gray-200 hover:border-pink-300 cursor-pointer">
         {/* Image Container */}
         <figure 
-          className="relative w-full h-48 sm:h-56 md:h-60 overflow-hidden bg-gray-50"
+          className="relative w-full h-48 sm:h-52 overflow-hidden bg-gray-50"
           onMouseEnter={handleMouseEnter}
           onMouseLeave={handleMouseLeave}
           onTouchStart={handleTouchStart}
@@ -227,11 +250,6 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
             src={imageError ? '/images/placeholder.jpg' : `${process.env.NEXT_PUBLIC_API_BASE_URL_IMAGE}${displayImage || '/images/placeholder.jpg'}`}
             alt={product.nom}
             fill
-            // Best practice for grid cards:
-            // - Mobile: 2 per row (50vw)
-            // - Tablet: 3 per row (33vw)
-            // - Desktop: 4 per row (25vw)
-            // - Fallback: 300px for larger screens
             sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, (max-width: 1400px) 25vw, 300px"
             className={`object-cover transition-all duration-500 ${
               (!isMobile && isHovering) 
@@ -240,25 +258,24 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
             }`}
             onError={() => setImageError(true)}
             draggable={false}
-            // priority={false} // Only set to true if this image is above the fold and super important
           />
           
           {/* Promotion Badge - top-left */}
           <PromotionBadge pourcentageReduction={pourcentageReduction} />
           
-          {/* Stock Status Badge - top-right */}
-          <div className="absolute top-3 right-3 z-10">
-            <div className={`${stockStatus.class} text-white text-xs px-3 py-1 rounded-full font-extrabold shadow-md font-[Comic_Sans_MS,sans-serif]`}>
-              {stockStatus.text}
-            </div>
-          </div>
+         {/* Stock Status Badge - top-right */}
+<div className="absolute top-2 right-2 z-10">
+  <div className={`${stockStatus.class} text-[10px] sm:text-xs px-2 py-1 rounded-full shadow-sm`}>
+    {stockStatus.text}
+  </div>
+</div>
 
           {/* Favorite Heart Button - bottom-right */}
-          <div className="absolute bottom-3 right-3 z-10">
+          <div className="absolute bottom-2 right-2 z-10">
             <button
               onClick={handleToggleFavorite}
               disabled={isTogglingFavorite}
-              className={`btn btn-circle btn-sm transition-all duration-300 shadow-lg ${
+              className={`btn btn-circle btn-xs sm:btn-sm transition-all duration-300 shadow-md ${
                 isProductFavorite 
                   ? 'bg-pink-500 hover:bg-pink-600 text-white border-pink-500'
                   : 'bg-white/90 hover:bg-white text-pink-500 border-white/90'
@@ -266,7 +283,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
               title={isProductFavorite ? "Retirer des favoris" : "Ajouter aux favoris"}
             >
               {isTogglingFavorite ? (
-                <div className="animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full"></div>
+                <div className="animate-spin h-3 w-3 sm:h-4 sm:w-4 border-2 border-current border-t-transparent rounded-full"></div>
               ) : (
                 <svg 
                   xmlns="http://www.w3.org/2000/svg" 
@@ -274,7 +291,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
                   viewBox="0 0 24 24" 
                   strokeWidth="2.5" 
                   stroke="currentColor" 
-                  className="w-4 h-4"
+                  className="w-3 h-3 sm:w-4 sm:h-4"
                 >
                   <path strokeLinecap="round" strokeLinejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z" />
                 </svg>
@@ -284,17 +301,17 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
 
           {/* Multiple Images Indicator */}
           {hasMultipleImages && (
-            <div className="absolute bottom-3 left-3 flex space-x-1">
+            <div className="absolute bottom-2 left-2 flex space-x-1">
               {sortedImages.slice(0, 4).map((_, index) => (
                 <div
                   key={index}
-                  className={`w-2 h-2 rounded-full transition-all duration-300 ${
+                  className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${
                     index === currentImageIndex ? 'bg-white shadow-md' : 'bg-white/50'
                   }`}
                 />
               ))}
               {sortedImages.length > 4 && (
-                <div className="text-white text-xs bg-black/30 px-2 py-0.5 rounded-full">
+                <div className="text-white text-[9px] bg-black/30 px-1.5 py-0.5 rounded-full">
                   +{sortedImages.length - 3}
                 </div>
               )}
@@ -303,35 +320,35 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
 
           {/* Mobile Swipe Instruction */}
           {isMobile && hasMultipleImages && currentImageIndex === 0 && (
-            <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-black/60 text-white text-xs px-3 py-2 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-              Glissez pour voir plus d'images
+            <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-black/60 text-white text-[10px] px-2 py-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+              Glissez pour voir plus
             </div>
           )}
         </figure>
         
         {/* Content */}
-        <div className="p-4 sm:p-5 flex-1 flex flex-col">
+        <div className="p-3 sm:p-4 flex-1 flex flex-col">
           {/* Product Name */}
-          <h3 className="text-lg sm:text-xl font-extrabold text-gray-700 drop-shadow-lg mb-2 min-h-[3rem] group-hover:text-gray-900 transition-colors font-[Comic_Sans_MS,sans-serif]">
+          <h3 className="text-sm sm:text-base font-semibold text-gray-800 mb-2 line-clamp-2 leading-tight group-hover:text-gray-900 transition-colors">
             {product.nom}
           </h3>
           
           {/* Description */}
           {product.description && (
-            <p className="text-sm text-gray-600 line-clamp-2 mb-3 leading-relaxed">
+            <p className="text-xs text-gray-600 line-clamp-2 mb-3 leading-relaxed">
               {product.description}
             </p>
           )}
           
           {/* Brand and Category */}
-          <div className="flex flex-wrap gap-2 mb-4">
+          <div className="flex flex-wrap gap-1.5 mb-3">
             {product.marque && (
-              <span className="text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded-full font-bold font-[Comic_Sans_MS,sans-serif]">
+              <span className="text-[10px] sm:text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full font-medium">
                 {product.marque.nom}
               </span>
             )}
             {product.categorie && (
-              <span className="text-xs bg-pink-50 text-pink-600 px-2 py-1 rounded-full font-bold font-[Comic_Sans_MS,sans-serif]">
+              <span className="text-[10px] sm:text-xs bg-pink-50 text-pink-600 px-2 py-0.5 rounded-full font-medium">
                 {product.categorie.nom}
               </span>
             )}
@@ -343,19 +360,19 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
               {/* Pricing */}
               <div className="flex-1">
                 {hasPromotions && reduction > 0 ? (
-                  <div className="space-y-1">
+                  <div className="space-y-0.5">
                     {/* New Price */}
-                    <div className="text-base sm:text-lg font-extrabold text-pink-600 font-[Comic_Sans_MS,sans-serif] drop-shadow-lg">
-                      {prixFinal.toFixed(2)} <span className="text-xs text-pink-500">TND</span>
+                    <div className="text-base sm:text-lg font-bold text-pink-600">
+                      {prixFinal.toFixed(2)} <span className="text-xs font-normal text-pink-500">TND</span>
                     </div>
                     {/* Original Price */}
-                    <div className="text-xs text-gray-500 line-through">
-                      {product.prix.toFixed(2)} <span className="text-xs">TND</span>
+                    <div className="text-xs text-gray-500 line-through font-normal">
+                      {product.prix.toFixed(2)} <span className="text-[10px]">TND</span>
                     </div>
                   </div>
                 ) : (
-                  <div className="text-base sm:text-lg font-extrabold text-gray-900 font-[Comic_Sans_MS,sans-serif]">
-                    {product.prix.toFixed(2)} <span className="text-xs text-gray-600">TND</span>
+                  <div className="text-base sm:text-lg font-bold text-gray-900">
+                    {product.prix.toFixed(2)} <span className="text-xs font-normal text-gray-600">TND</span>
                   </div>
                 )}
               </div>
@@ -364,14 +381,14 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
               <button
                 type="button"
                 onClick={e => {
-                  e.preventDefault(); // Ne pas déclencher le Link parent
+                  e.preventDefault();
                   e.stopPropagation();
                   router.push(`/site/products/${product.idProduit}`);
                 }}
-                className={`ml-3 btn btn-circle btn-sm bg-purple-100 hover:bg-purple-200 shadow-md hover:scale-105 transition-all flex items-center justify-center text-purple-600`}
+                className="ml-2 btn btn-circle btn-xs sm:btn-sm bg-purple-100 hover:bg-purple-200 shadow-sm hover:scale-105 transition-all flex items-center justify-center text-purple-600"
                 title="Voir le produit"
               >
-                <ShoppingCartIcon className="h-5 w-5" />
+                <ShoppingCartIcon className="h-4 w-4 sm:h-5 sm:w-5" />
               </button>
             </div>
           </div>

@@ -183,7 +183,9 @@ function CommandeConfirmation() {
 
     clearCartIfNeeded();
   }, [mounted, commande, cartItems.length, clearCartWithoutToast]);
-
+useEffect(() => {
+  window.scrollTo(0, 0);
+}, [id]);
   if (!mounted || loading || !id) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-base-200">
@@ -488,7 +490,7 @@ export default function CommandeConfirmationWithProvider() {
   return (
     <CartPromotionProvider>
       <Suspense fallback={<KidsCornerLoader
-    message="Chargement du panier..."
+    message="Chargement du votre commande..."
     size="lg"
     showMessage={true}
   />}>

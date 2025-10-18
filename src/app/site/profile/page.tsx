@@ -164,7 +164,12 @@ export default function ProfilePage() {
     };
     checkNewsletter();
   }, [profileData.email, session?.customToken]);
-
+useEffect(() => {
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth' // Animation douce
+    });
+  }, [activeTab]);
   // Fetch user orders — maintenant accepte token?: string et vérifie
   const fetchUserOrders = async (token?: string) => {
     if (!token) {

@@ -180,7 +180,9 @@ export default function ProduitDetails() {
       setSelectedVariation(null);
     }
   }, [selectedCouleur, selectedTaille, selectedAge, produit?.variations]);
-
+useEffect(() => {
+  window.scrollTo(0, 0);
+}, [id]);
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-base-200">
@@ -241,16 +243,32 @@ export default function ProduitDetails() {
   // Modification 3: Statut de stock basé sur la variation sélectionnée seulement
   const getStockStatus = () => {
   if (!selectedCouleur && !selectedTaille && !selectedAge) {
-    return { text: "Sélectionnez vos options", class: "bg-gray-300 text-gray-800", available: false };
+    return { 
+      text: "Sélectionnez vos options", 
+      class: "bg-white/60 backdrop-blur-md text-gray-600 font-bold", 
+      available: false 
+    };
   }
   if (selectedVariation) {
     const stock = selectedVariation.quantiteStock;
     if (stock === 0) {
-      return { text: "Rupture de stock", class: "bg-red-500 text-white", available: false };
+      return { 
+        text: "Rupture", 
+        class: "bg-white/60 backdrop-blur-md text-red-600 font-bold", 
+        available: false 
+      };
     } else if (stock <= 5) {
-      return { text: "Stock limité", class: "bg-orange-500 text-white", available: true };
+      return { 
+        text: "Limité", 
+        class: "bg-white/60 backdrop-blur-md text-amber-600 font-bold", 
+        available: true 
+      };
     } else {
-      return { text: "En stock", class: "bg-green-500 text-white", available: true };
+      return { 
+        text: "En stock", 
+        class: "bg-white/60 backdrop-blur-md text-green-600 font-bold", 
+        available: true 
+      };
     }
   }
   let filtered = produit?.variations ?? [];
@@ -261,12 +279,24 @@ export default function ProduitDetails() {
   if (filtered.length > 0) {
     const someStock = filtered.some(v => v.quantiteStock > 0);
     if (someStock) {
-      return { text: "En stock", class: "bg-green-500 text-white", available: true };
+      return { 
+        text: "En stock", 
+        class: "bg-white/60 backdrop-blur-md text-green-600 font-bold", 
+        available: true 
+      };
     } else {
-      return { text: "Rupture de stock", class: "bg-red-500 text-white", available: false };
+      return { 
+        text: "Rupture", 
+        class: "bg-white/60 backdrop-blur-md text-red-600 font-bold", 
+        available: false 
+      };
     }
   }
-  return { text: "Sélectionnez vos options", class: "bg-gray-300 text-gray-800", available: false };
+  return { 
+    text: "Sélectionnez vos options", 
+    class: "bg-white/60 backdrop-blur-md text-gray-600 font-bold", 
+    available: false 
+  };
 };
 
   const stockStatus = getStockStatus();
@@ -465,11 +495,12 @@ const handleCopyLink = async () => {
                         className="object-cover"
                       />
                       {priceData && <PromotionBadge pourcentageReduction={priceData.pourcentageReduction} />}
-                      <div className="absolute top-3 right-3 z-10">
-                        <div className={`${stockStatus.class} text-xs px-3 py-1 rounded-full font-extrabold shadow-md font-[Comic_Sans_MS,sans-serif]`}>
-                          {stockStatus.text}
-                        </div>
-                      </div>
+                      {/* Dans la section de l'image principale, ligne ~520 environ */}
+<div className="absolute top-3 right-3 z-10">
+  <div className={`${stockStatus.class} text-xs px-3 py-1 rounded-full shadow-md font-[Comic_Sans_MS,sans-serif]`}>
+    {stockStatus.text}
+  </div>
+</div>
                       {sortedImages.length > 1 && (
                         <>
                           <button
@@ -699,26 +730,26 @@ const handleCopyLink = async () => {
                   </div>
                 )}
 
-                <div className="flex flex-wrap gap-3 py-4 border-b border-gray-200">
-                  {produit.marque && (
-                    <span className="text-sm bg-blue-50 text-blue-700 px-3 py-2 rounded-full font-bold">
-                      {produit.marque.nom}
-                    </span>
-                  )}
-                  {produit.categorie && (
-                    <span className="text-sm bg-purple-50 text-purple-700 px-3 py-2 rounded-full font-bold">
-                      {produit.categorie.nom}
-                    </span>
-                  )}
-                  {produit.genre && (
-                    <span className="text-sm bg-indigo-50 text-indigo-700 px-3 py-2 rounded-full font-bold">
-                      {produit.genre}
-                    </span>
-                  )}
-                  <span className={`text-sm px-3 py-2 rounded-full font-bold ${stockStatus.class}`}>
-                    {stockStatus.text}
-                  </span>
-                </div>
+               <div className="flex flex-wrap gap-3 py-4 border-b border-gray-200">
+  {produit.marque && (
+    <span className="text-sm bg-blue-50 text-blue-700 px-3 py-2 rounded-full font-bold">
+      {produit.marque.nom}
+    </span>
+  )}
+  {produit.categorie && (
+    <span className="text-sm bg-purple-50 text-purple-700 px-3 py-2 rounded-full font-bold">
+      {produit.categorie.nom}
+    </span>
+  )}
+  {produit.genre && (
+    <span className="text-sm bg-indigo-50 text-indigo-700 px-3 py-2 rounded-full font-bold">
+      {produit.genre}
+    </span>
+  )}
+  <span className={`text-sm px-3 py-2 rounded-full ${stockStatus.class}`}>
+    {stockStatus.text}
+  </span>
+</div>
 
                 {/* Section quantité et boutons */}
                 <div className="space-y-4">

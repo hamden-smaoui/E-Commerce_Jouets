@@ -325,7 +325,7 @@ function Checkout() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-base-200">
         <KidsCornerLoader 
-          message="Chargement des produits..."
+          message="Creation de votre commande..."
           size="lg"
           showMessage={true}
         />
@@ -697,7 +697,7 @@ const CheckoutWithProvider = () => {
   return (
     <CartPromotionProvider>
        <Suspense fallback={<KidsCornerLoader
-    message="Chargement du panier..."
+    message="Chargement..."
     size="lg"
     showMessage={true}
   />}>
