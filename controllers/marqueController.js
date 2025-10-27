@@ -1,7 +1,6 @@
 const { Marque, Produit } = require('../models');
 const upload = require('../multerConfig');
-const path = require('path');
-const fs = require('fs').promises;
+const { cloudinary } = require('../config/cloudinary'); // ✅ NOUVEAU
 
 class MarqueController {
   static uploadLogo = upload.single('logo');
@@ -15,10 +14,28 @@ class MarqueController {
       }
       try {
         const { nom, description } = req.body;
-        const logoUrl = req.file ? `/uploads/${req.file.filename}` : null;
-        const marque = await Marque.create({ nom, description, logoUrl });
+        
+        // ✅ MODIFIÉ : Utiliser Cloudinary URL
+        const logoUrl = req.file ? req.file.path : null;
+        const logoPublicId = req.file ? req.file.filename : null;
+        
+        const marque = await Marque.create({ 
+          nom, 
+          description, 
+          logoUrl,
+          logoPublicId // ✅ NOUVEAU : Sauvegarder le publicId
+        });
+        
         res.status(201).json({ message: 'Marque créée avec succès', data: marque });
       } catch (error) {
+        // ✅ NOUVEAU : En cas d'erreur, supprimer le logo de Cloudinary
+        if (req.file) {
+          try {
+            await cloudinary.uploader.destroy(req.file.filename);
+          } catch (deleteErr) {
+            console.error('Erreur suppression logo Cloudinary:', deleteErr);
+          }
+        }
         next(error);
       }
     });
@@ -73,20 +90,40 @@ class MarqueController {
           error.code = "NOT_FOUND";
           return next(error);
         }
-        const oldLogoUrl = marque.logoUrl;
+        
+        const oldLogoPublicId = marque.logoPublicId;
         const { nom, description } = req.body;
-        const logoUrl = req.file ? `/uploads/${req.file.filename}` : marque.logoUrl;
-        const updatedMarque = await marque.update({ nom, description, logoUrl });
+        
+        // ✅ MODIFIÉ : Utiliser Cloudinary URL
+        const logoUrl = req.file ? req.file.path : marque.logoUrl;
+        const logoPublicId = req.file ? req.file.filename : marque.logoPublicId;
+        
+        const updatedMarque = await marque.update({ 
+          nom, 
+          description, 
+          logoUrl,
+          logoPublicId 
+        });
 
-        // Delete old logo if a new one was uploaded
-        if (req.file && oldLogoUrl) {
-          const oldLogoPath = path.join(__dirname, '..', oldLogoUrl);
+        // ✅ MODIFIÉ : Supprimer l'ancien logo de Cloudinary
+        if (req.file && oldLogoPublicId) {
           try {
-            await fs.unlink(oldLogoPath);
-          } catch (err) {}
+            await cloudinary.uploader.destroy(oldLogoPublicId);
+          } catch (cloudErr) {
+            console.error('Erreur suppression ancien logo Cloudinary:', cloudErr);
+          }
         }
+        
         res.status(200).json({ message: 'Marque mise à jour avec succès', data: updatedMarque });
       } catch (error) {
+        // ✅ NOUVEAU : En cas d'erreur, supprimer le nouveau logo uploadé
+        if (req.file) {
+          try {
+            await cloudinary.uploader.destroy(req.file.filename);
+          } catch (deleteErr) {
+            console.error('Erreur suppression logo Cloudinary:', deleteErr);
+          }
+        }
         next(error);
       }
     });
@@ -100,15 +137,20 @@ class MarqueController {
         error.code = "NOT_FOUND";
         return next(error);
       }
-      const logoUrl = marque.logoUrl;
+      
+      const logoPublicId = marque.logoPublicId;
+      
       await marque.destroy();
-      // Delete logo file if it exists
-      if (logoUrl) {
-        const logoPath = path.join(__dirname, '..', logoUrl);
+      
+      // ✅ MODIFIÉ : Supprimer le logo de Cloudinary
+      if (logoPublicId) {
         try {
-          await fs.unlink(logoPath);
-        } catch (err) {}
+          await cloudinary.uploader.destroy(logoPublicId);
+        } catch (cloudErr) {
+          console.error('Erreur suppression logo Cloudinary:', cloudErr);
+        }
       }
+      
       res.status(200).json({ message: 'Marque supprimée avec succès' });
     } catch (error) {
       next(error);

@@ -61,14 +61,22 @@ const StoreInfo = sequelize.define('StoreInfo', {
         type: DataTypes.DOUBLE,
         allowNull: true,
     },
-    logo1: {
-        type: DataTypes.TEXT,
-        allowNull: true,
-    },
-    logo2: {
-        type: DataTypes.TEXT,
-        allowNull: true,
-    },
+     logo1: {
+    type: DataTypes.STRING(500), // ⚠️ Augmente la taille
+    allowNull: true
+  },
+  logo1PublicId: { // ✅ NOUVEAU CHAMP
+    type: DataTypes.STRING(255),
+    allowNull: true
+  },
+  logo2: {
+    type: DataTypes.STRING(500), // ⚠️ Augmente la taille
+    allowNull: true
+  },
+  logo2PublicId: { // ✅ NOUVEAU CHAMP
+    type: DataTypes.STRING(255),
+    allowNull: true
+  },
     descriptionHero: {
         type: DataTypes.TEXT,
         allowNull: true,

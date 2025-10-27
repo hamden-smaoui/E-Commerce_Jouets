@@ -2,8 +2,8 @@ const Newsletter = require('../models/NewsLetter');
 const NewsletterCampaign = require('../models/NewsletterCampaign');
 const SibApiV3Sdk = require('@getbrevo/brevo');
 const upload = require('../newsletterMulter');
-const path = require('path');
-const fs = require('fs').promises;
+const { cloudinary } = require('../config/cloudinary'); // ✅ NOUVEAU
+const axios = require('axios'); // ✅ NOUVEAU : Pour télécharger les images Cloudinary
 
 class NewsletterController {
   static uploadImage = upload.single('image');
@@ -32,35 +32,37 @@ class NewsletterController {
       next(err);
     }
   }
-async unsubscribeByEmail(req, res, next) {
-  try {
-    const { email } = req.query; // Récupère depuis l'URL (?email=...)
-    
-    if (!email) {
-      const error = new Error("Email requis");
-      error.code = "VALIDATION_ERROR";
-      return next(error);
-    }
 
-    const entry = await Newsletter.findOne({ where: { email } });
-    
-    if (!entry) {
-      const error = new Error("Email non trouvé dans notre liste d'abonnés");
-      error.code = "NOT_FOUND";
-      return next(error);
-    }
+  async unsubscribeByEmail(req, res, next) {
+    try {
+      const { email } = req.query;
+      
+      if (!email) {
+        const error = new Error("Email requis");
+        error.code = "VALIDATION_ERROR";
+        return next(error);
+      }
 
-    await entry.destroy();
-    
-    res.status(200).json({ 
-      message: "Désinscription réussie",
-      email: email 
-    });
-    
-  } catch (err) {
-    next(err);
+      const entry = await Newsletter.findOne({ where: { email } });
+      
+      if (!entry) {
+        const error = new Error("Email non trouvé dans notre liste d'abonnés");
+        error.code = "NOT_FOUND";
+        return next(error);
+      }
+
+      await entry.destroy();
+      
+      res.status(200).json({ 
+        message: "Désinscription réussie",
+        email: email 
+      });
+      
+    } catch (err) {
+      next(err);
+    }
   }
-}
+
   async unsubscribe(req, res, next) {
     try {
       const { email } = req.body;
@@ -86,17 +88,31 @@ async unsubscribeByEmail(req, res, next) {
       }
       try {
         const { subject, content, htmlContent, scheduledDate } = req.body;
-        const imageUrl = req.file ? `/uploads/newsletter/${req.file.filename}` : null;
+        
+        // ✅ MODIFIÉ : Utiliser Cloudinary URL
+        const imageUrl = req.file ? req.file.path : null;
+        const imagePublicId = req.file ? req.file.filename : null;
+        
         const campaign = await NewsletterCampaign.create({
           subject,
           content,
           htmlContent,
           imageUrl,
+          imagePublicId, // ✅ NOUVEAU
           scheduledDate: scheduledDate || null,
           status: scheduledDate ? 'scheduled' : 'draft'
         });
+        
         res.status(201).json({ message: 'Campagne créée avec succès', campaign });
       } catch (error) {
+        // ✅ NOUVEAU : En cas d'erreur, supprimer l'image de Cloudinary
+        if (req.file) {
+          try {
+            await cloudinary.uploader.destroy(req.file.filename);
+          } catch (deleteErr) {
+            console.error('Erreur suppression image Cloudinary:', deleteErr);
+          }
+        }
         next(error);
       }
     });
@@ -145,17 +161,24 @@ async unsubscribeByEmail(req, res, next) {
       let successCount = 0;
       let errorCount = 0;
 
-      // ✅ PRÉPARER L'IMAGE (SI EXISTE)
+      // ✅ MODIFIÉ : TÉLÉCHARGER L'IMAGE DEPUIS CLOUDINARY
       let imageBase64 = null;
       let imageExtension = null;
       if (campaign.imageUrl) {
         try {
-          const imagePath = path.join(__dirname, '..', campaign.imageUrl);
-          const imageBuffer = await fs.readFile(imagePath);
+          // Télécharger l'image depuis Cloudinary
+          const response = await axios.get(campaign.imageUrl, {
+            responseType: 'arraybuffer'
+          });
+          const imageBuffer = Buffer.from(response.data, 'binary');
           imageBase64 = imageBuffer.toString('base64');
-          imageExtension = path.extname(campaign.imageUrl).substring(1);
+          
+          // Déterminer l'extension à partir de l'URL Cloudinary
+          const urlParts = campaign.imageUrl.split('.');
+          imageExtension = urlParts[urlParts.length - 1].toLowerCase();
+          
         } catch (err) {
-          console.error("Erreur lecture image:", err);
+          console.error("Erreur téléchargement image Cloudinary:", err);
         }
       }
 
@@ -282,12 +305,16 @@ async unsubscribeByEmail(req, res, next) {
         error.code = "NOT_FOUND";
         return next(error);
       }
-      if (campaign.imageUrl) {
-        const imagePath = path.join(__dirname, '..', campaign.imageUrl);
+      
+      // ✅ MODIFIÉ : Supprimer l'image de Cloudinary
+      if (campaign.imagePublicId) {
         try {
-          await fs.unlink(imagePath);
-        } catch (err) {}
+          await cloudinary.uploader.destroy(campaign.imagePublicId);
+        } catch (err) {
+          console.error('Erreur suppression image Cloudinary:', err);
+        }
       }
+      
       await campaign.destroy();
       res.status(200).json({ message: 'Campagne supprimée avec succès' });
     } catch (error) {
@@ -316,30 +343,47 @@ async unsubscribeByEmail(req, res, next) {
           error.code = "VALIDATION_ERROR";
           return next(error);
         }
+        
         let imageUrl = campaign.imageUrl;
+        let imagePublicId = campaign.imagePublicId;
+        
         if (req.file) {
-          if (campaign.imageUrl) {
-            const oldImagePath = path.join(__dirname, '..', campaign.imageUrl);
+          // ✅ MODIFIÉ : Supprimer l'ancienne image de Cloudinary
+          if (campaign.imagePublicId) {
             try {
-              await fs.unlink(oldImagePath);
-            } catch (err) {}
+              await cloudinary.uploader.destroy(campaign.imagePublicId);
+            } catch (err) {
+              console.error('Erreur suppression ancienne image:', err);
+            }
           }
-          imageUrl = `/uploads/newsletter/${req.file.filename}`;
+          imageUrl = req.file.path;
+          imagePublicId = req.file.filename;
         }
+        
         const newStatus = scheduledDate ? 'scheduled' : 'draft';
         await campaign.update({
           subject,
           content,
           htmlContent,
           imageUrl,
+          imagePublicId,
           scheduledDate: scheduledDate || null,
           status: newStatus
         });
+        
         res.status(200).json({
           message: 'Campagne mise à jour avec succès',
           campaign
         });
       } catch (error) {
+        // ✅ NOUVEAU : En cas d'erreur, supprimer la nouvelle image uploadée
+        if (req.file) {
+          try {
+            await cloudinary.uploader.destroy(req.file.filename);
+          } catch (deleteErr) {
+            console.error('Erreur suppression image Cloudinary:', deleteErr);
+          }
+        }
         next(error);
       }
     });

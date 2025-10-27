@@ -20,9 +20,13 @@ const NewsletterCampaign = sequelize.define('NewsletterCampaign', {
     type: DataTypes.TEXT,
     allowNull: true,
   },
-  imageUrl: {
-    type: DataTypes.STRING,
-    allowNull: true,
+   imageUrl: {
+    type: DataTypes.STRING(500), 
+    allowNull: true
+  },
+  imagePublicId: {
+    type: DataTypes.STRING(255),
+    allowNull: true
   },
   status: {
     type: DataTypes.ENUM('draft', 'sent', 'scheduled'),

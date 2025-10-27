@@ -16,9 +16,13 @@ const Marque = sequelize.define('Marque', {
         allowNull: true,
     },
     logoUrl: {
-        type: DataTypes.TEXT,
-        allowNull: true,
-    },
+    type: DataTypes.STRING(500), // ⚠️ Augmente la taille pour Cloudinary
+    allowNull: true
+  },
+  logoPublicId: { // ✅ NOUVEAU CHAMP
+    type: DataTypes.STRING(255),
+    allowNull: true
+  }
 }, {
     timestamps: true,
     tableName: 'marques',

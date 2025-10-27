@@ -7,9 +7,13 @@ const Image = sequelize.define('Image', {
         primaryKey: true,
     },
     url: {
-        type: DataTypes.TEXT,
-        allowNull: true,
-    },
+    type: DataTypes.STRING(500), 
+    allowNull: false
+  },
+  public_id: { // ✅ NOUVEAU CHAMP
+    type: DataTypes.STRING(255),
+    allowNull: true
+  },
     rang: {
         type: DataTypes.INTEGER,
         allowNull: true,
