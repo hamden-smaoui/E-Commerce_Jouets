@@ -127,6 +127,7 @@ const waitForDatabase = async (maxRetries = 30, delay = 3000) => {
 const startServer = async () => {
   try {
     await waitForDatabase();
+    await syncDatabase();
     const PORT = process.env.PORT || 5000;
     server.listen(PORT, '0.0.0.0', () => {
       console.log(`✅ Backend E-Commerce Jouets running on port ${PORT}`);
