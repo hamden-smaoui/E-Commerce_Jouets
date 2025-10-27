@@ -23,6 +23,12 @@ const Produit = sequelize.define('Produit', {
         type: DataTypes.INTEGER,
         allowNull: false,
     },
+    livraisonGratuite: {
+        type: DataTypes.BOOLEAN,
+        allowNull: false,
+        defaultValue: false,
+        comment: 'Si true, la livraison est gratuite pour ce produit'
+    },
     idCategorie: {
         type: DataTypes.INTEGER,
         allowNull: false,

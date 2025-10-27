@@ -2,7 +2,7 @@
 const { Commande, Utilisateur, LigneCommande, Facture, Produit, StoreInfo , ProduitVariation, Couleur, Taille, Age } = require('../models');
 const PromotionService = require('./PromotionService');
 const sequelize = require('../config/database');
-
+const { v4: uuidv4 } = require('uuid');
 class CommandeService {
     
     async creerCommande(donneesCommande, transaction) {
@@ -312,7 +312,128 @@ async creerEntiteCommande(commandeData, montants, resultatsPromo, fraisLivraison
             ]
         });
     }
+async creerCommandeGuest(donneesCommande, transaction) {
+    const { lignesCommandes, codePromo, fraisLivraison = 0, ...commandeData } = donneesCommande;
+    
+    // 1. Générer un token unique pour cette commande
+    const guestToken = uuidv4();
+    
+    // 2. Traiter les produits et promotions (sans idClient)
+    const lignesAvecPromotions = await this.traiterProduitsEtPromotions(
+        lignesCommandes, 
+        null, // ✅ Pas d'idClient pour guest
+        transaction
+    );
+    
+    // 3. Calcul montants
+    const montants = this.calculerMontants(lignesAvecPromotions, fraisLivraison);
+    
+    // 4. Appliquer code promo global
+    const resultatsPromo = await this.appliquerCodePromoGlobal(
+        codePromo, 
+        { ...commandeData, idClient: null }, // ✅ idClient = null
+        lignesAvecPromotions, 
+        montants, 
+        fraisLivraison, 
+        transaction
+    );
+    
+    // 5. Créer la commande avec guestToken
+    const commande = await this.creerEntiteCommandeGuest(
+        commandeData, 
+        montants, 
+        resultatsPromo, 
+        fraisLivraison,
+        guestToken, // ✅ Token unique
+        transaction
+    );
+    
+    // 6. Créer lignes de commande
+    await this.creerLignesCommande(commande.idCommande, lignesAvecPromotions, transaction);
 
+    return {
+        commande,
+        guestToken, // ✅ Retourner le token pour le frontend
+        montants,
+        resultatsPromo,
+        lignesAvecPromotions
+    };
+}
+
+// 🆕 NOUVELLE MÉTHODE: Créer l'entité commande guest
+async creerEntiteCommandeGuest(commandeData, montants, resultatsPromo, fraisLivraison, guestToken, transaction) {
+    return await Commande.create({
+        ...commandeData,
+        idClient: null, // ✅ Pas de client authentifié
+        guestToken: guestToken, // ✅ Token unique
+        montantTotal: resultatsPromo.montantFinal + montants.fraisLivraisonFinal,
+        montantOriginal: montants.montantOriginal + montants.fraisLivraisonFinal,
+        montantReduction: resultatsPromo.reductionTotale,
+        fraisLivraison: montants.fraisLivraisonFinal,
+        codePromoGlobal: resultatsPromo.codePromoResult?.codePromo?.code || null,
+        reductionCodePromo: resultatsPromo.reductionCodePromo || 0
+    }, { transaction });
+}
+
+// 🆕 NOUVELLE MÉTHODE: Obtenir une commande guest avec validation du token
+async obtenirCommandeGuestComplete(idCommande, guestToken) {
+    // 1. Récupérer la commande
+    const commande = await Commande.findByPk(idCommande, {
+        include: [
+            {
+                model: LigneCommande,
+                as: 'lignesCommandes',
+                include: [
+                    {
+                        model: Produit,
+                        as: 'produit',
+                        attributes: ['idProduit', 'nom', 'prix']
+                    },
+                    {
+                        model: ProduitVariation,
+                        as: 'variation',
+                        include: [
+                            { model: Couleur, as: 'couleur' },
+                            { model: Taille, as: 'taille' },
+                            { model: Age, as: 'age' }
+                        ]
+                    }
+                ]
+            },
+            {
+                model: Facture,
+                as: 'facture',
+                attributes: ['idFacture', 'numeroFacture', 'dateFacture', 'statut']
+            }
+        ]
+    });
+    
+    if (!commande) {
+        throw new Error('Commande introuvable');
+    }
+    
+    // 2. ✅ SÉCURITÉ: Vérifier que le token correspond
+    if (commande.guestToken !== guestToken) {
+        throw new Error('Accès non autorisé à cette commande');
+    }
+    
+    // 3. ✅ SÉCURITÉ: Vérifier que c'est bien une commande guest
+    if (commande.idClient !== null) {
+        throw new Error('Cette commande nécessite une authentification');
+    }
+    
+    return commande;
+}
+
+// 🆕 NOUVELLE MÉTHODE: Vérifier si un produit a la livraison gratuite
+async verifierLivraisonGratuiteProduit(idProduit, transaction) {
+    const produit = await Produit.findByPk(idProduit, { 
+        attributes: ['idProduit', 'livraisonGratuite'],
+        transaction 
+    });
+    
+    return produit?.livraisonGratuite || false;
+}
 }
 
 module.exports = new CommandeService();

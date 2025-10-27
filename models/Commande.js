@@ -9,11 +9,18 @@ const Commande = sequelize.define('Commande', {
     },
     idClient: {
         type: DataTypes.INTEGER,
-        allowNull: true,
+        allowNull: true, // ✅ IMPORTANT: Nullable pour guest checkout
         references: {
             model: 'utilisateurs',
             key: 'idUtilisateur',
         },
+    },
+    // 🆕 NOUVEAU CHAMP
+    guestToken: {
+        type: DataTypes.STRING(255),
+        allowNull: true,
+        unique: true,
+        comment: 'Token unique pour les commandes guest (sans compte)'
     },
     clientPrenom: {
         type: DataTypes.STRING,
@@ -84,7 +91,6 @@ const Commande = sequelize.define('Commande', {
         type: DataTypes.TEXT,
         allowNull: true,
     },
-    // Garder uniquement pour les promotions globales de type "code promo" qui s'appliquent à toute la commande
     idPromotionUtilisee: {
         type: DataTypes.INTEGER,
         allowNull: true,
@@ -102,10 +108,17 @@ const Commande = sequelize.define('Commande', {
     reductionCodePromo: {
         type: DataTypes.DOUBLE,
         allowNull: true,
-        defaultValue: 0}, 
-      }, {
+        defaultValue: 0
+    }, 
+}, {
     timestamps: true,
     tableName: 'commandes',
+    indexes: [
+        {
+            // ✅ Index pour optimiser les requêtes par guestToken
+            fields: ['guestToken']
+        }
+    ]
 });
 
 module.exports = Commande;

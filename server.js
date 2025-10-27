@@ -29,6 +29,7 @@ const newsletterRoutes = require('./routes/newsletter');
 const utilisateurRoutes = require('./routes/utilisateur');      
 
 const errorHandler = require('./middlewares/errorHandler');
+const syncDatabase = require('./syncDatabase');
 
 const app = express();
 const server = http.createServer(app);
@@ -128,7 +129,6 @@ const waitForDatabase = async (maxRetries = 30, delay = 3000) => {
 const startServer = async () => {
   try {
     await waitForDatabase();
-    
     const PORT = process.env.PORT || 5000;
     server.listen(PORT, '0.0.0.0', () => {
       console.log(`✅ Backend E-Commerce Jouets running on port ${PORT}`);

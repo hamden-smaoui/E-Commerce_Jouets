@@ -438,6 +438,289 @@ class CommandeController {
       next(error);
     }
   }
+
+
+  async createCommandeGuest  (req, res) {
+    const transaction = await sequelize.transaction();
+    
+    try {
+        const donneesCommande = {
+            idClient: null, // ✅ Pas de client authentifié
+            clientPrenom: req.body.clientPrenom,
+            clientNom: req.body.clientNom,
+            clientEmail: req.body.clientEmail || null,
+            clientTelephone: req.body.clientTelephone,
+            clientAdresseRue: req.body.clientAdresseRue,
+            clientAdresseVille: req.body.clientAdresseVille,
+            clientAdresseCodePostal: req.body.clientAdresseCodePostal,
+            clientAdressePays: req.body.clientAdressePays || 'Tunisie',
+            notesLivraison: req.body.notesLivraison || null,
+            statut: 'en attente',
+            lignesCommandes: req.body.lignesCommandes,
+            codePromo: req.body.codePromo || null,
+            fraisLivraison: req.body.fraisLivraison || 0
+        };
+
+        // Validation
+        if (!donneesCommande.lignesCommandes || donneesCommande.lignesCommandes.length === 0) {
+            await transaction.rollback();
+            return res.status(400).json({ 
+                message: 'La commande doit contenir au moins un produit' 
+            });
+        }
+
+        // Créer la commande guest
+        const resultat = await CommandeService.creerCommandeGuest(donneesCommande, transaction);
+        
+        // Créer la facture
+        const facture = await CommandeService.creerFacture(
+            resultat.commande,
+            donneesCommande,
+            resultat.commande.montantTotal,
+            transaction
+        );
+
+        await transaction.commit();
+
+        // Récupérer la commande complète
+        const commandeComplete = await CommandeService.obtenirCommandeGuestComplete(
+            resultat.commande.idCommande,
+            resultat.guestToken
+        );
+
+        // ✅ Retourner la commande avec le guestToken
+        res.status(201).json({
+            message: 'Commande créée avec succès',
+            data: {
+                ...commandeComplete.toJSON(),
+                guestToken: resultat.guestToken // ✅ Important pour le frontend
+            },
+            calculDetails: {
+                montantOriginal: resultat.montants.montantOriginal,
+                montantProduits: resultat.montants.montantProduits,
+                reductionProduits: resultat.montants.montantOriginal - resultat.montants.montantProduits,
+                reductionCodePromo: resultat.resultatsPromo.reductionCodePromo,
+                montantFinal: resultat.resultatsPromo.montantFinal,
+                fraisLivraison: resultat.montants.fraisLivraisonFinal,
+                montantTotal: resultat.commande.montantTotal,
+                economiesTotal: resultat.resultatsPromo.reductionTotale
+            }
+        });
+    } catch (error) {
+        await transaction.rollback();
+        console.error('Erreur création commande guest:', error);
+        res.status(500).json({ 
+            message: 'Erreur lors de la création de la commande',
+            error: error.message 
+        });
+    }
+};
+
+// 🆕 NOUVEAU: Récupérer une commande guest avec token
+async getCommandeByIdGuest (req, res) {
+    try {
+        const idCommande = parseInt(req.params.id);
+        const guestToken = req.query.token; // Token passé en query param
+
+        // Validation
+        if (!guestToken) {
+            return res.status(400).json({ 
+                message: 'Token de sécurité requis' 
+            });
+        }
+
+        // Récupérer la commande avec validation du token
+        const commande = await CommandeService.obtenirCommandeGuestComplete(
+            idCommande, 
+            guestToken
+        );
+
+        if (!commande) {
+            return res.status(404).json({ 
+                message: 'Commande introuvable' 
+            });
+        }
+
+        res.status(200).json(commande);
+    } catch (error) {
+        console.error('Erreur récupération commande guest:', error);
+        
+        // Retourner 403 si le token est invalide
+        if (error.message === 'Accès non autorisé à cette commande') {
+            return res.status(403).json({ 
+                message: 'Accès non autorisé',
+                error: error.message 
+            });
+        }
+        
+        res.status(500).json({ 
+            message: 'Erreur lors de la récupération de la commande',
+            error: error.message 
+        });
+    }
+};
+// 🆕 NOUVELLE MÉTHODE : Annuler une commande guest
+// À ajouter dans votre CommandeController (avant la fermeture de la classe)
+
+async cancelCommandeGuest(req, res, next) {
+  const transaction = await sequelize.transaction();
+  let isTransactionCommitted = false;
+
+  try {
+    const idCommande = parseInt(req.params.id);
+    const guestToken = req.query.token;
+
+    // 1. Validation du token
+    if (!guestToken) {
+      await transaction.rollback();
+      const error = new Error('Token de sécurité requis');
+      error.code = "VALIDATION_ERROR";
+      return next(error);
+    }
+
+    // 2. Récupérer la commande avec le guestToken
+    const commande = await Commande.findOne({
+      where: { 
+        idCommande,
+        guestToken 
+      },
+      include: [
+        {
+          model: LigneCommande,
+          as: 'lignesCommandes',
+          include: [
+            {
+              model: Produit,
+              as: 'produit',
+              attributes: ['idProduit', 'nom', 'quantiteStock']
+            },
+            {
+              model: ProduitVariation,
+              as: 'variation',
+              attributes: ['idProduitVariation', 'quantiteStock'],
+              include: [
+                { model: Couleur, as: 'couleur' },
+                { model: Taille, as: 'taille' },
+                { model: Age, as: 'age' }
+              ]
+            }
+          ]
+        }
+      ],
+      transaction
+    });
+
+    // 3. Vérification : commande existe
+    if (!commande) {
+      await transaction.rollback();
+      const error = new Error('Commande introuvable ou token invalide');
+      error.code = "NOT_FOUND";
+      return next(error);
+    }
+
+    // 4. Vérification : statut 'en attente'
+    if (commande.statut !== 'en attente') {
+      await transaction.rollback();
+      const error = new Error('Seules les commandes en attente peuvent être annulées');
+      error.code = "VALIDATION_ERROR";
+      return next(error);
+    }
+
+    // 5. Vérification : délai de 2 heures
+    const dateCommande = new Date(commande.dateCommande);
+    const now = new Date();
+    const heuresDifference = (now - dateCommande) / (1000 * 60 * 60);
+
+    if (heuresDifference > 2) {
+      await transaction.rollback();
+      const error = new Error('Le délai d\'annulation de 2 heures est dépassé');
+      error.code = "VALIDATION_ERROR";
+      return next(error);
+    }
+
+    // 6. Annuler la commande
+    await commande.update({ statut: 'annulée' }, { transaction });
+
+    // 7. Restaurer les stocks
+    for (const ligne of commande.lignesCommandes) {
+      if (ligne.idProduitVariation) {
+        // Restaurer le stock de la variation
+        const variation = await ProduitVariation.findByPk(ligne.idProduitVariation, { transaction });
+        if (variation) {
+          await variation.increment('quantiteStock', { 
+            by: ligne.quantite, 
+            transaction 
+          });
+        }
+      } else if (ligne.idProduit) {
+        // Restaurer le stock du produit principal
+        const produit = await Produit.findByPk(ligne.idProduit, { transaction });
+        if (produit) {
+          await produit.increment('quantiteStock', { 
+            by: ligne.quantite, 
+            transaction 
+          });
+        }
+      }
+    }
+
+    await transaction.commit();
+    isTransactionCommitted = true;
+
+    // 8. Récupérer la commande mise à jour
+    const commandeComplete = await Commande.findByPk(idCommande, {
+      include: [
+        {
+          model: LigneCommande,
+          as: 'lignesCommandes',
+          include: [
+            {
+              model: Produit,
+              as: 'produit',
+              attributes: ['idProduit', 'nom', 'prix'],
+              include: [{
+                model: Image,
+                as: 'images',
+                attributes: ['url', 'rang'],
+                limit: 1,
+                order: [['rang', 'ASC']]
+              }]
+            },
+            {
+              model: ProduitVariation,
+              as: 'variation',
+              include: [
+                { model: Couleur, as: 'couleur' },
+                { model: Taille, as: 'taille' },
+                { model: Age, as: 'age' }
+              ]
+            }
+          ]
+        },
+        {
+          model: Facture,
+          as: 'facture',
+          attributes: ['idFacture', 'statut']
+        }
+      ]
+    });
+
+    res.status(200).json({
+      message: 'Commande annulée avec succès',
+      data: commandeComplete
+    });
+
+  } catch (error) {
+    if (!isTransactionCommitted && !transaction.finished) {
+      try { 
+        await transaction.rollback(); 
+      } catch (rollbackError) {
+        console.error('Erreur rollback:', rollbackError);
+      }
+    }
+    next(error);
+  }
+}
 }
 
 module.exports = new CommandeController();

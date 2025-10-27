@@ -15,5 +15,10 @@ router.delete('/:id',authMiddleware,adminMiddleware, CommandeController.deleteCo
 // Nouvelles routes pour les commandes avec promotions
 router.post('/calculer-panier', authMiddleware,CommandeController.calculerPanier);
 router.post('/valider-code-promo',authMiddleware, CommandeController.validerCodePromo);
+router.post('/guest', CommandeController.createCommandeGuest);
+
+// Récupérer une commande guest avec token
+router.get('/guest/:id', CommandeController.getCommandeByIdGuest);
+router.put('/guest/:id/cancel', CommandeController.cancelCommandeGuest);
 
 module.exports = router;
