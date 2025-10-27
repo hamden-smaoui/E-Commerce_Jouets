@@ -143,12 +143,12 @@ const token = session?.customToken;
       render: (item: Marque) =>
         item.logoUrl ? (
           <img
-            src={`${process.env.NEXT_PUBLIC_API_BASE_URL_IMAGE}${item.logoUrl}`}
+            src={`${item.logoUrl}`}
             alt={item.nom}
             className="h-10 w-10 object-contain"
             onError={(e) => {
               e.currentTarget.src = '/images/image-profile.svg';
-              console.error(`Failed to load image: ${process.env.NEXT_PUBLIC_API_BASE_URL_IMAGE}${item.logoUrl}`);
+              console.error(`Failed to load image: ${item.logoUrl}`);
             }}
           />
         ) : (
@@ -272,7 +272,7 @@ const marqueFields: Field<FormData>[] = [
         
         // Si on a une URL d'image existante (cas de modification)
         if (typeof logoValue === 'string' && logoValue && !logoValue.startsWith('blob:')) {
-          const url = `${process.env.NEXT_PUBLIC_API_BASE_URL_IMAGE}${logoValue}`;
+          const url = `${logoValue}`;
           console.log('Utilisation de l\'URL backend:', url);
           return url;
         }

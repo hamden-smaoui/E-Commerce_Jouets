@@ -47,7 +47,7 @@ const CommandeItemTotalDisplay = ({ idProduit, quantite, prixUnitaire, prixOrigi
 
 const CommandeItem = ({ ligne, index }: { ligne: any, index: number }) => {
   const imageUrl = ligne.produit?.images && ligne.produit.images.length > 0
-    ? `${process.env.NEXT_PUBLIC_API_BASE_URL_IMAGE}${ligne.produit.images.sort((a: any, b: any) => a.rang - b.rang)[0].url}`
+    ? `${ligne.produit.images.sort((a: any, b: any) => a.rang - b.rang)[0].url}`
     : '/images/placeholder.jpg';
   const formatVariation = (variation: any) => {
     if (!variation) return '';
@@ -267,7 +267,7 @@ useEffect(() => {
       await CommandesService.updateCommande(commande.idCommande, {
         statut: 'annulée'
       }, token);
-
+      
       const updatedCommande = await CommandesService.getCommandeById(commande.idCommande, token);
       setCommande(updatedCommande);
       setCanCancel(false);

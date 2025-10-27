@@ -225,7 +225,7 @@ const formatVariation = (ligne: any) => {
             <div className="avatar">
               <div className="mask mask-squircle w-12 h-12">
                 <img 
-                  src={`${process.env.NEXT_PUBLIC_API_BASE_URL_IMAGE}${ligne.produit.images[0].url}`} 
+                  src={`${ligne.produit.images[0].url}`} 
                   alt={ligne.produit.nom} 
                 />
               </div>
@@ -292,7 +292,7 @@ const formatVariation = (ligne: any) => {
                       <div className="avatar flex-shrink-0">
                         <div className="mask mask-squircle w-16 h-16">
                           <img 
-                            src={`${process.env.NEXT_PUBLIC_API_BASE_URL_IMAGE}${ligne.produit.images[0].url}`} 
+                            src={`${ligne.produit.images[0].url}`} 
                             alt={ligne.produit.nom} 
                           />
                         </div>

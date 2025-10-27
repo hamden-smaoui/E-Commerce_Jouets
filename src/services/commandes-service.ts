@@ -4,10 +4,12 @@ export interface Couleur {
   idCouleur: number;
   nom: string;
 }
+
 export interface Taille {
   idTaille: number;
   nom: string;
 }
+
 export interface Age {
   idAge: number;
   minAge: number;
@@ -15,6 +17,7 @@ export interface Age {
   typeAge: 'mois' | 'ans';
   label: string;
 }
+
 export interface ProduitVariation {
   idProduitVariation: number;
   idProduit: number;
@@ -26,11 +29,12 @@ export interface ProduitVariation {
   taille?: Taille;
   age?: Age;
 }
+
 export interface LigneCommande {
   idLigneCommande?: number;
   idCommande?: number;
   idProduit: number;
-  idProduitVariation: number;
+  idProduitVariation: number | null; // ✅ CORRIGÉ : Accepte null aussi
   quantite: number;
   prixUnitaire: number;
   prixUnitaireOriginal?: number;
@@ -74,9 +78,11 @@ export interface Commande {
   idPromotionUtilisee?: number;
   reductionCodePromo?: number;
   notesLivraison: string | null;
+  guestToken?: string; // 🆕 NOUVEAU
   createdAt: string;
   updatedAt: string;
 }
+
 export interface CommandeFormData {
   idCommande?: number | null;
   idClient?: number | null;
@@ -97,6 +103,10 @@ export interface CommandeFormData {
   reductionCodePromo?: number;
   notesLivraison?: string | null;
   lignesCommandes?: LigneCommande[];
+}
+export interface CancelCommandeResponse {
+  message: string;
+  data: CommandeResponse;
 }
 export interface CommandeResponse extends Commande {
   client?: {
@@ -127,6 +137,7 @@ export interface CommandeResponse extends Commande {
     economiesCodePromo: number;
   };
 }
+
 export interface CommandePaginationResponse {
   data: CommandeResponse[];
   pagination: {
@@ -136,14 +147,46 @@ export interface CommandePaginationResponse {
     totalPages: number;
   };
 }
+
 export interface CommandeStats {
   statut: string;
   count: number;
   total: number;
 }
+
 export interface CommandeCreateResponse {
   message: string;
   data: CommandeResponse;
+  calculDetails: {
+    montantOriginal: number;
+    montantProduits: number;
+    reductionProduits: number;
+    reductionCodePromo: number;
+    montantFinal: number;
+    fraisLivraison: number;
+    montantTotal: number;
+    economiesTotal: number;
+  };
+  promotions: {
+    promotionsProduits: Array<{
+      idProduit: number;
+      idProduitVariation: number;
+      reduction: number;
+    }>;
+    promotionGlobale: {
+      nom: string;
+      reduction: number;
+      codePromo: string;
+    } | null;
+  };
+}
+
+// 🆕 NOUVEAU - CORRIGÉ
+export interface CommandeGuestCreateResponse {
+  message: string;
+  data: CommandeResponse & {
+    guestToken: string; // ✅ guestToken est dans data
+  };
   calculDetails: {
     montantOriginal: number;
     montantProduits: number;
@@ -184,6 +227,7 @@ export interface CalculPanierResponse {
     error: string | null;
   };
 }
+
 export interface ValidationCodePromoResponse {
   message: string;
   valide: boolean;
@@ -195,6 +239,10 @@ export interface ValidationCodePromoResponse {
 }
 
 class CommandesService {
+  // ============================================
+  // MÉTHODES AUTHENTIFIÉES (EXISTANTES)
+  // ============================================
+
   async createCommande(
     commandeData: CommandeFormData & { codePromo?: string; fraisLivraison?: number },
     token?: string
@@ -223,8 +271,8 @@ class CommandesService {
   }
 
   async getCommandeById(id: number, token?: string): Promise<CommandeResponse> {
-     const headers = token ? { Authorization: `Bearer ${token}` } : {};
-    const response = await api.get<CommandeResponse>(`/commandes/${id}`, { headers});
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    const response = await api.get<CommandeResponse>(`/commandes/${id}`, { headers });
     return response.data;
   }
 
@@ -275,24 +323,53 @@ class CommandesService {
     return response.data;
   }
 
-  // Helpers (inchangés)
+  // ============================================
+  // 🆕 NOUVELLES MÉTHODES GUEST
+  // ============================================
+
+  async createCommandeGuest(
+    commandeData: CommandeFormData & { codePromo?: string; fraisLivraison?: number }
+  ): Promise<CommandeGuestCreateResponse> {
+    const response = await api.post<CommandeGuestCreateResponse>('/commandes/guest', commandeData);
+    return response.data;
+  }
+
+  async getCommandeByIdGuest(idCommande: number, guestToken: string): Promise<CommandeResponse> {
+    const response = await api.get<CommandeResponse>(`/commandes/guest/${idCommande}?token=${guestToken}`);
+    return response.data;
+  }
+
+  // ============================================
+  // HELPERS (INCHANGÉS)
+  // ============================================
+
   hasPromotions(commande: CommandeResponse): boolean {
     const hasProductPromotions = commande.lignesCommandes?.some(ligne => ligne.reductionUnitaire && ligne.reductionUnitaire > 0) || false;
     const hasGlobalPromotion = commande.promotionGlobale || commande.codePromoGlobal;
     return hasProductPromotions || !!hasGlobalPromotion;
   }
+
   calculateTotalSavings(commande: CommandeResponse): number {
     if (!commande.montantOriginal || !commande.montantTotal) return 0;
     const originalWithShipping = commande.montantOriginal + (commande.fraisLivraison || 0);
     return originalWithShipping - commande.montantTotal;
   }
+
   calculateProductSavings(commande: CommandeResponse): number {
     return commande.lignesCommandes?.reduce((total, ligne) => total + ((ligne.reductionUnitaire || 0) * ligne.quantite), 0) || 0;
   }
+
   calculatePromoCodeSavings(commande: CommandeResponse): number {
     const totalSavings = this.calculateTotalSavings(commande);
     const productSavings = this.calculateProductSavings(commande);
     return totalSavings - productSavings;
+  }
+    async cancelCommandeGuest(idCommande: number, guestToken: string): Promise<CancelCommandeResponse> {
+    const response = await api.put<CancelCommandeResponse>(
+      `/commandes/guest/${idCommande}/cancel?token=${guestToken}`,
+      {}
+    );
+    return response.data;
   }
 }
 

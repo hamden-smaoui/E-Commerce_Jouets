@@ -27,7 +27,7 @@ const CartDropdownItem = ({ item, onIncrement, onDecrement, onRemove }: any) => 
 
   const imageUrl =
     item.produit.images && item.produit.images.length > 0
-      ? `${process.env.NEXT_PUBLIC_API_BASE_URL_IMAGE}${item.produit.images.sort((a: any, b: any) => a.rang - b.rang)[0].url}`
+      ? `${item.produit.images.sort((a: any, b: any) => a.rang - b.rang)[0].url}`
       : "/images/placeholder.jpg";
 
   const subTotal = prixFinal * item.quantite;

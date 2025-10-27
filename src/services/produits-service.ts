@@ -62,6 +62,7 @@ export interface Produit {
   idFournisseur: number;
   idType: number | null;
   genre: 'fille' | 'garçon' | 'enfant';
+  livraisonGratuite?: boolean;
 }
 
 // Nouveau format pour les données du formulaire

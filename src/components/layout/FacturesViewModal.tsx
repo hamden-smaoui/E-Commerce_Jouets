@@ -108,7 +108,7 @@ const formatVariation = (variation?: ProduitVariation) => {
               {/* Logo si disponible */}
               {storeInfo?.logo1 && (
                 <img 
-                  src={`${process.env.NEXT_PUBLIC_API_BASE_URL_IMAGE}${storeInfo.logo1}`}
+                  src={`${storeInfo.logo1}`}
                   alt="Logo" 
                   className="w-20 h-20 object-contain"
                 />

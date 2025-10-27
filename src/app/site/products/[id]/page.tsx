@@ -469,7 +469,7 @@ const handleCopyLink = async () => {
                           }`}
                         >
                           <Image
-                            src={`${process.env.NEXT_PUBLIC_API_BASE_URL_IMAGE}${image.url || '/images/placeholder.jpg'}`}
+                            src={`${image.url || '/images/placeholder.jpg'}`}
                             alt={`${produit.nom} thumbnail ${image.rang}`}
                             width={80}
                             height={80}
@@ -489,7 +489,7 @@ const handleCopyLink = async () => {
                       onMouseLeave={handleMouseLeave}
                     >
                       <Image
-                        src={`${process.env.NEXT_PUBLIC_API_BASE_URL_IMAGE}${selectedImage || '/images/placeholder.jpg'}`}
+                        src={`${selectedImage || '/images/placeholder.jpg'}`}
                         alt={produit.nom}
                         fill
                         className="object-cover"
@@ -542,7 +542,7 @@ const handleCopyLink = async () => {
                         style={{
                           top: `${magnifierPos.y - 96}px`,
                           left: `${magnifierPos.x + 20}px`,
-                          backgroundImage: `url(${`${process.env.NEXT_PUBLIC_API_BASE_URL_IMAGE}${selectedImage || '/images/placeholder.jpg'}`})`,
+                          backgroundImage: `url(${`${selectedImage || '/images/placeholder.jpg'}`})`,
                           backgroundPosition: `-${magnifierPos.x * 2 - 96}px -${magnifierPos.y * 2 - 96}px`,
                           backgroundSize: `400% 400%`,
                         }}

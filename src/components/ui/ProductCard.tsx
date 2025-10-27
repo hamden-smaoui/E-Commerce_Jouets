@@ -247,7 +247,7 @@ return (
           onTouchEnd={handleTouchEnd}
         >
           <Image
-            src={imageError ? '/images/placeholder.jpg' : `${process.env.NEXT_PUBLIC_API_BASE_URL_IMAGE}${displayImage || '/images/placeholder.jpg'}`}
+            src={imageError ? '/images/placeholder.jpg' : `${displayImage || '/images/placeholder.jpg'}`}
             alt={product.nom}
             fill
             sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, (max-width: 1400px) 25vw, 300px"

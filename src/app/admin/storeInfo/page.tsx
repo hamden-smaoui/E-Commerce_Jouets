@@ -720,7 +720,7 @@ if (isLoading && !storeInfo) {
                   {(storeInfo?.logo1 || logo1File) && (
                     <div className="aspect-square w-32 h-32 relative rounded-lg overflow-hidden border-2 border-base-300">
                       <Image
-                        src={logo1File ? URL.createObjectURL(logo1File) : `${process.env.NEXT_PUBLIC_API_BASE_URL_IMAGE}${storeInfo?.logo1}`}
+                        src={logo1File ? URL.createObjectURL(logo1File) : `${storeInfo?.logo1}`}
                         alt="Logo principal"
                         fill
                         className="object-contain p-2"
@@ -748,7 +748,7 @@ if (isLoading && !storeInfo) {
                   {(storeInfo?.logo2 || logo2File) && (
                     <div className="aspect-square w-32 h-32 relative rounded-lg overflow-hidden border-2 border-base-300">
                       <Image
-                        src={logo2File ? URL.createObjectURL(logo2File) : `${process.env.NEXT_PUBLIC_API_BASE_URL_IMAGE}${storeInfo?.logo2}`}
+                        src={logo2File ? URL.createObjectURL(logo2File) : `${storeInfo?.logo2}`}
                         alt="Logo secondaire"
                         fill
                         className="object-contain p-2"
@@ -913,7 +913,7 @@ if (isLoading && !storeInfo) {
                       <div key={image.idImage} className="relative group">
                         <div className="aspect-video relative rounded-lg overflow-hidden bg-base-300">
                           <Image
-                            src={`${process.env.NEXT_PUBLIC_API_BASE_URL_IMAGE}${image.url}`}
+                            src={`${image.url}`}
                             alt={`Hero image ${image.rang}`}
                             fill
                             className="object-cover"
@@ -948,7 +948,7 @@ if (isLoading && !storeInfo) {
                         <div key={imageId} className="relative">
                           <div className="aspect-video w-24 relative rounded-lg overflow-hidden opacity-50 bg-base-300">
                             <Image
-                              src={`${process.env.NEXT_PUBLIC_API_BASE_URL_IMAGE}${image.url}`}
+                              src={`${image.url}`}
                               alt={`To delete ${image.rang}`}
                               fill
                               className="object-cover"
@@ -1054,7 +1054,7 @@ if (isLoading && !storeInfo) {
                     <div key={image.idImage} className="relative group">
                       <div className="aspect-video relative rounded-lg overflow-hidden bg-base-300">
                         <Image
-                          src={`${process.env.NEXT_PUBLIC_API_BASE_URL_IMAGE}${image.url}`}
+                          src={`${image.url}`}
                           alt={`Promotion image ${image.rang}`}
                           fill
                           className="object-cover"
@@ -1089,7 +1089,7 @@ if (isLoading && !storeInfo) {
                       <div key={imageId} className="relative">
                         <div className="aspect-video w-24 relative rounded-lg overflow-hidden opacity-50 bg-base-300">
                           <Image
-                            src={`${process.env.NEXT_PUBLIC_API_BASE_URL_IMAGE}${image.url}`}
+                            src={`${image.url}`}
                             alt={`Promotion to delete ${image.rang}`}
                             fill
                             className="object-cover"

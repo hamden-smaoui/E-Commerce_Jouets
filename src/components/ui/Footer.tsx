@@ -42,7 +42,7 @@ export default function Footer() {
                 )}
                 {storeInfo?.logo2 && !logoError ? (
                   <Image
-                    src={`${process.env.NEXT_PUBLIC_API_BASE_URL_IMAGE}${storeInfo.logo2}`}
+                    src={`${storeInfo.logo2}`}
                     alt={storeInfo.nom || "Logo"}
                     fill
                     className={`object-contain transition-opacity duration-500 ${logoLoading ? "opacity-0" : "opacity-100"}`}

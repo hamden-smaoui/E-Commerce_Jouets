@@ -94,7 +94,7 @@ export default function PromotionsSection({ images }: PromotionsSectionProps) {
               >
                 <div className="relative aspect-video rounded-xl overflow-hidden shadow-2xl bg-white p-2 transform hover:scale-105 transition-all duration-300">
                   <Image
-                    src={`${process.env.NEXT_PUBLIC_API_BASE_URL_IMAGE}${image.url}`}  
+                    src={`${image.url}`}  
                     alt={`Promotion ${image.rang}`}
                     fill
                     className="object-contain rounded-lg"
