@@ -331,7 +331,6 @@ function GuestOrderConfirmation() {
           <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
             <p className="text-sm text-blue-800">
               📧 <strong>Important :</strong> Sauvegardez ce lien pour suivre votre commande. 
-              {commande.clientEmail && ` Un récapitulatif a été envoyé à ${commande.clientEmail}`}
             </p>
           </div>
 

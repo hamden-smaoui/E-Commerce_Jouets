@@ -92,7 +92,7 @@ export default function Navbar() {
       <div className="flex flex-col w-full md:flex-row md:items-center">
         {/* Logo */}
         <div className="flex items-center justify-between w-full md:justify-start md:w-auto">
-          <Link href="" className="flex items-center">
+          <Link href="/" className="flex items-center">
             <div className="relative h-16 w-auto sm:h-20 min-w-[80px]">
               {/* ✅ CORRECTION : Afficher le spinner pendant le chargement */}
               {logoLoading && storeInfo?.logo1 && (

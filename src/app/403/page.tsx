@@ -11,7 +11,7 @@ export default function ForbiddenPage() {
         <p className="text-gray-700 mb-6">
           Vous n'avez pas les droits pour accéder à cette page.
         </p>
-        <Link href="">
+        <Link href="/">
           <button className="bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700">
             Retour à l'accueil
           </button>

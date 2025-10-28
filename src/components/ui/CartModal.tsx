@@ -120,12 +120,16 @@ const CartModalItem = ({ item, onIncrement, onDecrement, onRemove }: any) => {
             </button>
           </div>
           <button
-  onClick={() => onRemove(item.idPanierProduit, item.idProduit)}
-  className="text-red-500 hover:text-red-700 transition-colors p-1 rounded-full hover:bg-red-50"
-  title="Supprimer"
->
-  <TrashIcon className="w-5 h-5" />
-</button>
+            onClick={() => onRemove(
+              item.idPanierProduit, 
+              item.idProduit,
+              item.idProduitVariation // ← Ajouter ce paramètre
+            )}
+            className="text-red-500 hover:text-red-700 transition-colors p-1 rounded-full hover:bg-red-50"
+            title="Supprimer"
+          >
+            <TrashIcon className="w-5 h-5" />
+          </button>
         </div>
       </div>
     </div>
@@ -190,11 +194,15 @@ export default function CartModal({ isOpen, onClose }: CartModalProps) {
     }
   };
 
-  const handleRemove = async (idPanierProduit: number, idProduit: number) => {
-  try {
-    await removeFromCart(idPanierProduit, idProduit);
-  } catch (error) {}
-};
+   const handleRemove = async (
+    idPanierProduit: number | undefined, 
+    idProduit: number,
+    idProduitVariation?: number
+  ) => {
+    try {
+      await removeFromCart(idPanierProduit, idProduit, idProduitVariation);
+    } catch (error) {}
+  };
 
   if (!isOpen) return null;
 
@@ -233,7 +241,7 @@ export default function CartModal({ isOpen, onClose }: CartModalProps) {
             <p className="text-gray-500 mb-6 text-center font-[Comic_Sans_MS,sans-serif] text-lg">
               Votre panier est vide
             </p>
-            <Link href="">
+            <Link href="/">
               <button
                 onClick={onClose}
                 className="bg-gradient-to-r from-pink-500 to-purple-600 text-white px-6 py-3 rounded-full hover:shadow-lg transition-all font-bold"

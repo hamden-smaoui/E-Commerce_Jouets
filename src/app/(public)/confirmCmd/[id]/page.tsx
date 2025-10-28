@@ -205,7 +205,7 @@ useEffect(() => {
           <ExclamationTriangleIcon className="w-12 sm:w-16 h-12 sm:h-16 text-orange-500 mx-auto mb-4" />
           <h2 className="text-xl sm:text-2xl font-bold text-orange-600 mb-2">Commande introuvable</h2>
           <p className="text-gray-600 mb-4 text-sm sm:text-base">La commande demandée n'existe pas ou a été supprimée.</p>
-          <Link href="" className="bg-pink-600 text-white px-4 sm:px-6 py-2 rounded hover:bg-pink-700 text-sm sm:text-base">
+          <Link href="/" className="bg-pink-600 text-white px-4 sm:px-6 py-2 rounded hover:bg-pink-700 text-sm sm:text-base">
             Retour à l'accueil
           </Link>
         </div>

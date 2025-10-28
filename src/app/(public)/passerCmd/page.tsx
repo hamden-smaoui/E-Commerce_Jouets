@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useState, useEffect, useMemo } from "react";
 import { toast } from "react-hot-toast";
 import { useStoreInfo } from "@/hooks/useStoreInfo";
-import {User}from "@/services/users-service";
+import { User } from "@/services/users-service";
 import UsersService from "@/services/users-service";
 import { 
   ArrowLeftIcon,
@@ -41,10 +41,13 @@ interface FormErrors {
 const CheckoutItemTotalDisplay = ({ idProduit, quantite }: { idProduit: number, quantite: number }) => {
   const { itemTotals } = useCartPromotionContext();
   const itemData = itemTotals[idProduit];
+  
   if (!itemData) {
     return <div className="text-base font-bold min-w-[80px] text-right text-gray-500">-</div>;
   }
+  
   const hasPromotion = itemData.final < itemData.original;
+  
   return (
     <div className="text-right min-w-[80px]">
       {hasPromotion ? (
@@ -89,12 +92,7 @@ function Checkout() {
     notesLivraison: ''
   });
 
-  useEffect(() => {
-    if (status === "unauthenticated") {
-      router.replace("/signIn");
-    }
-  }, [status, router]);
-
+  // Récupérer les infos complètes de l'utilisateur si connecté
   useEffect(() => {
     async function fetchFullUser() {
       if (isAuthenticated && user?.idUtilisateur) {
@@ -108,8 +106,9 @@ function Checkout() {
     }
     fetchFullUser();
     setMounted(true);
-  }, [user, isAuthenticated]);
+  }, [user, isAuthenticated, token]);
 
+  // Pré-remplir le formulaire si utilisateur connecté
   useEffect(() => {
     if (isAuthenticated && fullUser) {
       setFormData(prev => ({
@@ -126,6 +125,7 @@ function Checkout() {
     }
   }, [fullUser, isAuthenticated]);
 
+  // Rediriger vers le panier si vide
   useEffect(() => {
     if (mounted && !cartLoading && cartItems.length === 0 && !loading) {
       router.push('/cart');
@@ -182,31 +182,37 @@ function Checkout() {
       { key: 'clientAdresseVille', label: 'Ville' },
       { key: 'clientAdresseCodePostal', label: 'Code postal' }
     ];
+
     const newErrors: FormErrors = {};
     const missingFields: string[] = [];
+
     for (const field of requiredFields) {
       if (!formData[field.key as keyof FormData].trim()) {
         newErrors[field.key] = true;
         missingFields.push(field.label);
       }
     }
+
     if (formData.clientEmail && !isValidEmail(formData.clientEmail)) {
       newErrors.clientEmail = true;
       toast.error("L'adresse email n'est pas valide");
       setErrors(newErrors);
       return false;
     }
+
     if (formData.clientTelephone && !isValidPhone(formData.clientTelephone)) {
       newErrors.clientTelephone = true;
       toast.error("Le numéro de téléphone n'est pas valide");
       setErrors(newErrors);
       return false;
     }
+
     if (missingFields.length > 0) {
       setErrors(newErrors);
       toast.error(`Veuillez remplir les champs obligatoires: ${missingFields.join(', ')}`);
       return false;
     }
+
     setErrors({});
     return true;
   };
@@ -215,7 +221,8 @@ function Checkout() {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email);
   };
-  const validateField = (name:any, value:any) => {
+
+  const validateField = (name: any, value: any) => {
     switch (name) {
       case 'clientPrenom':
       case 'clientNom':
@@ -237,7 +244,7 @@ function Checkout() {
     }
   };
 
-  const handleBlur = (e:any) => {
+  const handleBlur = (e: any) => {
     const { name, value } = e.target;
     setErrors(prev => ({
       ...prev,
@@ -254,21 +261,27 @@ function Checkout() {
     if (age) parts.push(age.label);
     return parts.length > 0 ? parts.join(' / ') : '';
   };
+
   const isValidPhone = (phone: string): boolean => {
     const phoneRegex = /^[0-9\s\-\+\(\)]{8,}$/;
     return phoneRegex.test(phone.replace(/\s/g, ''));
   };
 
+  // 🆕 MODIFICATION PRINCIPALE : Gérer les deux cas (connecté/non-connecté)
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
     if (!validateForm()) return;
+    
     if (cartItems.some(item => !item.idProduitVariation)) {
       toast.error("Merci de choisir la couleur/taille pour tous les produits du panier.");
       return;
     }
+    
     setLoading(true);
     const toastId = toast.loading('Création de votre commande en cours...');
     let success = false;
+    
     try {
       const lignesCommandes = cartItems.map(item => ({
         idProduit: item.idProduit,
@@ -277,33 +290,52 @@ function Checkout() {
         prixUnitaire: item.produit.prix,
         sousTotal: item.quantite * item.produit.prix
       }));
+
       const montantOriginal = lignesCommandes.reduce((sum, ligne) => sum + ligne.sousTotal, 0);
 
       const commandeData: CommandeFormData & { codePromo?: string; fraisLivraison?: number; } = {
         ...formData,
-        idClient: isAuthenticated ? user?.idUtilisateur : null,
+        idClient: isAuthenticated ? user?.idUtilisateur : null, // null si non connecté
         montantTotal: montantOriginal,
         statut: 'en attente' as const,
         lignesCommandes,
         codePromo: codePromo?.code,
         fraisLivraison: livraison
       };
-      const nouvelleCommande = await CommandesService.createCommande(commandeData, session?.customToken);
+      console.log("commmm",commandeData);
+      // 🆕 Utiliser la méthode unifiée qui gère les deux cas
+      const response = await CommandesService.createCommandeUnified(
+        commandeData,
+        token // undefined si non connecté
+      );
+
       toast.success('Commande créée avec succès!', {
         id: toastId,
         duration: 4000
       });
-      const commandeId = nouvelleCommande.data.idCommande;
+
+      const commandeId = response.data.idCommande;
       success = true;
-      router.push(`/confirmCmd/${commandeId}`);
+
+      // 🆕 Redirection selon le type de commande
+      if ('guestToken' in response.data && response.data.guestToken) {
+        // Commande guest (non connecté)
+        router.push(`/order-confirmation-guest/${commandeId}?token=${response.data.guestToken}`);
+      } else {
+        // Commande authentifiée (connecté)
+        router.push(`/confirmCmd/${commandeId}`);
+      }
+      
       return;
     } catch (error: any) {
       let errorMessage = 'Une erreur est survenue lors de la création de votre commande.';
+      
       if (error?.response?.data?.message) {
         errorMessage = error.response.data.message;
       } else if (error?.message) {
         errorMessage = error.message;
       }
+      
       toast.error(errorMessage, {
         id: toastId,
         duration: 6000
@@ -325,13 +357,14 @@ function Checkout() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-base-200">
         <KidsCornerLoader 
-          message="Creation de votre commande..."
+          message="Création de votre commande..."
           size="lg"
           showMessage={true}
         />
       </div>
     );
   }
+
   if (cartItems.length === 0) {
     return null;
   }
@@ -350,6 +383,29 @@ function Checkout() {
             </h1>
           </div>
         </div>
+
+        {/* 🆕 Message pour utilisateurs non connectés */}
+        {!isAuthenticated && (
+          <div className="mb-6 bg-blue-50 border-2 border-blue-200 rounded-xl p-4">
+            <div className="flex items-start gap-3">
+              <div className="flex-shrink-0">
+                <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <div className="flex-1">
+                <h3 className="font-bold text-blue-800 mb-1">Commande sans compte</h3>
+                <p className="text-sm text-blue-700">
+                  Vous commandez en tant qu'invité. Vous recevrez un lien pour suivre votre commande.
+                  <Link href="/login" className="ml-2 underline font-semibold hover:text-blue-900">
+                    Se connecter
+                  </Link>
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Grid responsive */}
         <div className="grid grid-cols-1 xl:grid-cols-4 gap-8">
           {/* Colonne gauche : Formulaire de commande */}
@@ -402,7 +458,7 @@ function Checkout() {
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Email
+                          Email {!isAuthenticated && "(optionnel)"}
                           {errors.clientEmail && <span className="text-red-500 ml-1">- Format invalide</span>}
                         </label>
                         <input
@@ -413,6 +469,7 @@ function Checkout() {
                           onBlur={handleBlur}
                           className={getInputClassName('clientEmail')}
                           maxLength={80}
+                          placeholder={!isAuthenticated ? "votre@email.com (optionnel)" : ""}
                         />
                         {errors.clientEmail && (
                           <p className="text-red-500 text-xs mt-1">Format d'email invalide.</p>
@@ -438,6 +495,7 @@ function Checkout() {
                       </div>
                     </div>
                   </div>
+
                   {/* Adresse de livraison */}
                   <div>
                     <h3 className="text-lg font-semibold mb-3 text-pink-600">Adresse de livraison</h3>
@@ -501,6 +559,7 @@ function Checkout() {
                       </div>
                     </div>
                   </div>
+
                   {/* Notes additionnelles */}
                   <div>
                     <h3 className="text-lg font-semibold mb-3 text-pink-600">Notes de livraison</h3>
@@ -518,10 +577,10 @@ function Checkout() {
                       <p className="text-red-500 text-xs mt-1">Trop long ou invalide.</p>
                     )}
                   </div>
-                  
                 </form>
               </div>
             </div>
+
             {/* Retour au panier (desktop only) */}
             <div className="mt-6 hidden xl:block">
               <Link href="/cart" className="inline-flex items-center gap-2 text-purple-600 hover:text-purple-800 transition-colors font-extrabold font-[Comic_Sans_MS,sans-serif]">
@@ -530,6 +589,7 @@ function Checkout() {
               </Link>
             </div>
           </div>
+
           {/* Colonne droite : Résumé panier avec promotions */}
           <div className="xl:col-span-1">
             <div className="sticky top-6 space-y-6">
@@ -545,7 +605,7 @@ function Checkout() {
                 <div className={`p-4 ${cartItems.length > 4 ? 'max-h-[300px] overflow-y-auto' : ''}`}>
                   {cartItems.map((item, index) => {
                     const imageUrl = item.produit.images && item.produit.images.length > 0
-                      ? `${item.produit.images.sort((a:any, b:any) => a.rang - b.rang)[0].url}`
+                      ? `${item.produit.images.sort((a: any, b: any) => a.rang - b.rang)[0].url}`
                       : '/images/placeholder.jpg';
                     return (
                       <div
@@ -652,7 +712,7 @@ function Checkout() {
                   <button 
                     onClick={handleSubmit}
                     disabled={loading}
-                    className="w-full  bg-pink-500  text-white py-4 rounded-xl hover:from-pink-500 hover:to-blue-500 font-extrabold transition-all transform hover:scale-105 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed mt-6"
+                    className="w-full bg-pink-500 text-white py-4 rounded-xl hover:from-pink-500 hover:to-blue-500 font-extrabold transition-all transform hover:scale-105 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed mt-6"
                   >
                     {loading ? (
                       <div className="flex items-center justify-center gap-2">
@@ -665,6 +725,7 @@ function Checkout() {
                   </button>
                 </div>
               </div>
+
               {/* Retour au panier (mobile only) */}
               <div className="mt-4 xl:hidden">
                 <Link href="/cart" className="inline-flex items-center gap-2 text-purple-600 hover:text-purple-800 transition-colors font-extrabold font-[Comic_Sans_MS,sans-serif]">
@@ -684,12 +745,14 @@ function Checkout() {
 const CheckoutWithProvider = () => {
   return (
     <CartPromotionProvider>
-       <Suspense fallback={<KidsCornerLoader
-    message="Chargement..."
-    size="lg"
-    showMessage={true}
-  />}>
-      <Checkout />
+      <Suspense fallback={
+        <KidsCornerLoader
+          message="Chargement..."
+          size="lg"
+          showMessage={true}
+        />
+      }>
+        <Checkout />
       </Suspense>
     </CartPromotionProvider>
   );

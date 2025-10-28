@@ -142,12 +142,16 @@ const CartItemWithPromotion = ({ item, index, onIncrement, onDecrement, onQuanti
         />
         
         <button
-          onClick={() => onRemove(item)}
-          className="text-gray-400 hover:text-red-500 transition-colors p-2 hover:bg-red-50 rounded-lg"
-          title="Supprimer"
-        >
-          <TrashIcon className="w-5 h-5" />
-        </button>
+                            onClick={() => onRemove(
+                              item.idPanierProduit, 
+                              item.idProduit,
+                              item.idProduitVariation // ← Ajouter ce paramètre
+                            )}
+                            className="btn btn-ghost btn-sm btn-circle text-red-500 hover:bg-red-50 hover:text-red-700"
+                            title="Supprimer"
+                          >
+                            <TrashIcon className="h-5 w-5" />
+                          </button>
       </div>
     </div>
   );
@@ -204,12 +208,7 @@ function Cart() {
   const [mounted, setMounted] = useState(false);
 
   const { getTotals, clearTotals, itemTotals, removeItemTotal } = useCartPromotionContext();
- useEffect(() => {
-    // Si pas connecté, redirige vers /signIn
-    if (status === "unauthenticated") {
-      router.replace("/signIn");
-    }
-  }, [status, router]);
+ 
 
   React.useEffect(() => {
     const currentProductIds = cartItems.map(item => item.idProduit);
@@ -262,11 +261,17 @@ function Cart() {
     } catch (error) {}
   };
 
-  const handleRemove = async (item: any) => {
+   const handleRemove = async (
+    idPanierProduit: number | undefined, 
+    idProduit: number,
+    idProduitVariation?: number
+  ) => {
     try {
-await removeFromCart(item.idPanierProduit, item.idProduit);      removeItemTotal(item.idProduit);
+      await removeFromCart(idPanierProduit, idProduit, idProduitVariation);
+      removeItemTotal(idProduit);
     } catch (error) {}
   };
+  
 
   const handleClearCart = async () => {
     if (window.confirm('Êtes-vous sûr de vouloir vider votre panier ?')) {

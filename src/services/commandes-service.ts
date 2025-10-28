@@ -252,7 +252,24 @@ class CommandesService {
     });
     return response.data;
   }
+// Créer une commande (authentifié OU guest)
+async createCommandeUnified(
+  commandeData: CommandeFormData & { codePromo?: string; fraisLivraison?: number },
+  token?: string
+): Promise<CommandeCreateResponse | CommandeGuestCreateResponse> {
+  const headers: any = {};
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
 
+  const response = await api.post<CommandeCreateResponse | CommandeGuestCreateResponse>(
+    '/commandes',
+    commandeData,
+    { headers }
+  );
+  
+  return response.data;
+}
   async getAllCommandes(
     params: { page?: number; limit?: number; statut?: string; dateDebut?: string; dateFin?: string } = {},
     token?: string

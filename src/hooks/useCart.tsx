@@ -4,33 +4,35 @@ import PanierService, { Cart, CartItem } from "@/services/panier-service";
 import { useSession } from "next-auth/react";
 import { toast } from "react-hot-toast";
 import { useRouter } from "next/navigation";
-import * as fbq from "@/lib/fpixel"; // 👈 Ajouter
+import * as fbq from "@/lib/fpixel";
 
 interface CartContextType {
   cart: Cart | null;
   cartItems: CartItem[];
   totalItems: number;
   totalPrice: number;
-  loading: boolean;          // Le loading global (affichage initial)
-  initialLoading: boolean;   // Nouveau : loading uniquement au premier affichage
-  actionLoadingItemId: number | null; // Nouveau : idProduit en action
-  addToCart: (idProduit: number, quantite?: number, variationId?: number) => Promise<void>;
+  loading: boolean;
+  initialLoading: boolean;
+  actionLoadingItemId: number | null;
+  addToCart: (idProduit: number, quantite?: number, variationId?: number, produit?: any, variation?: any) => Promise<void>;
   updateQuantity: (idProduit: number, quantite: number, idProduitVariation?: number) => Promise<void>;
-  removeFromCart: (idPanierProduit: number, idProduit: number) => Promise<void>; // Ajout idProduit
+  removeFromCart: (idPanierProduit: number | undefined, idProduit: number, idProduitVariation?: number) => Promise<void>;
   clearCart: () => Promise<void>;
   refreshCart: () => Promise<void>;
   clearCartWithoutToast: () => Promise<void>;
 }
+
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
 export function CartProvider({ children }: { children: ReactNode }) {
   const [cart, setCart] = useState<Cart | null>(null);
   const [loading, setLoading] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
+  const [actionLoadingItemId, setActionLoadingItemId] = useState<number | null>(null);
+  const [syncDone, setSyncDone] = useState(false);
   const router = useRouter();
- const [initialLoading, setInitialLoading] = useState(true); // Nouveau
-  const [actionLoadingItemId, setActionLoadingItemId] = useState<number | null>(null); // Nouveau
- 
+
   const { status, data: session } = useSession();
   const isAuthenticated = status === "authenticated";
   const token = session?.customToken;
@@ -43,65 +45,93 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const totalItems = cartItems.reduce((sum, item) => sum + item.quantite, 0);
   const totalPrice = cartItems.reduce((sum, item) => sum + item.quantite * item.prixUnitaire, 0);
 
- const refreshCart = async () => {
-    if (!mounted || !isAuthenticated || !token) {
+  /**
+   * ✅ NOUVEAU : Synchroniser le panier local avec la BDD lors de la connexion
+   */
+  const syncCartOnLogin = async () => {
+    if (!token || syncDone) return;
+
+    try {
+      await PanierService.syncLocalCartToDB(token);
+      setSyncDone(true);
+      console.log('✅ Panier local synchronisé avec la BDD');
+    } catch (error) {
+      console.error('❌ Erreur lors de la synchronisation:', error);
+    }
+  };
+
+  /**
+   * ✅ MODIFIÉ : Rafraîchir le panier (BDD ou localStorage)
+   */
+  const refreshCart = async () => {
+    if (!mounted) {
       setCart(null);
       return;
     }
+
     try {
       setLoading(true);
       const cartData = await PanierService.getPanier(token);
       setCart(cartData);
     } catch (error) {
       setCart(null);
-      if (isAuthenticated) toast.error("Erreur lors du chargement du panier");
+      if (isAuthenticated) {
+        toast.error("Erreur lors du chargement du panier");
+      }
     } finally {
       setLoading(false);
-      setInitialLoading(false); // Fin du premier chargement
+      setInitialLoading(false);
     }
   };
 
- const addToCart = async (idProduit: number, quantite: number = 1, variationId?: number) => {
-  if (!isAuthenticated || !token) {
-    toast.error("Vous devez être connecté pour ajouter des produits au panier");
-    router.push("/signIn");
-    return;
-  }
-  try {
-    await PanierService.ajouterProduit(idProduit, quantite, variationId, token);
-    await refreshCart();
-    
-    // Récupérer les infos du produit ajouté
-    const updatedCart = await PanierService.getPanier(token);
-    const addedItem = updatedCart.produits.find(p => p.idProduit === idProduit);
-    
-    toast.success("Produit ajouté au panier");
-    
-    // 🔥 TRACKER AVEC TOUTES LES INFOS
-    if (addedItem) {
-      fbq.event('AddToCart', {
-        content_ids: [idProduit.toString()],
-        content_name: addedItem.produit.nom || 'Produit', // 👈 Nom du produit
-        content_type: 'product',
-        value: addedItem.prixUnitaire * quantite, // 👈 Prix total
-        currency: 'TND', // Changez selon votre devise
-        num_items: quantite // 👈 Quantité
-      });
-    }
-    
-  } catch (error: any) {
-    const message = error.message || "Erreur lors de l'ajout au panier";
-    toast.error(message);
-    throw error;
-  }
-};
+  /**
+   * ✅ MODIFIÉ : Ajouter au panier (BDD ou localStorage)
+   */
+  const addToCart = async (
+    idProduit: number,
+    quantite: number = 1,
+    variationId?: number,
+    produit?: any,
+    variation?: any
+  ) => {
+    try {
+      await PanierService.ajouterProduit(
+        idProduit,
+        quantite,
+        variationId,
+        token,
+        produit,
+        variation
+      );
+      await refreshCart();
 
-  const updateQuantity = async (idProduit: number, quantite: number, idProduitVariation?: number) => {
-    if (!isAuthenticated || !token) {
-      toast.error("Vous devez être connecté pour modifier le panier");
-      router.push("/signIn");
-      return;
+      toast.success("Produit ajouté au panier");
+
+      // 🔥 Tracker avec Meta Pixel
+      const updatedCart = await PanierService.getPanier(token);
+      const addedItem = updatedCart.produits.find((p) => p.idProduit === idProduit);
+
+      if (addedItem) {
+        fbq.event("AddToCart", {
+          content_ids: [idProduit.toString()],
+          content_name: addedItem.produit.nom || "Produit",
+          content_type: "product",
+          value: addedItem.prixUnitaire * quantite,
+          currency: "TND",
+          num_items: quantite,
+        });
+      }
+    } catch (error: any) {
+      const message = error.message || "Erreur lors de l'ajout au panier";
+      toast.error(message);
+      throw error;
     }
+  };
+
+  /**
+   * ✅ MODIFIÉ : Modifier la quantité (BDD ou localStorage)
+   */
+  const updateQuantity = async (idProduit: number, quantite: number, idProduitVariation?: number) => {
     try {
       setActionLoadingItemId(idProduit);
       await PanierService.modifierQuantite(idProduit, quantite, idProduitVariation, token);
@@ -115,16 +145,17 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }
   };
 
-
-  const removeFromCart = async (idPanierProduit: number, idProduit: number) => {
-    if (!isAuthenticated || !token) {
-      toast.error("Vous devez être connecté pour retirer du panier");
-      router.push("/signIn");
-      return;
-    }
+  /**
+   * ✅ MODIFIÉ : Retirer du panier (BDD ou localStorage)
+   */
+  const removeFromCart = async (
+    idPanierProduit: number | undefined,
+    idProduit: number,
+    idProduitVariation?: number
+  ) => {
     try {
       setActionLoadingItemId(idProduit);
-      await PanierService.retirerProduit(idPanierProduit, token);
+      await PanierService.retirerProduit(idPanierProduit, token, idProduit, idProduitVariation);
       await refreshCart();
       toast.success("Produit retiré du panier");
     } catch (error: any) {
@@ -135,12 +166,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
       setActionLoadingItemId(null);
     }
   };
+
+  /**
+   * ✅ MODIFIÉ : Vider le panier (BDD ou localStorage)
+   */
   const clearCart = async () => {
-    if (!isAuthenticated || !token) {
-      toast.error("Vous devez être connecté pour vider le panier");
-      router.push("/signIn");
-      return;
-    }
     try {
       await PanierService.viderPanier(token);
       await refreshCart();
@@ -153,7 +183,6 @@ export function CartProvider({ children }: { children: ReactNode }) {
   };
 
   const clearCartWithoutToast = async () => {
-    if (!isAuthenticated || !token) return;
     try {
       await PanierService.viderPanier(token);
       await refreshCart();
@@ -164,14 +193,18 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  /**
+   * ✅ NOUVEAU : Synchroniser puis charger le panier à la connexion
+   */
   useEffect(() => {
-    if (mounted && isAuthenticated && token) {
+    if (mounted && isAuthenticated && token && !syncDone) {
+      syncCartOnLogin().then(() => refreshCart());
+    } else if (mounted && isAuthenticated && token) {
       refreshCart();
     } else if (mounted && !isAuthenticated) {
-      setCart(null);
-      setInitialLoading(false);
+      refreshCart(); // Charge le panier local
     }
-  }, [mounted, isAuthenticated, token]);
+  }, [mounted, isAuthenticated, token, syncDone]);
 
   return (
     <CartContext.Provider

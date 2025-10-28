@@ -359,8 +359,13 @@ useEffect(() => {
     if (!stockStatus.available || !selectedVariation) return;
     try {
       setIsAddingToCart(true);
-      await addToCart(produit!.idProduit, quantity, selectedVariation.idProduitVariation);
-    } catch (error) {
+await addToCart(
+  produit.idProduit,
+  quantity,
+  selectedVariation?.idProduitVariation,
+  produit, // ← Ajout de l'objet produit complet
+  selectedVariation || undefined // ← Ajout de la variation sélectionnée
+);    } catch (error) {
       console.error('Error adding to cart:', error);
     } finally {
       setIsAddingToCart(false);

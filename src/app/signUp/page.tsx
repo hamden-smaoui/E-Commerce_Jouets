@@ -328,9 +328,9 @@ export default function SignUp() {
             <div className="mt-6">
               <GoogleAuthButton mode="signup" />
             </div>
-            <div className="mt-3">
+           {/* <div className="mt-3">
               <FacebookAuthButton mode="signup" />
-            </div>
+            </div>*/}
           </div>
 
           <div className="mt-6 text-center">
@@ -344,7 +344,7 @@ export default function SignUp() {
         </div>
 
         <div className="text-center">
-          <Link href="" className="text-purple-600 hover:text-purple-800 font-medium">
+          <Link href="/" className="text-purple-600 hover:text-purple-800 font-medium">
             ← Retour à l'accueil
           </Link>
         </div>

@@ -124,13 +124,17 @@ const CartDropdownItem = ({ item, onIncrement, onDecrement, onRemove }: any) => 
             </button>
           </div>
 
-          <button
-  onClick={() => onRemove(item.idPanierProduit, item.idProduit)}
-  className="text-red-500 hover:text-red-700 transition-colors p-1"
-  title="Supprimer"
->
-  <TrashIcon className="w-4 h-4" />
-</button>
+<button
+            onClick={() => onRemove(
+              item.idPanierProduit, 
+              item.idProduit, 
+              item.idProduitVariation // ← Ajouter ce paramètre
+            )}
+            className="text-red-500 hover:text-red-700 transition-colors p-1"
+            title="Supprimer"
+          >
+            <TrashIcon className="w-4 h-4" />
+          </button>
         </div>
       </div>
     </div>
@@ -203,11 +207,15 @@ const { storeInfo, loading: storeLoading } = useStoreInfo();
     }
   };
 
-  const handleRemove = async (idPanierProduit: number, idProduit: number) => {
-  try {
-    await removeFromCart(idPanierProduit, idProduit);
-  } catch (error) {}
-};
+  const handleRemove = async (
+    idPanierProduit: number | undefined, 
+    idProduit: number,
+    idProduitVariation?: number
+  ) => {
+    try {
+      await removeFromCart(idPanierProduit, idProduit, idProduitVariation);
+    } catch (error) {}
+  };
 
   const handleCartClick = () => {
     setIsOpen(!isOpen);
@@ -262,7 +270,7 @@ const { storeInfo, loading: storeLoading } = useStoreInfo();
             <div className="p-6 text-center">
               <ShoppingCartIcon className="h-12 w-12 text-gray-300 mx-auto mb-3" />
               <p className="text-gray-500 mb-4">Votre panier est vide</p>
-              <Link href="">
+              <Link href="/">
                 <button
                   onClick={() => setIsOpen(false)}
                   className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors"
