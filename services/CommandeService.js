@@ -1,5 +1,5 @@
 // services/CommandeService.js
-const { Commande, Utilisateur, LigneCommande, Facture, Produit, StoreInfo , ProduitVariation, Couleur, Taille, Age } = require('../models');
+const { Commande, Utilisateur, LigneCommande, Facture, Produit, StoreInfo , ProduitVariation, Couleur, Taille, Age,Image } = require('../models');
 const PromotionService = require('./PromotionService');
 const sequelize = require('../config/database');
 const { v4: uuidv4 } = require('uuid');
@@ -375,9 +375,8 @@ async creerEntiteCommandeGuest(commandeData, montants, resultatsPromo, fraisLivr
     }, { transaction });
 }
 
-// 🆕 NOUVELLE MÉTHODE: Obtenir une commande guest avec validation du token
+// services/CommandeService.js
 async obtenirCommandeGuestComplete(idCommande, guestToken) {
-    // 1. Récupérer la commande
     const commande = await Commande.findByPk(idCommande, {
         include: [
             {
@@ -387,7 +386,15 @@ async obtenirCommandeGuestComplete(idCommande, guestToken) {
                     {
                         model: Produit,
                         as: 'produit',
-                        attributes: ['idProduit', 'nom', 'prix']
+                        attributes: ['idProduit', 'nom', 'prix'],
+                        include: [
+                            {
+                                model: Image, // ✅ IMPORTANT
+                                as: 'images',
+                                attributes: ['url', 'rang'],
+                                order: [['rang', 'ASC']] // ✅ Trier par rang
+                            }
+                        ]
                     },
                     {
                         model: ProduitVariation,
@@ -412,12 +419,12 @@ async obtenirCommandeGuestComplete(idCommande, guestToken) {
         throw new Error('Commande introuvable');
     }
     
-    // 2. ✅ SÉCURITÉ: Vérifier que le token correspond
+    // Vérifier le token
     if (commande.guestToken !== guestToken) {
         throw new Error('Accès non autorisé à cette commande');
     }
     
-    // 3. ✅ SÉCURITÉ: Vérifier que c'est bien une commande guest
+    // Vérifier que c'est une commande guest
     if (commande.idClient !== null) {
         throw new Error('Cette commande nécessite une authentification');
     }

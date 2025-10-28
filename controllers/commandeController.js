@@ -28,29 +28,47 @@ function validateClientData(clientData) {
 }
 
 class CommandeController {
-  async createCommande(req, res, next) {
-    const transaction = await sequelize.transaction();
-    let isTransactionCommitted = false;
-    try {
-      // Nettoyage des champs client
-      const clientData = { ...req.body };
-      Object.keys(clientData).forEach(field => {
-        if (typeof clientData[field] === "string") {
-          clientData[field] = validator.escape(clientData[field].trim());
-        }
-      });
-
-      // Validation
-      const validationError = validateClientData(clientData);
-      if (validationError) {
-        await transaction.rollback();
-        const error = new Error(validationError);
-        error.code = "VALIDATION_ERROR";
-        return next(error);
+async createCommande(req, res, next) {
+  const transaction = await sequelize.transaction();
+  let isTransactionCommitted = false;
+  
+  try {
+    // ✅ CORRECTION : Vérifier à la fois req.user ET req.body.idClient
+    const isAuthenticated = !!(req.user?.idUtilisateur || req.body.idClient);
+    const idClient = req.user?.idUtilisateur || req.body.idClient || null;
+    
+    // Nettoyage des champs client
+    const clientData = { ...req.body };
+    Object.keys(clientData).forEach(field => {
+      if (typeof clientData[field] === "string") {
+        clientData[field] = validator.escape(clientData[field].trim());
       }
+    });
 
-      // Création commande
-      const resultat = await CommandeService.creerCommande(clientData, transaction);
+    // Validation
+    const validationError = validateClientData(clientData);
+    if (validationError) {
+      await transaction.rollback();
+      const error = new Error(validationError);
+      error.code = "VALIDATION_ERROR";
+      return next(error);
+    }
+
+    // ✅ Si authentifié : commande normale
+    if (isAuthenticated && idClient) {
+      const resultat = await CommandeService.creerCommande(
+        { ...clientData, idClient }, // ✅ Utiliser idClient du body ou du middleware
+        transaction
+      );
+      
+      // ✅ Créer la facture pour les commandes authentifiées aussi
+      await CommandeService.creerFacture(
+        resultat.commande,
+        clientData,
+        resultat.commande.montantTotal,
+        transaction
+      );
+
       await transaction.commit();
       isTransactionCommitted = true;
 
@@ -58,9 +76,10 @@ class CommandeController {
         resultat.commande.idCommande
       );
 
+      // ✅ NE PAS retourner guestToken pour les commandes authentifiées
       res.status(201).json({
-        message: 'Commande et facture créées avec succès',
-        data: commandeComplete,
+        message: 'Commande créée avec succès',
+        data: commandeComplete, // ✅ Sans guestToken
         calculDetails: {
           montantOriginal: resultat.montants.montantOriginal,
           montantProduits: resultat.montants.montantProduits,
@@ -68,7 +87,7 @@ class CommandeController {
           reductionCodePromo: resultat.resultatsPromo.reductionCodePromo,
           montantFinal: resultat.resultatsPromo.montantFinal,
           fraisLivraison: resultat.montants.fraisLivraisonFinal,
-          montantTotal: resultat.montants.montantTotalAvecLivraison,
+          montantTotal: resultat.commande.montantTotal,
           economiesTotal: resultat.montants.montantOriginal - resultat.resultatsPromo.montantFinal
         },
         promotions: {
@@ -85,14 +104,57 @@ class CommandeController {
           } : null
         }
       });
+    } 
+    // ✅ Si NON authentifié : commande guest
+    else {
+      const resultat = await CommandeService.creerCommandeGuest(
+        { ...clientData, idClient: null },
+        transaction
+      );
+      
+      // Créer la facture
+      await CommandeService.creerFacture(
+        resultat.commande,
+        clientData,
+        resultat.commande.montantTotal,
+        transaction
+      );
 
-    } catch (error) {
-      if (!isTransactionCommitted && !transaction.finished) {
-        try { await transaction.rollback(); } catch (rollbackError) {}
-      }
-      next(error);
+      await transaction.commit();
+      isTransactionCommitted = true;
+
+      const commandeComplete = await CommandeService.obtenirCommandeGuestComplete(
+        resultat.commande.idCommande,
+        resultat.guestToken
+      );
+
+      // ✅ Retourner guestToken pour les commandes guest
+      res.status(201).json({
+        message: 'Commande créée avec succès',
+        data: {
+          ...commandeComplete.toJSON(),
+          guestToken: resultat.guestToken // ✅ Avec guestToken
+        },
+        calculDetails: {
+          montantOriginal: resultat.montants.montantOriginal,
+          montantProduits: resultat.montants.montantProduits,
+          reductionProduits: resultat.montants.montantOriginal - resultat.montants.montantProduits,
+          reductionCodePromo: resultat.resultatsPromo.reductionCodePromo,
+          montantFinal: resultat.resultatsPromo.montantFinal,
+          fraisLivraison: resultat.montants.fraisLivraisonFinal,
+          montantTotal: resultat.commande.montantTotal,
+          economiesTotal: resultat.resultatsPromo.reductionTotale
+        }
+      });
     }
+
+  } catch (error) {
+    if (!isTransactionCommitted && !transaction.finished) {
+      try { await transaction.rollback(); } catch (rollbackError) {}
+    }
+    next(error);
   }
+}
 
   async calculerPanier(req, res, next) {
     try {

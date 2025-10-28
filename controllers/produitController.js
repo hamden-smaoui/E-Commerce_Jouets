@@ -1,6 +1,6 @@
 const { Produit, Categorie, Marque, Type, Image, Fournisseur, LigneCommande, Avis, Utilisateur, Commentaire, ProduitVariation, Couleur, Taille, Age } = require('../models');
 const upload = require('../multerConfig');
-const { cloudinary } = require('../config/cloudinary'); // ✅ NOUVEAU
+const { cloudinary } = require('../config/cloudinary');
 const { Sequelize, Op } = require('sequelize');
 
 class ProduitController {
@@ -15,7 +15,19 @@ class ProduitController {
       }
       
       try {
-        const { nom, description, prix, quantiteStock, idCategorie, idMarque, idFournisseur, idType, genre, variants } = req.body;
+        const { 
+          nom, 
+          description, 
+          prix, 
+          quantiteStock, 
+          idCategorie, 
+          idMarque, 
+          idFournisseur, 
+          idType, 
+          genre, 
+          livraisonGratuite, // ✅ NOUVEAU CHAMP
+          variants 
+        } = req.body;
         
         const produit = await Produit.create({
           nom,
@@ -27,17 +39,21 @@ class ProduitController {
           idType: idType ? parseInt(idType) : null,
           idFournisseur: parseInt(idFournisseur),
           genre,
+          livraisonGratuite: livraisonGratuite === 'true' || livraisonGratuite === true, // ✅ NOUVEAU CHAMP
         });
 
-        // ✅ MODIFIÉ : Utiliser Cloudinary URLs
+        // Utiliser Cloudinary URLs
         if (req.files && Array.isArray(req.files)) {
-          const images = req.files.map((file, i) => ({
-            url: file.path, // ✅ URL Cloudinary complète
-            publicId: file.filename, // ✅ Public ID pour suppression
-            rang: i + 1,
-            idProduit: produit.idProduit,
-          }));
-          await Image.bulkCreate(images);
+         console.log('🔍 IMAGE MODEL DEFINITION:', Image.rawAttributes.publicId);
+
+const images = req.files.map((file, i) => ({
+  url: file.path,
+  publicId: file.filename,
+  rang: i + 1,
+  idProduit: produit.idProduit,
+}));
+
+console.log('🔍 DATA TO INSERT:', images);
         }
 
         let variantsArray = [];
@@ -74,7 +90,7 @@ class ProduitController {
         
         res.status(201).json({ message: 'Produit créé avec succès', data: createdProduit });
       } catch (error) {
-        // ✅ NOUVEAU : En cas d'erreur, supprimer les images de Cloudinary
+        // En cas d'erreur, supprimer les images de Cloudinary
         if (req.files && req.files.length > 0) {
           for (const file of req.files) {
             try {
@@ -155,6 +171,7 @@ class ProduitController {
           'description',
           'prix',
           'quantiteStock',
+          'livraisonGratuite', // ✅ AJOUTÉ
           'idCategorie',
           'idMarque',
           'idType',
@@ -216,13 +233,15 @@ class ProduitController {
     }
   }
 
-  async updateProduit(req, res, next) {
+async updateProduit(req, res, next) {
     ProduitController.uploadImages(req, res, async (err) => {
       if (err) {
         const error = new Error('Erreur upload');
         error.code = "VALIDATION_ERROR";
         return next(error);
       }
+      
+       
       
       try {
         const produit = await Produit.findByPk(req.params.id, { include: [{ model: Image, as: 'images' }] });
@@ -242,6 +261,7 @@ class ProduitController {
           idType,
           idFournisseur,
           genre,
+          livraisonGratuite, 
           imagesToDelete,
           imageRangs,
           variants,
@@ -257,50 +277,51 @@ class ProduitController {
           idType: idType ? parseInt(idType) : null,
           idFournisseur: parseInt(idFournisseur),
           genre,
+          livraisonGratuite: livraisonGratuite === 'true' || livraisonGratuite === true, // ✅ NOUVEAU CHAMP
         });
 
-        // ✅ MODIFIÉ : Supprimer les images de Cloudinary
-        if (imagesToDelete && Array.isArray(imagesToDelete)) {
-          const idsToDelete = imagesToDelete.map(Number);
-          const imgs = await Image.findAll({ where: { idImage: idsToDelete, idProduit: produit.idProduit } });
+        if (imagesToDelete) {
+          const idsToDelete = Array.isArray(imagesToDelete) 
+            ? imagesToDelete 
+            : JSON.parse(imagesToDelete);
           
-          for (const img of imgs) {
-            try {
-              // ✅ Supprimer de Cloudinary avec le publicId
-              if (img.publicId) {
-                await cloudinary.uploader.destroy(img.publicId);
+          for (const idImage of idsToDelete) {
+            const image = await Image.findByPk(idImage);
+            if (image && image.publicId) {
+              try {
+                await cloudinary.uploader.destroy(image.publicId);
+              } catch (deleteErr) {
+                console.error('Erreur suppression Cloudinary:', deleteErr);
               }
-            } catch (cloudErr) {
-              console.error('Erreur suppression Cloudinary:', cloudErr);
             }
-          }
-          
-          await Image.destroy({ where: { idImage: idsToDelete, idProduit: produit.idProduit } });
-        }
-
-        if (imageRangs && typeof imageRangs === 'object') {
-          for (const [id, rang] of Object.entries(imageRangs)) {
-            await Image.update({ rang: parseInt(rang) }, { where: { idImage: parseInt(id), idProduit: produit.idProduit } });
+            await Image.destroy({ where: { idImage } });
           }
         }
 
-        // ✅ MODIFIÉ : Ajouter les nouvelles images avec Cloudinary URLs
-        if (req.files && Array.isArray(req.files) && req.files.length > 0) {
+        if (imageRangs) {
+          const rangs = JSON.parse(imageRangs);
+          for (const [idImage, rang] of Object.entries(rangs)) {
+            await Image.update({ rang: parseInt(rang) }, { where: { idImage: parseInt(idImage) } });
+          }
+        }
+
+        if (req.files && req.files.length > 0) {
           const existingImages = await Image.findAll({ where: { idProduit: produit.idProduit } });
-          const maxRang = existingImages.reduce((max, img) => Math.max(max, img.rang || 0), 0);
-          
-          const newImages = req.files.map((file, i) => ({
-            url: file.path, // ✅ URL Cloudinary
-            publicId: file.filename, // ✅ Public ID
+          const maxRang = existingImages.length > 0 ? Math.max(...existingImages.map(img => img.rang)) : 0;
+
+          const images = req.files.map((file, i) => ({
+            url: file.path,
+            publicId: file.filename,
             rang: maxRang + i + 1,
             idProduit: produit.idProduit,
           }));
-          
-          await Image.bulkCreate(newImages);
+
+          await Image.bulkCreate(images);
         }
 
         if (variants) {
-          let variantsArray = typeof variants === "string" ? JSON.parse(variants) : variants;
+          const variantsArray = typeof variants === 'string' ? JSON.parse(variants) : variants;
+          
           await ProduitVariation.destroy({ where: { idProduit: produit.idProduit } });
           
           for (const v of variantsArray) {
@@ -314,7 +335,7 @@ class ProduitController {
           }
         }
 
-        const updated = await Produit.findByPk(produit.idProduit, {
+        const updatedProduit = await Produit.findByPk(produit.idProduit, {
           include: [
             { model: Categorie, as: 'categorie' },
             { model: Marque, as: 'marque' },
@@ -332,18 +353,8 @@ class ProduitController {
           ]
         });
         
-        res.status(200).json({ message: 'Produit mis à jour', data: updated });
+        res.status(200).json({ message: 'Produit mis à jour avec succès', data: updatedProduit });
       } catch (error) {
-        // ✅ NOUVEAU : En cas d'erreur, supprimer les nouvelles images uploadées
-        if (req.files && req.files.length > 0) {
-          for (const file of req.files) {
-            try {
-              await cloudinary.uploader.destroy(file.filename);
-            } catch (deleteErr) {
-              console.error('Erreur suppression image Cloudinary:', deleteErr);
-            }
-          }
-        }
         next(error);
       }
     });
@@ -358,15 +369,14 @@ class ProduitController {
         return next(error);
       }
 
-      // ✅ MODIFIÉ : Supprimer toutes les images de Cloudinary
       if (produit.images && produit.images.length > 0) {
-        for (const img of produit.images) {
-          try {
-            if (img.publicId) {
-              await cloudinary.uploader.destroy(img.publicId);
+        for (const image of produit.images) {
+          if (image.publicId) {
+            try {
+              await cloudinary.uploader.destroy(image.publicId);
+            } catch (deleteErr) {
+              console.error('Erreur suppression Cloudinary:', deleteErr);
             }
-          } catch (cloudErr) {
-            console.error('Erreur suppression Cloudinary:', cloudErr);
           }
         }
       }
@@ -378,50 +388,18 @@ class ProduitController {
     }
   }
 
-  // ✅ NOUVELLE MÉTHODE : Supprimer une image spécifique
-  async deleteImage(req, res, next) {
-    try {
-      const { imageId } = req.params;
-      
-      const image = await Image.findByPk(imageId);
-      if (!image) {
-        const error = new Error('Image non trouvée');
-        error.code = "NOT_FOUND";
-        return next(error);
-      }
-
-      // Supprimer de Cloudinary
-      if (image.publicId) {
-        try {
-          await cloudinary.uploader.destroy(image.publicId);
-        } catch (cloudErr) {
-          console.error('Erreur suppression Cloudinary:', cloudErr);
-        }
-      }
-
-      // Supprimer de la base de données
-      await image.destroy();
-
-      res.status(200).json({ 
-        success: true,
-        message: 'Image supprimée avec succès' 
-      });
-    } catch (error) {
-      next(error);
-    }
-  }
-
   async searchProduits(req, res, next) {
     try {
       const {
-        q,
+        q = '',
         category,
         marque,
-        type,
         minPrice,
         maxPrice,
-        genre,
         inStock,
+        livraisonGratuite, // ✅ NOUVEAU FILTRE
+        genre,
+        type,
         sortBy = 'nom',
         order = 'ASC',
         page = 1,
@@ -429,66 +407,56 @@ class ProduitController {
       } = req.query;
 
       const whereClause = {};
+      
+      if (q.trim()) {
+        whereClause[Op.or] = [
+          { nom: { [Op.like]: `%${q}%` } },
+          { description: { [Op.like]: `%${q}%` } },
+          { '$categorie.nom$': { [Op.like]: `%${q}%` } },
+          { '$marque.nom$': { [Op.like]: `%${q}%` } },
+          { '$type.nom$': { [Op.like]: `%${q}%` } },
+        ];
+      }
+
+      if (category) whereClause.idCategorie = category;
+      if (marque) whereClause.idMarque = marque;
+      if (type) whereClause.idType = type;
+      if (genre) whereClause.genre = genre;
+      if (inStock === 'true') whereClause.quantiteStock = { [Op.gt]: 0 };
+      
+      // ✅ NOUVEAU FILTRE - Livraison gratuite
+      if (livraisonGratuite === 'true') {
+        whereClause.livraisonGratuite = true;
+      }
+
+      if (minPrice || maxPrice) {
+        whereClause.prix = {};
+        if (minPrice) whereClause.prix[Op.gte] = parseFloat(minPrice);
+        if (maxPrice) whereClause.prix[Op.lte] = parseFloat(maxPrice);
+      }
+
       const includeClause = [
         { model: Categorie, as: 'categorie', attributes: ['idCategorie', 'nom'] },
         { model: Marque, as: 'marque', attributes: ['idMarque', 'nom'] },
-        { model: Type, as: 'type', attributes: ['idType', 'nom'], required: false },
+        { model: Type, as: 'type', attributes: ['idType', 'nom'] },
         { model: Fournisseur, as: 'fournisseur', attributes: ['idFournisseur', 'nom'] },
         { 
           model: Image, 
           as: 'images', 
           attributes: ['idImage', 'url', 'rang'],
           separate: true,
-          order: [['rang', 'ASC']]
+          order: [['rang', 'ASC']],
         },
-        {
-          model: ProduitVariation,
+        { 
+          model: ProduitVariation, 
           as: 'variations',
           include: [
             { model: Couleur, as: 'couleur' },
             { model: Taille, as: 'taille' },
             { model: Age, as: 'age' }
           ]
-        }
+        },
       ];
-
-      if (q && q.trim()) {
-        whereClause[Op.or] = [
-          { nom: { [Op.like]: `%${q.trim()}%` } },
-          { description: { [Op.like]: `%${q.trim()}%` } },
-          { '$categorie.nom$': { [Op.like]: `%${q.trim()}%` } },
-          { '$marque.nom$': { [Op.like]: `%${q.trim()}%` } },
-          { '$type.nom$': { [Op.like]: `%${q.trim()}%` } },
-        ];
-      }
-
-      if (category) {
-        whereClause['$categorie.nom$'] = category;
-      }
-
-      if (marque) {
-        whereClause['$marque.nom$'] = marque;
-      }
-
-      if (type) {
-        whereClause['$type.nom$'] = type;
-      }
-
-      if (minPrice) {
-        whereClause.prix = { ...whereClause.prix, [Op.gte]: parseFloat(minPrice) };
-      }
-
-      if (maxPrice) {
-        whereClause.prix = { ...whereClause.prix, [Op.lte]: parseFloat(maxPrice) };
-      }
-
-      if (genre) {
-        whereClause.genre = genre;
-      }
-
-      if (inStock === 'true') {
-        whereClause.quantiteStock = { [Op.gt]: 0 };
-      }
 
       const validSortFields = ['nom', 'prix', 'quantiteStock', 'createdAt'];
       const sortField = validSortFields.includes(sortBy) ? sortBy : 'nom';
@@ -739,6 +707,38 @@ class ProduitController {
       });
 
       res.status(200).json(suggestions);
+    } catch (error) {
+      next(error);
+    }
+  }
+  // ✅ NOUVELLE MÉTHODE : Supprimer une image spécifique
+  async deleteImage(req, res, next) {
+    try {
+      const { imageId } = req.params;
+      
+      const image = await Image.findByPk(imageId);
+      if (!image) {
+        const error = new Error('Image non trouvée');
+        error.code = "NOT_FOUND";
+        return next(error);
+      }
+
+      // Supprimer de Cloudinary
+      if (image.publicId) {
+        try {
+          await cloudinary.uploader.destroy(image.publicId);
+        } catch (cloudErr) {
+          console.error('Erreur suppression Cloudinary:', cloudErr);
+        }
+      }
+
+      // Supprimer de la base de données
+      await image.destroy();
+
+      res.status(200).json({ 
+        success: true,
+        message: 'Image supprimée avec succès' 
+      });
     } catch (error) {
       next(error);
     }

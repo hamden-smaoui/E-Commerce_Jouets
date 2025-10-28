@@ -55,26 +55,26 @@ class MarqueController {
       next(error);
     }
   }
-
-  static async getMarqueById(req, res, next) {
-    try {
-      const marque = await Marque.findByPk(req.params.id, {
-        include: [{
-          model: Produit,
-          as: 'produits',
-          attributes: ['idProduit', 'nom', 'prix'],
-        }],
-      });
-      if (!marque) {
-        const error = new Error('Marque non trouvée');
-        error.code = "NOT_FOUND";
-        return next(error);
-      }
-      res.status(200).json(marque);
-    } catch (error) {
-      next(error);
+static async getMarqueById(req, res, next) {
+  try {
+    const marque = await Marque.findByPk(req.params.id, {
+      include: [{
+        model: Produit,
+        as: 'produits',
+        attributes: ['idProduit', 'nom', 'prix'],
+      }],
+    });
+    if (!marque) {
+      const error = new Error('Marque non trouvée');
+      error.code = "NOT_FOUND";
+      return next(error);
     }
+    // ✅ AJOUTER le wrapper "data" pour être cohérent avec create/update
+    res.status(200).json({ data: marque });
+  } catch (error) {
+    next(error);
   }
+}
 
   static async updateMarque(req, res, next) {
     MarqueController.uploadLogo(req, res, async (err) => {

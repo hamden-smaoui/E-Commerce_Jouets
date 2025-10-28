@@ -10,10 +10,11 @@ const Image = sequelize.define('Image', {
     type: DataTypes.STRING(500), 
     allowNull: false
   },
-  public_id: { // ✅ NOUVEAU CHAMP
-    type: DataTypes.STRING(255),
-    allowNull: true
-  },
+     publicId: {  
+      type: DataTypes.STRING(255),
+      allowNull: true,
+      field: 'publicId'
+    },
     rang: {
         type: DataTypes.INTEGER,
         allowNull: true,
