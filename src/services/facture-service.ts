@@ -116,6 +116,7 @@ export interface FactureResponse extends Facture {
     codePromoGlobal?: string;
     reductionCodePromo?: number;
     lignesCommandes?: LigneCommande[];
+    fraisLivraison:number;
   };
 }
 export interface FactureStats {

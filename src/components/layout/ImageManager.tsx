@@ -6,6 +6,7 @@ interface ImageManagerProps {
   images: File[];
   existingImages?: ImageData[];
   onImagesChange: (images: File[]) => void;
+  onDeleteExistingImage?: (imageId: number) => void; // ✅ NOUVEAU
   maxImages?: number;
 }
 
@@ -21,6 +22,7 @@ const ImageManager: React.FC<ImageManagerProps> = ({
   images,
   existingImages = [],
   onImagesChange,
+  onDeleteExistingImage, // ✅ NOUVEAU
   maxImages = 10,
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -74,7 +76,15 @@ const ImageManager: React.FC<ImageManagerProps> = ({
     onImagesChange(newFiles);
   };
 
+  // ✅ MODIFIÉ : Gérer la suppression d'images existantes
   const removeImage = (id: string) => {
+    const imageToRemove = imageList.find(img => img.id === id);
+    
+    // Si c'est une image existante, appeler le callback pour la supprimer
+    if (imageToRemove?.existing && onDeleteExistingImage) {
+      onDeleteExistingImage(imageToRemove.existing.idImage);
+    }
+    
     const updatedList = imageList.filter(img => img.id !== id);
     // Réorganiser les rangs
     const reorderedList = updatedList.map((img, index) => ({
@@ -106,9 +116,17 @@ const ImageManager: React.FC<ImageManagerProps> = ({
     updateParentImages(reorderedList);
   };
 
+  // ✅ MODIFIÉ : Utiliser la fonction helper pour les URLs
   const getImageSrc = (image: ImageWithRang) => {
     if (image.preview) return image.preview;
-    if (image.existing) return `${image.existing.url}`;
+    if (image.existing) {
+      // Si l'URL commence par http, c'est Cloudinary
+      if (image.existing.url.startsWith('http')) {
+        return image.existing.url;
+      }
+      // Sinon, c'est une ancienne image locale
+      return `${process.env.NEXT_PUBLIC_API_BASE_URL_IMAGE}${image.existing.url}`;
+    }
     return '';
   };
 
@@ -159,6 +177,17 @@ const ImageManager: React.FC<ImageManagerProps> = ({
                   >
                     ✕
                   </button>
+                  {/* ✅ Badge pour distinguer les types d'images */}
+                  {image.existing && (
+                    <span className="absolute top-1 left-1 badge badge-sm badge-info">
+                      Existante
+                    </span>
+                  )}
+                  {image.file && (
+                    <span className="absolute top-1 left-1 badge badge-sm badge-success">
+                      Nouvelle
+                    </span>
+                  )}
                 </div>
                 
                 <div className="flex items-center gap-2">

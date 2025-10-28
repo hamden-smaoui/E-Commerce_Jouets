@@ -184,6 +184,7 @@ const Filter: React.FC<FilterProps> = ({ onFiltersChange, initialFilters, hideTi
     setAgeMin(0);
     setAgeMax(144);
   }, []);
+
   const getSelectedNames = (selectedIds: number[], itemsList: any[], nameKey: string) => {
     return selectedIds.map(id => {
       const item = itemsList.find(item => item[`id${nameKey}`] === id);
@@ -256,7 +257,6 @@ const Filter: React.FC<FilterProps> = ({ onFiltersChange, initialFilters, hideTi
 
   return (
     <div className="w-full p-4 bg-white/80 shadow-xl rounded-2xl border-2 border-pink-200 font-[Comic_Sans_MS,sans-serif]">
-      {/* Titre n'est PAS affiché si hideTitle=true (mobile modal) */}
       {!hideTitle && (
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-extrabold text-pink-600 drop-shadow-lg flex items-center font-[Comic_Sans_MS,sans-serif]">

@@ -128,7 +128,7 @@ function Checkout() {
 
   useEffect(() => {
     if (mounted && !cartLoading && cartItems.length === 0 && !loading) {
-      router.push('/site/cart');
+      router.push('/cart');
     }
   }, [mounted, cartLoading, cartItems.length, router, loading]);
 
@@ -295,7 +295,7 @@ function Checkout() {
       });
       const commandeId = nouvelleCommande.data.idCommande;
       success = true;
-      router.push(`/site/confirmCmd/${commandeId}`);
+      router.push(`/confirmCmd/${commandeId}`);
       return;
     } catch (error: any) {
       let errorMessage = 'Une erreur est survenue lors de la création de votre commande.';
@@ -499,18 +499,6 @@ function Checkout() {
                           )}
                         </div>
                       </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Pays *</label>
-                        <select
-                          name="clientAdressePays"
-                          value={formData.clientAdressePays}
-                          onChange={handleInputChange}
-                          onBlur={handleBlur}
-                          className="w-full border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-pink-500 text-sm"
-                        >
-                          <option value="Tunisie">Tunisie</option>
-                        </select>
-                      </div>
                     </div>
                   </div>
                   {/* Notes additionnelles */}
@@ -536,7 +524,7 @@ function Checkout() {
             </div>
             {/* Retour au panier (desktop only) */}
             <div className="mt-6 hidden xl:block">
-              <Link href="/site/cart" className="inline-flex items-center gap-2 text-purple-600 hover:text-purple-800 transition-colors font-extrabold font-[Comic_Sans_MS,sans-serif]">
+              <Link href="/cart" className="inline-flex items-center gap-2 text-purple-600 hover:text-purple-800 transition-colors font-extrabold font-[Comic_Sans_MS,sans-serif]">
                 <ArrowLeftIcon className="w-5 h-5" />
                 Retour au panier
               </Link>
@@ -679,7 +667,7 @@ function Checkout() {
               </div>
               {/* Retour au panier (mobile only) */}
               <div className="mt-4 xl:hidden">
-                <Link href="/site/cart" className="inline-flex items-center gap-2 text-purple-600 hover:text-purple-800 transition-colors font-extrabold font-[Comic_Sans_MS,sans-serif]">
+                <Link href="/cart" className="inline-flex items-center gap-2 text-purple-600 hover:text-purple-800 transition-colors font-extrabold font-[Comic_Sans_MS,sans-serif]">
                   <ArrowLeftIcon className="w-5 h-5" />
                   Retour au panier
                 </Link>

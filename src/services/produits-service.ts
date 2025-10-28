@@ -62,7 +62,7 @@ export interface Produit {
   idFournisseur: number;
   idType: number | null;
   genre: 'fille' | 'garçon' | 'enfant';
-  livraisonGratuite?: boolean;
+  livraisonGratuite?: boolean; // ✅ CHAMP AJOUTÉ
 }
 
 // Nouveau format pour les données du formulaire
@@ -77,6 +77,7 @@ export interface ProduitFormData {
   idFournisseur: number;
   idType: number | null;
   genre: 'fille' | 'garçon' | 'enfant';
+  livraisonGratuite?: boolean; // ✅ CHAMP AJOUTÉ
   images?: File[];
   imageRangs?: number[];
   variants?: {
@@ -104,6 +105,7 @@ class ProduitsService {
   async createProduit(produitData: ProduitFormData, token?: string): Promise<ProduitResponse> {
     const headers: any = { 'Content-Type': 'multipart/form-data' };
     if (token) headers.Authorization = `Bearer ${token}`;
+    
     const formData = new FormData();
     formData.append('nom', produitData.nom);
     formData.append('description', produitData.description);
@@ -114,6 +116,10 @@ class ProduitsService {
     formData.append('idFournisseur', produitData.idFournisseur.toString());
     if (produitData.idType) formData.append('idType', produitData.idType.toString());
     formData.append('genre', produitData.genre);
+    
+    // ✅ AJOUT DU CHAMP livraisonGratuite
+    formData.append('livraisonGratuite', produitData.livraisonGratuite ? 'true' : 'false');
+    
     if (produitData.variants?.length) formData.append('variants', JSON.stringify(produitData.variants));
     if (produitData.images?.length) produitData.images.forEach(img => formData.append('images', img));
 
@@ -136,6 +142,7 @@ class ProduitsService {
   async updateProduit(id: number, produitData: ProduitFormData, token?: string): Promise<ProduitResponse> {
     const headers: any = { 'Content-Type': 'multipart/form-data' };
     if (token) headers.Authorization = `Bearer ${token}`;
+    
     const formData = new FormData();
     formData.append('nom', produitData.nom);
     formData.append('description', produitData.description);
@@ -146,6 +153,10 @@ class ProduitsService {
     formData.append('idFournisseur', produitData.idFournisseur.toString());
     if (produitData.idType) formData.append('idType', produitData.idType.toString());
     formData.append('genre', produitData.genre);
+    
+    // ✅ AJOUT DU CHAMP livraisonGratuite
+    formData.append('livraisonGratuite', produitData.livraisonGratuite ? 'true' : 'false');
+    
     if (produitData.variants?.length) formData.append('variants', JSON.stringify(produitData.variants));
     if (produitData.images?.length) produitData.images.forEach(img => formData.append('images', img));
 

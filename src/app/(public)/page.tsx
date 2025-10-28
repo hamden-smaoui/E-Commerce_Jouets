@@ -90,7 +90,7 @@ export default function Home() {
           <Categories categories={categories} />
           <Hero
             buttonText="Voir les produits"
-            buttonLink="/site/products"
+            buttonLink="/products"
           />
          
      {bestOffers.length > 0 && <BestOffers offers={bestOffers} />} 

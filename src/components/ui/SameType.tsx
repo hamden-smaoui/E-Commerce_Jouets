@@ -151,7 +151,7 @@ export default function SameType({ offers }: SameTypeProps) {
 
         {/* SEE ALL BUTTON */}
         <div className="text-center mt-8 sm:mt-12">
-          <a href="/site/products"
+          <a href="/products"
             className="inline-flex items-center gap-2 px-8 py-3 bg-gradient-to-r from-purple-400 to-pink-400 text-white font-bold rounded-xl shadow-lg hover:from-purple-500 hover:to-pink-500 transition-all transform hover:scale-105"
           >
             Voir tous les produits

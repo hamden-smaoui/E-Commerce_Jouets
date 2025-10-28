@@ -61,7 +61,7 @@ const NavBarCentre: React.FC = () => {
           <Menu size={24} />
         </label>
         <div className="navbar-start">
-          <Link href="/site" className="flex items-center">
+          <Link href="" className="flex items-center">
             {storeInfo?.logo1 ? (
               <div className="relative h-10 w-auto">
                 <Image 
@@ -114,7 +114,7 @@ const NavBarCentre: React.FC = () => {
                   </li>
                   <li>
                     <Link 
-                      href={`/site/profile`} 
+                      href={`/profile`} 
                       className="flex items-center py-2 hover:bg-purple-50"
                       onClick={() => setIsDropdownOpen(false)}
                     >
@@ -124,7 +124,7 @@ const NavBarCentre: React.FC = () => {
                   </li>
                   <li>
                     <Link 
-                      href={`/site/commandes`} 
+                      href={`/commandes`} 
                       className="flex items-center py-2 hover:bg-purple-50"
                       onClick={() => setIsDropdownOpen(false)}
                     >

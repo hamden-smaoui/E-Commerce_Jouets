@@ -226,7 +226,7 @@ function GuestOrderConfirmation() {
           <p className="text-gray-600 mb-6">
             {error || 'Commande introuvable ou lien invalide'}
           </p>
-          <Link href="/site/products">
+          <Link href="/products">
             <button className="bg-pink-600 text-white px-6 py-3 rounded-lg hover:bg-pink-700 font-bold transition-colors">
               Retour à la boutique
             </button>
@@ -491,7 +491,7 @@ function GuestOrderConfirmation() {
         {/* Action Buttons */}
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
           <Link
-            href="/site/products"
+            href="/products"
             className="bg-gradient-to-r from-pink-500 to-purple-500 text-white px-8 py-3 rounded-lg hover:from-pink-600 hover:to-purple-600 font-extrabold transition-all transform hover:scale-105 shadow-lg text-center"
           >
             Continuer vos achats

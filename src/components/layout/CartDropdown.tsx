@@ -262,7 +262,7 @@ const { storeInfo, loading: storeLoading } = useStoreInfo();
             <div className="p-6 text-center">
               <ShoppingCartIcon className="h-12 w-12 text-gray-300 mx-auto mb-3" />
               <p className="text-gray-500 mb-4">Votre panier est vide</p>
-              <Link href="/site">
+              <Link href="">
                 <button
                   onClick={() => setIsOpen(false)}
                   className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors"
@@ -312,7 +312,7 @@ const { storeInfo, loading: storeLoading } = useStoreInfo();
 
                 {/* Boutons d'action */}
                 <div className="space-y-2">
-                  <Link href="/site/cart" className="block">
+                  <Link href="/cart" className="block">
                     <button
                       onClick={() => setIsOpen(false)}
                       className="w-full bg-gray-100 text-gray-800 py-2 px-4 rounded-lg hover:bg-gray-200 transition-colors font-medium text-sm"
@@ -320,7 +320,7 @@ const { storeInfo, loading: storeLoading } = useStoreInfo();
                       Voir le panier complet
                     </button>
                   </Link>
-                  <Link href="/site/passerCmd" className="block">
+                  <Link href="/passerCmd" className="block">
                     <button
                       onClick={() => setIsOpen(false)}
                       className="w-full bg-purple-600 text-white py-2 px-4 rounded-lg hover:bg-purple-700 transition-colors font-semibold text-sm"

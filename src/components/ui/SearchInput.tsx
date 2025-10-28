@@ -95,13 +95,13 @@ const SearchInput: React.FC<SearchInputProps> = ({
     if (onSearch) {
       onSearch(searchQuery);
     } else {
-      router.push(`/site/search?q=${encodeURIComponent(searchQuery.trim())}`);
+      router.push(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
     }
   };
 
   const handleSuggestionClick = (suggestion: SearchSuggestion) => {
     let searchQuery = suggestion.query;
-    let searchUrl = `/site/search?q=${encodeURIComponent(searchQuery)}`;
+    let searchUrl = `/search?q=${encodeURIComponent(searchQuery)}`;
     
     if (suggestion.filter) {
       const params = new URLSearchParams({ q: searchQuery });
@@ -116,7 +116,7 @@ const SearchInput: React.FC<SearchInputProps> = ({
         params.append('type', suggestion.filter.type);
       }
       
-      searchUrl = `/site/search?${params.toString()}`;
+      searchUrl = `/search?${params.toString()}`;
     }
     
     setIsOpen(false);

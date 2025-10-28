@@ -745,7 +745,7 @@ useEffect(() => {
                             <span className="ml-1 capitalize">{order.statut}</span>
                           </div>
                           <a
-                            href={`/site/confirmCmd/${order.idCommande}`}
+                            href={`/confirmCmd/${order.idCommande}`}
                             className="btn btn-xs bg-purple-600 hover:bg-purple-700 text-white border-none flex items-center space-x-1 px-2 py-1 ml-2"
                             title="Voir détails de la commande"
                           >

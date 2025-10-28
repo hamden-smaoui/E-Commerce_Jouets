@@ -29,6 +29,10 @@ export default function Navbar() {
   const router = useRouter();
   const { favorites } = useFavorites();
 
+  // ✅ AJOUT : États pour la gestion du logo
+  const [logoLoading, setLogoLoading] = useState(true);
+  const [logoError, setLogoError] = useState(false);
+
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent | TouchEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -88,37 +92,55 @@ export default function Navbar() {
       <div className="flex flex-col w-full md:flex-row md:items-center">
         {/* Logo */}
         <div className="flex items-center justify-between w-full md:justify-start md:w-auto">
-          <Link href="/site" className="flex items-center">
+          <Link href="" className="flex items-center">
             <div className="relative h-16 w-auto sm:h-20 min-w-[80px]">
-              {storeInfo?.logo1 ? (
+              {/* ✅ CORRECTION : Afficher le spinner pendant le chargement */}
+              {logoLoading && storeInfo?.logo1 && (
+                <div className="absolute inset-0 flex items-center justify-center z-10">
+                  <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-pink-500"></div>
+                </div>
+              )}
+              
+              {/* ✅ CORRECTION : Afficher le logo depuis le backend ou le fallback */}
+              {storeInfo?.logo1 && !logoError ? (
                 <Image
                   src={`${storeInfo.logo1}`}
                   alt={storeInfo.nom || "Logo"}
                   height={80}
                   width={240}
-                  className="h-16 w-auto sm:h-20 object-contain"
+                  className={`h-16 w-auto sm:h-20 object-contain transition-opacity duration-500 ${
+                    logoLoading ? "opacity-0" : "opacity-100"
+                  }`}
                   priority
+                  onLoad={() => setLogoLoading(false)}
+                  onError={() => {
+                    setLogoLoading(false);
+                    setLogoError(true);
+                  }}
                 />
               ) : (
-                <img
-                  src="/images/logoBamby.png"
-                  alt="Bamby Joy"
-                  className="h-16 w-auto sm:h-20 object-contain"
-                />
+                // ✅ Logo de fallback si erreur ou pas de logo backend
+                !logoLoading && (
+                  <img
+                    src="/images/logoBamby.png"
+                    alt="Bamby Joy"
+                    className="h-16 w-auto sm:h-20 object-contain"
+                  />
+                )
               )}
             </div>
           </Link>
 
           {/* Mobile Icons */}
           <div className="flex space-x-2 md:hidden">
-            <Link href="/site/contact" className="btn btn-ghost btn-circle btn-sm bg-pink-100 hover:bg-pink-200" title="Contact">
+            <Link href="/contact" className="btn btn-ghost btn-circle btn-sm bg-pink-100 hover:bg-pink-200" title="Contact">
               <EnvelopeIcon className="h-5 w-5 text-pink-600" />
             </Link>
             <div className="indicator">
               <span className="indicator-item badge badge-primary badge-xs">
                 {favorites.length}
               </span>
-              <Link href="/site/favoris" className="btn btn-ghost btn-circle btn-sm bg-blue-100 hover:bg-blue-200" title="Favoris">
+              <Link href="/favoris" className="btn btn-ghost btn-circle btn-sm bg-blue-100 hover:bg-blue-200" title="Favoris">
                 <HeartIcon className="h-5 w-5 text-blue-500" />
               </Link>
             </div>
@@ -157,7 +179,7 @@ export default function Navbar() {
                         <li>
                           <button
                             className="flex items-center px-4 py-3 hover:bg-pink-50 font-bold text-blue-600 w-full text-left rounded-md"
-                            onClick={() => handleNavigate("/site/profile")}
+                            onClick={() => handleNavigate("/profile")}
                           >
                             <UserCircleIcon className="h-5 w-5 text-blue-400 mr-3" />
                             Mon profil
@@ -166,7 +188,7 @@ export default function Navbar() {
                         <li>
                           <button
                             className="flex items-center px-4 py-3 hover:bg-yellow-50 font-bold text-yellow-600 w-full text-left rounded-md"
-                            onClick={() => handleNavigate("/site/profile?tab=orders")}
+                            onClick={() => handleNavigate("/profile?tab=orders")}
                           >
                             <ShoppingCartIcon className="h-5 w-5 text-yellow-500 mr-3" />
                             Mes commandes
@@ -232,14 +254,14 @@ export default function Navbar() {
 
         {/* Desktop menu */}
         <div className="hidden md:flex space-x-2 md:ml-2">
-          <Link href="/site/contact" className="btn btn-ghost btn-circle bg-pink-100 hover:bg-pink-200 shadow-md hover:scale-105 transition-all" title="Contact">
+          <Link href="/contact" className="btn btn-ghost btn-circle bg-pink-100 hover:bg-pink-200 shadow-md hover:scale-105 transition-all" title="Contact">
             <EnvelopeIcon className="h-5 w-5 sm:h-6 sm:w-6 text-pink-600 drop-shadow-lg" />
           </Link>
           <div className="indicator">
             <span className="indicator-item badge badge-primary badge-xs">
               {favorites.length}
             </span>
-            <Link href="/site/favoris" className="btn btn-ghost btn-circle bg-blue-100 hover:bg-blue-200 shadow-md hover:scale-105 transition-all" title="Favoris">
+            <Link href="/favoris" className="btn btn-ghost btn-circle bg-blue-100 hover:bg-blue-200 shadow-md hover:scale-105 transition-all" title="Favoris">
               <HeartIcon className="h-5 w-5 sm:h-6 sm:w-6 text-blue-500 drop-shadow-lg" />
             </Link>
           </div>
@@ -277,7 +299,7 @@ export default function Navbar() {
                     <li>
                       <button
                         className="flex items-center px-4 py-3 hover:bg-pink-50 font-bold text-blue-600 w-full text-left rounded-md"
-                        onClick={() => handleNavigate("/site/profile")}
+                        onClick={() => handleNavigate("/profile")}
                       >
                         <UserCircleIcon className="h-5 w-5 text-blue-400 mr-3" />
                         Mon profil
@@ -286,7 +308,7 @@ export default function Navbar() {
                     <li>
                       <button
                         className="flex items-center px-4 py-3 hover:bg-yellow-50 font-bold text-yellow-600 w-full text-left rounded-md"
-                        onClick={() => handleNavigate("/site/profile?tab=orders")}
+                        onClick={() => handleNavigate("/profile?tab=orders")}
                       >
                         <ShoppingCartIcon className="h-5 w-5 text-yellow-500 mr-3" />
                         Mes commandes

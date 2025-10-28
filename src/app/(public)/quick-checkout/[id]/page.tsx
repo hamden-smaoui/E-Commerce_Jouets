@@ -434,7 +434,7 @@ export default function QuickCheckout() {
 
       toast.success('Commande créée avec succès !');
 
-      router.push(`/site/order-confirmation-guest/${response.data.idCommande}?token=${response.data.guestToken}`);
+      router.push(`/order-confirmation-guest/${response.data.idCommande}?token=${response.data.guestToken}`);
 
     } catch (error: any) {
       toast.error(error.message || 'Erreur lors de la création de la commande');

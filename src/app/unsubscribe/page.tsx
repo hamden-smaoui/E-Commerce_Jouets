@@ -110,7 +110,7 @@ export default function UnsubscribePage() {
             </div>
 
             <Link 
-              href="/site" 
+              href="" 
               className="w-full bg-purple-600 text-white py-3 px-4 rounded-lg hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 font-semibold transition-colors inline-block text-center"
             >
               Retour à l'accueil
@@ -146,7 +146,7 @@ export default function UnsubscribePage() {
 
             <div className="space-y-3">
               <Link 
-                href="/site" 
+                href="" 
                 className="w-full bg-purple-600 text-white py-3 px-4 rounded-lg hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 font-semibold transition-colors inline-block text-center"
               >
                 Retour à l'accueil
@@ -227,7 +227,7 @@ export default function UnsubscribePage() {
         </div>
 
         <div className="text-center">
-          <Link href="/site" className="text-purple-600 hover:text-purple-800 font-medium">
+          <Link href="" className="text-purple-600 hover:text-purple-800 font-medium">
             ← Retour à l'accueil
           </Link>
         </div>

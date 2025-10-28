@@ -329,7 +329,7 @@ await removeFromCart(item.idPanierProduit, item.idProduit);      removeItemTotal
               </div>
               <h3 className="text-2xl font-extrabold text-pink-600 drop-shadow-lg mb-3 font-[Comic_Sans_MS,sans-serif]">Votre panier est vide</h3>
               <p className="text-gray-600 mb-8">Découvrez notre sélection de produits et commencez vos achats</p>
-              <Link href="/site/products">
+              <Link href="/products">
                 <button className="bg-gradient-to-r from-pink-400 to-blue-400 text-white px-8 py-3 rounded-xl hover:from-pink-500 hover:to-blue-500 transition-all transform hover:scale-105 font-bold shadow-lg">
                   Découvrir nos produits
                 </button>
@@ -363,7 +363,7 @@ await removeFromCart(item.idPanierProduit, item.idProduit);      removeItemTotal
               </div>
               {/* Continuer vos achats */}
              <div className="mt-6 hidden xl:block">
-                <Link href="/site/products" className="inline-flex items-center gap-2 text-purple-600 hover:text-purple-800 transition-colors font-extrabold font-[Comic_Sans_MS,sans-serif]">
+                <Link href="/products" className="inline-flex items-center gap-2 text-purple-600 hover:text-purple-800 transition-colors font-extrabold font-[Comic_Sans_MS,sans-serif]">
                   <ArrowLeftIcon className="w-5 h-5" />
                   Continuer vos achats
                 </Link>
@@ -411,14 +411,14 @@ await removeFromCart(item.idPanierProduit, item.idProduit);      removeItemTotal
                       </div>
                     )}
                   </div>
-                  <Link href="/site/passerCmd" className="block mt-6">
+                  <Link href="/passerCmd" className="block mt-6">
                     <button className="w-full  bg-pink-500  text-white py-4 rounded-xl hover:from-pink-500 hover:to-blue-500 font-extrabold transition-all transform hover:scale-105 shadow">
                       Finaliser la commande
                     </button>
                   </Link>
                 </div>
                   <div className="mt-4 xl:hidden">
-                  <Link href="/site/products" className="inline-flex items-center gap-2 text-purple-600 hover:text-purple-800 transition-colors font-extrabold font-[Comic_Sans_MS,sans-serif]">
+                  <Link href="/products" className="inline-flex items-center gap-2 text-purple-600 hover:text-purple-800 transition-colors font-extrabold font-[Comic_Sans_MS,sans-serif]">
                     <ArrowLeftIcon className="w-5 h-5" />
                     Continuer vos achats
                   </Link>

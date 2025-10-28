@@ -73,7 +73,7 @@ export default function Categories({ categories }: CategoriesProps) {
     const searchParams = new URLSearchParams();
     searchParams.set('categories', categoryId.toString());
     if (typeId) searchParams.set('types', typeId.toString());
-    router.push(`/site/products?${searchParams.toString()}`);
+    router.push(`/products?${searchParams.toString()}`);
   };
 
   const scrollToDirection = (direction: 'left' | 'right') => {

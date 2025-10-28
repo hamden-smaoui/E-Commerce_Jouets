@@ -47,6 +47,7 @@ interface FormData {
   idCategorie: number;
   idMarque: number;
   idFournisseur: number;
+  livraisonGratuite: boolean;
   idType: number | null;
   genre: 'fille' | 'garçon' | 'enfant';
   images: File[];
@@ -105,6 +106,8 @@ const Produits: React.FC = () => {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [selectedImages, setSelectedImages] = useState<File[]>([]);
   const [existingImages, setExistingImages] = useState<ImageData[]>([]);
+  const [imagesToDelete, setImagesToDelete] = useState<number[]>([]);
+
   const [formData, setFormData] = useState<FormData>({
     idProduit: null,
     nom: '',
@@ -116,6 +119,7 @@ const Produits: React.FC = () => {
     idFournisseur: 0,
     idType: null,
     genre: 'enfant',
+     livraisonGratuite: false,
     images: [],
     variants: [],
   });
@@ -199,7 +203,10 @@ useEffect(() => {
     return variationTexts.join(', ');
   };
 
-  
+  const handleDeleteExistingImage = (imageId: number) => {
+  console.log('🗑️ Image marquée pour suppression:', imageId);
+  setImagesToDelete(prev => [...prev, imageId]);
+};
 
   const formatPrice = (prix: any): string => {
     if (prix === null || prix === undefined || prix === '' || isNaN(Number(prix))) {
@@ -284,6 +291,14 @@ useEffect(() => {
     {
       header: 'Genre',
       render: (item: ProduitResponse) => item.genre || 'N/A',
+    },
+    { 
+      header: 'Livraison Gratuite', 
+      render: (produit: ProduitResponse) => (
+        <span className={`badge ${produit.livraisonGratuite ? 'badge-success' : 'badge-ghost'}`}>
+          {produit.livraisonGratuite ? 'Oui' : 'Non'}
+        </span>
+      )
     },
   ];
 
@@ -639,17 +654,38 @@ useEffect(() => {
       hint: 'Choisissez le genre associé',
     },
     {
+      name: 'livraisonGratuite',
+      label: 'Livraison Gratuite',
+      type: 'custom', // ✅ IMPORTANT : Spécifier 'custom' pour utiliser render
+      render: ({ value, onChange }) => (
+        <div className="flex items-center gap-2">
+          <input
+            type="checkbox"
+            checked={value}
+            onChange={(e) => onChange(e.target.checked)}
+            className="checkbox checkbox-primary"
+          />
+          <span className="text-sm text-gray-600">
+            {value ? 'La livraison est gratuite pour ce produit' : 'Activer la livraison gratuite'}
+          </span>
+        </div>
+      ),
+    },
+    {
       name: 'images',
       label: 'Images du produit',
       type: 'custom',
       render: () => (
-        <ImageManager
-          images={selectedImages}
-          existingImages={existingImages}
-          onImagesChange={setSelectedImages}
-          maxImages={10}
-        />
-      ),
+    <ImageManager
+      images={selectedImages}
+      existingImages={existingImages.filter(
+        img => !imagesToDelete.includes(img.idImage) // ✅ Filtrer
+      )}
+      onImagesChange={setSelectedImages}
+      onDeleteExistingImage={handleDeleteExistingImage} // ✅ Callback
+      maxImages={10}
+    />
+  ),
       validation: {
         required: false,
       },
@@ -737,12 +773,16 @@ useEffect(() => {
         });
         return;
       }
+       if (imagesToDelete.length > 0) {
+      for (const imageId of imagesToDelete) {
+        await ProduitsService.deleteImage(imageId, token);
+      }
+    }
 
       const produitData = {
         ...data,
         images: selectedImages,
       };
-
       const updatedProduit = await ProduitsService.updateProduit(data.idProduit, produitData,token);
       const updatedProduitWithDetails: ProduitResponse = {
         ...updatedProduit,
@@ -760,6 +800,7 @@ useEffect(() => {
       setIsEditModalOpen(false);
       setSelectedImages([]);
       setExistingImages([]);
+      setImagesToDelete([]);
       setNotification({
         type: 'success',
         message: 'Produit modifié avec succès !',
@@ -837,6 +878,7 @@ const formatAgeRanges = (variations: ProduitVariation[] | undefined): string => 
       idFournisseur: 0,
       idType: null,
       genre: 'enfant',
+      livraisonGratuite: false,
       images: [],
       variants: [],
     };
@@ -864,6 +906,8 @@ const formatAgeRanges = (variations: ProduitVariation[] | undefined): string => 
         idFournisseur: fetchedProduit.idFournisseur || 0,
         idType: fetchedProduit.idType || null,
         genre: fetchedProduit.genre || 'enfant',
+        livraisonGratuite: fetchedProduit.livraisonGratuite || false, // ✅ RÉCUPÉRATION
+
         images: [],
 variants: fetchedProduit.variations || [],
       };

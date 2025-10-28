@@ -13,7 +13,7 @@ export default function FacebookAuthButton({ mode }: FacebookAuthButtonProps) {
     setLoading(true);
     try {
       await signIn('facebook', { 
-        callbackUrl: '/site',
+        callbackUrl: '',
         redirect: true 
       });
     } catch (error) {

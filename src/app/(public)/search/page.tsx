@@ -67,7 +67,7 @@ export default function SearchPage() {
   };
 
   const goToCatalog = () => {
-    router.push('/site/products');
+    router.push('/products');
   };
 
   if (loading) {
@@ -234,9 +234,9 @@ export default function SearchPage() {
                                 Object.entries(suggestion.filter).forEach(([key, value]) => {
                                   params.append(key, value as string);
                                 });
-                                window.location.href = `/site/search?${params.toString()}`;
+                                window.location.href = `/search?${params.toString()}`;
                               } else {
-                                window.location.href = `/site/search?q=${encodeURIComponent(suggestion.query)}`;
+                                window.location.href = `/search?q=${encodeURIComponent(suggestion.query)}`;
                               }
                             }}
                             className="px-4 py-2 bg-gradient-to-r from-purple-100 to-pink-100 text-purple-700 rounded-full hover:from-purple-200 hover:to-pink-200 transition-colors text-sm"

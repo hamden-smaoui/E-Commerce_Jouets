@@ -397,7 +397,7 @@ export default function Contact() {
             </div>
             {/* Bouton Retour (desktop) */}
             <div className="mt-6 hidden xl:block">
-              <Link href="/site" className="inline-flex items-center gap-2 text-purple-600 hover:text-purple-800 transition-colors font-extrabold">
+              <Link href="" className="inline-flex items-center gap-2 text-purple-600 hover:text-purple-800 transition-colors font-extrabold">
                 <ArrowLeftIcon className="w-5 h-5" />
                 Retour à l'accueil
               </Link>
@@ -510,7 +510,7 @@ export default function Contact() {
               
               {/* Bouton Retour (mobile) */}
               <div className="mt-4 xl:hidden">
-                <Link href="/site" className="inline-flex items-center gap-2 text-purple-600 hover:text-purple-800 transition-colors font-extrabold">
+                <Link href="" className="inline-flex items-center gap-2 text-purple-600 hover:text-purple-800 transition-colors font-extrabold">
                   <ArrowLeftIcon className="w-5 h-5" />
                   Retour à l'accueil
                 </Link>

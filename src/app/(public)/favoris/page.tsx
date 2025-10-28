@@ -144,7 +144,7 @@ export default function Favoris() {
               <p className="text-gray-600 mb-8 text-sm sm:text-base">
                 Découvrez notre sélection magique de produits et ajoutez vos coups de cœur ! ✨
               </p>
-              <Link href="/site/products">
+              <Link href="/products">
                 <button className="bg-gradient-to-r from-red-500 to-pink-600 text-white px-8 py-4 rounded-full hover:from-red-600 hover:to-pink-700 transition-all transform hover:scale-105 font-extrabold shadow-2xl flex items-center gap-2 mx-auto">
                   <SparklesIcon className="w-5 h-5" />
                   Découvrir nos produits
@@ -196,7 +196,7 @@ export default function Favoris() {
 
             {/* Continue Shopping */}
             <div className="flex flex-col items-center gap-4">
-              <Link href="/site/products" className="inline-flex items-center gap-2 text-red-600 hover:text-red-800 transition-colors font-extrabold bg-white px-6 py-3 rounded-full shadow-lg hover:shadow-xl transform hover:scale-105">
+              <Link href="/products" className="inline-flex items-center gap-2 text-red-600 hover:text-red-800 transition-colors font-extrabold bg-white px-6 py-3 rounded-full shadow-lg hover:shadow-xl transform hover:scale-105">
                 <ArrowLeftIcon className="w-5 h-5" />
                 Continuer vos achats
               </Link>

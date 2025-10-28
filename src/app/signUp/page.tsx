@@ -344,7 +344,7 @@ export default function SignUp() {
         </div>
 
         <div className="text-center">
-          <Link href="/site" className="text-purple-600 hover:text-purple-800 font-medium">
+          <Link href="" className="text-purple-600 hover:text-purple-800 font-medium">
             ← Retour à l'accueil
           </Link>
         </div>

@@ -233,7 +233,7 @@ export default function CartModal({ isOpen, onClose }: CartModalProps) {
             <p className="text-gray-500 mb-6 text-center font-[Comic_Sans_MS,sans-serif] text-lg">
               Votre panier est vide
             </p>
-            <Link href="/site">
+            <Link href="">
               <button
                 onClick={onClose}
                 className="bg-gradient-to-r from-pink-500 to-purple-600 text-white px-6 py-3 rounded-full hover:shadow-lg transition-all font-bold"
@@ -279,7 +279,7 @@ export default function CartModal({ isOpen, onClose }: CartModalProps) {
               </div>
 
               <div className="space-y-2">
-                <Link href="/site/cart" className="block">
+                <Link href="/cart" className="block">
                   <button
                     onClick={onClose}
                     className="w-full bg-white border-2 border-purple-300 text-purple-600 py-3 px-4 rounded-full hover:bg-purple-50 transition-all font-bold text-sm shadow-sm"
@@ -287,7 +287,7 @@ export default function CartModal({ isOpen, onClose }: CartModalProps) {
                     Voir le panier complet 🛒
                   </button>
                 </Link>
-                <Link href="/site/passerCmd" className="block">
+                <Link href="/passerCmd" className="block">
                   <button
                     onClick={onClose}
                     className="w-full bg-gradient-to-r from-pink-500 to-purple-600 text-white py-3 px-4 rounded-full hover:shadow-lg transition-all font-bold text-sm"

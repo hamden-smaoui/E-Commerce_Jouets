@@ -13,7 +13,7 @@ export default function GoogleAuthButton({ mode }: GoogleAuthButtonProps) {
     setLoading(true);
     try {
       await signIn('google', { 
-        callbackUrl: '/site',
+        callbackUrl: '',
         redirect: true 
       });
     } catch (error) {

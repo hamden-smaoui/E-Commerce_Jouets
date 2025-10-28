@@ -205,7 +205,7 @@ useEffect(() => {
           <ExclamationTriangleIcon className="w-12 sm:w-16 h-12 sm:h-16 text-orange-500 mx-auto mb-4" />
           <h2 className="text-xl sm:text-2xl font-bold text-orange-600 mb-2">Commande introuvable</h2>
           <p className="text-gray-600 mb-4 text-sm sm:text-base">La commande demandée n'existe pas ou a été supprimée.</p>
-          <Link href="/site" className="bg-pink-600 text-white px-4 sm:px-6 py-2 rounded hover:bg-pink-700 text-sm sm:text-base">
+          <Link href="" className="bg-pink-600 text-white px-4 sm:px-6 py-2 rounded hover:bg-pink-700 text-sm sm:text-base">
             Retour à l'accueil
           </Link>
         </div>
@@ -459,13 +459,13 @@ useEffect(() => {
 
         <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center">
           <Link
-            href="/site/products"
+            href="/products"
             className="bg-pink-600 text-white px-6 sm:px-8 py-3 rounded-lg hover:bg-pink-700 font-semibold transition-colors text-center text-sm sm:text-base"
           >
             Continuer vos achats
           </Link>
           <Link
-            href="/site/profile?tab=orders"
+            href="/profile?tab=orders"
             className="bg-gray-200 text-gray-800 px-6 sm:px-8 py-3 rounded-lg hover:bg-gray-300 font-semibold transition-colors text-center text-sm sm:text-base"
           >
             Voir mes commandes

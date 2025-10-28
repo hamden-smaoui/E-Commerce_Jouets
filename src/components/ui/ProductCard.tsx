@@ -235,7 +235,7 @@ const getStockStatus = () => {
   const isProductFavorite = isFavorite(product.idProduit);
 
 return (
-    <Link href={`/site/products/${product.idProduit}`} className="block h-full">
+    <Link href={`/products/${product.idProduit}`} className="block h-full">
       <div className="group bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden h-full flex flex-col border border-gray-200 hover:border-pink-300 cursor-pointer">
         {/* Image Container */}
         <figure 
@@ -383,7 +383,7 @@ return (
                 onClick={e => {
                   e.preventDefault();
                   e.stopPropagation();
-                  router.push(`/site/products/${product.idProduit}`);
+                  router.push(`/products/${product.idProduit}`);
                 }}
                 className="ml-2 btn btn-circle btn-xs sm:btn-sm bg-purple-100 hover:bg-purple-200 shadow-sm hover:scale-105 transition-all flex items-center justify-center text-purple-600"
                 title="Voir le produit"
