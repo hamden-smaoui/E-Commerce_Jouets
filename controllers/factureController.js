@@ -574,7 +574,7 @@ async generateSimpleFacturePDF(doc, facture) {
             doc.fontSize(8)
                .font('Helvetica-Oblique')
                .fillColor('#22c55e')
-               .text('Livraison gratuite 🎉', descriptionX + 10, yPosition + 28);
+               .text('Livraison gratuite', descriptionX + 10, yPosition + 28);
         }
 
         // Quantité: -
