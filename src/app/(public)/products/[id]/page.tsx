@@ -25,6 +25,7 @@ interface Product {
   type?: { idType: number; nom: string };
   genre?: 'fille' | 'garçon' | 'enfant' | null;
   variations?: ProduitVariation[];
+  livraisonGratuite?:boolean;
 }
 
 interface SameTypeProduct {
@@ -751,11 +752,42 @@ const handleCopyLink = async () => {
       {produit.genre}
     </span>
   )}
-  <span className={`text-sm px-3 py-2 rounded-full ${stockStatus.class}`}>
-    {stockStatus.text}
-  </span>
+  
 </div>
-
+{/* ✅ NOUVELLE SECTION : Livraison gratuite - Responsive */}
+{produit.livraisonGratuite && (
+  <div className="py-3 sm:py-4 border-b border-gray-200">
+    <div className="bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-200 rounded-xl p-3 sm:p-4 shadow-sm">
+      <div className="flex items-center gap-2 sm:gap-3">
+        {/* Icône camion animé - plus petite sur mobile */}
+        <div className="flex-shrink-0 w-8 h-8 sm:w-12 sm:h-12 bg-green-100 rounded-full flex items-center justify-center">
+          <svg 
+            className="w-4 h-4 sm:w-6 sm:h-6 text-green-600 animate-bounce" 
+            fill="none" 
+            stroke="currentColor" 
+            viewBox="0 0 24 24"
+          >
+            <path 
+              strokeLinecap="round" 
+              strokeLinejoin="round" 
+              strokeWidth={2} 
+              d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" 
+            />
+          </svg>
+        </div>
+        
+        {/* Texte - texte plus petit sur mobile */}
+        <div className="flex-1">
+          <div className="flex items-center gap-1 sm:gap-2">
+            <span className="text-sm sm:text-lg font-extrabold text-green-700 font-[Comic_Sans_MS,sans-serif]">
+              Livraison Gratuite ! 🎉
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+)}
                 {/* Section quantité et boutons */}
                 <div className="space-y-4">
                   {/* Sélection de quantité - seulement si variation sélectionnée et en stock */}

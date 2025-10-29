@@ -222,10 +222,19 @@ function Cart() {
 
   const { totalOriginal, totalFinal, totalSavings } = getTotals();
   
-  // Calcul dynamique des frais de livraison
+  const tousProduitsLivraisonGratuite = cartItems.length > 0 && cartItems.every(
+    item => item.produit.livraisonGratuite === true
+  );
+
+  // ✅ Calcul dynamique des frais de livraison
   const fraisLivraison = storeInfo?.fraisLivraison || 7; 
-  const seuilLivraisonGratuite = storeInfo?.seuilLivraisonGratuite || 100; 
-  const livraison = totalFinal >= seuilLivraisonGratuite ? 0 : fraisLivraison;
+  const seuilLivraisonGratuite = storeInfo?.seuilLivraisonGratuite || 100;
+  
+ 
+  const livraison = tousProduitsLivraisonGratuite || totalFinal >= seuilLivraisonGratuite 
+    ? 0 
+    : fraisLivraison;
+    
   const totalTTC = totalFinal + livraison;
    const handleRefreshCart = async () => {
     setErrorMessage(null);

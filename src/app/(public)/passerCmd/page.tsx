@@ -145,12 +145,23 @@ function Checkout() {
     return total;
   }, [mounted, totalFinal, codePromo]);
 
-  const fraisLivraison = storeInfo?.fraisLivraison ?? 7.9;
+  const fraisLivraison = storeInfo?.fraisLivraison ?? 7;
   const seuilLivraisonGratuite = storeInfo?.seuilLivraisonGratuite ?? 100;
 
+ const tousProduitsLivraisonGratuite = useMemo(() => {
+    return cartItems.length > 0 && cartItems.every(
+      item => item.produit.livraisonGratuite === true
+    );
+  }, [cartItems]);
+
+  // ✅ Calcul de la livraison avec la nouvelle logique
   const livraison = useMemo(() => {
-    return totalPriceWithPromotions >= seuilLivraisonGratuite ? 0 : fraisLivraison;
-  }, [totalPriceWithPromotions, seuilLivraisonGratuite, fraisLivraison]);
+    
+    if (tousProduitsLivraisonGratuite || totalPriceWithPromotions >= seuilLivraisonGratuite) {
+      return 0;
+    }
+    return fraisLivraison;
+  }, [tousProduitsLivraisonGratuite, totalPriceWithPromotions, seuilLivraisonGratuite, fraisLivraison]);
 
   const totalTTC = useMemo(() => {
     return totalPriceWithPromotions + livraison;

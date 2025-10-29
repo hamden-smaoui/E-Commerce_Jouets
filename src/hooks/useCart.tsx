@@ -46,22 +46,22 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const totalPrice = cartItems.reduce((sum, item) => sum + item.quantite * item.prixUnitaire, 0);
 
   /**
-   * ✅ NOUVEAU : Synchroniser le panier local avec la BDD lors de la connexion
+   * ✅ MODIFIÉ : Synchroniser le panier local avec la BDD lors de la connexion
    */
   const syncCartOnLogin = async () => {
     if (!token || syncDone) return;
 
     try {
       await PanierService.syncLocalCartToDB(token);
-      setSyncDone(true);
-      console.log('✅ Panier local synchronisé avec la BDD');
+      console.log('✅ Tentative de synchronisation terminée');
     } catch (error) {
       console.error('❌ Erreur lors de la synchronisation:', error);
+      throw error;
     }
   };
 
   /**
-   * ✅ MODIFIÉ : Rafraîchir le panier (BDD ou localStorage)
+   * ✅ Rafraîchir le panier (BDD ou localStorage)
    */
   const refreshCart = async () => {
     if (!mounted) {
@@ -85,7 +85,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   };
 
   /**
-   * ✅ MODIFIÉ : Ajouter au panier (BDD ou localStorage)
+   * ✅ Ajouter au panier (BDD ou localStorage)
    */
   const addToCart = async (
     idProduit: number,
@@ -129,7 +129,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   };
 
   /**
-   * ✅ MODIFIÉ : Modifier la quantité (BDD ou localStorage)
+   * ✅ Modifier la quantité (BDD ou localStorage)
    */
   const updateQuantity = async (idProduit: number, quantite: number, idProduitVariation?: number) => {
     try {
@@ -146,7 +146,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   };
 
   /**
-   * ✅ MODIFIÉ : Retirer du panier (BDD ou localStorage)
+   * ✅ Retirer du panier (BDD ou localStorage)
    */
   const removeFromCart = async (
     idPanierProduit: number | undefined,
@@ -168,7 +168,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   };
 
   /**
-   * ✅ MODIFIÉ : Vider le panier (BDD ou localStorage)
+   * ✅ Vider le panier (BDD ou localStorage)
    */
   const clearCart = async () => {
     try {
@@ -194,17 +194,42 @@ export function CartProvider({ children }: { children: ReactNode }) {
   };
 
   /**
-   * ✅ NOUVEAU : Synchroniser puis charger le panier à la connexion
+   * ✅ MODIFIÉ : Synchroniser puis charger le panier à la connexion
    */
   useEffect(() => {
-    if (mounted && isAuthenticated && token && !syncDone) {
-      syncCartOnLogin().then(() => refreshCart());
-    } else if (mounted && isAuthenticated && token) {
-      refreshCart();
-    } else if (mounted && !isAuthenticated) {
-      refreshCart(); // Charge le panier local
+    const handleCartLoad = async () => {
+      if (!mounted) return;
+
+      if (isAuthenticated && token) {
+        // ✅ Utilisateur connecté
+        if (!syncDone) {
+          // ✅ Synchroniser le panier local vers BDD (si non vide)
+          try {
+            await syncCartOnLogin();
+            setSyncDone(true);
+          } catch (error) {
+            console.error('Erreur de synchronisation:', error);
+          }
+        }
+        // ✅ Charger le panier depuis la BDD
+        await refreshCart();
+      } else {
+        // ✅ Utilisateur non connecté → Charger depuis localStorage
+        await refreshCart();
+      }
+    };
+
+    handleCartLoad();
+  }, [mounted, isAuthenticated, token]);
+
+  /**
+   * ✅ NOUVEAU : Réinitialiser syncDone à la déconnexion
+   */
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setSyncDone(false);
     }
-  }, [mounted, isAuthenticated, token, syncDone]);
+  }, [isAuthenticated]);
 
   return (
     <CartContext.Provider

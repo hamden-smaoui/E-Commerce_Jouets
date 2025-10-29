@@ -7,6 +7,7 @@ export interface Produit {
   prix: number;
   description: string;
   quantiteStock: number;
+  livraisonGratuite?: boolean; 
   images?: Array<{
     idImage: number;
     url: string;
@@ -238,31 +239,39 @@ class PanierService {
   /**
    * ✅ NOUVEAU : Synchroniser le panier local avec la BDD
    */
-  async syncLocalCartToDB(token: string): Promise<void> {
-    const localCart = CartStorage.getLocalCart();
+/**
+ * ✅ MODIFIÉ : Synchroniser le panier local avec la BDD UNIQUEMENT si le localStorage contient des produits
+ */
+async syncLocalCartToDB(token: string): Promise<void> {
+  const localCart = CartStorage.getLocalCart();
 
-    if (localCart.items.length === 0) {
-      return; // Rien à synchroniser
-    }
-
-    try {
-      // Envoyer tous les produits du panier local à la BDD
-      for (const item of localCart.items) {
-        await this.ajouterProduit(
-          item.idProduit,
-          item.quantite,
-          item.idProduitVariation,
-          token
-        );
-      }
-
-      // ✅ Vider le localStorage après synchronisation
-      CartStorage.clearLocalCart();
-    } catch (error) {
-      console.error('Erreur lors de la synchronisation du panier:', error);
-      throw error;
-    }
+  // ✅ CONDITION AJOUTÉE : Ne rien faire si le panier local est vide
+  if (localCart.items.length === 0) {
+    console.log('⏭️ Panier local vide, pas de synchronisation nécessaire');
+    return; // Rien à synchroniser
   }
+
+  console.log(`🔄 Synchronisation de ${localCart.items.length} produits du panier local vers la BDD...`);
+
+  try {
+    // Envoyer tous les produits du panier local à la BDD
+    for (const item of localCart.items) {
+      await this.ajouterProduit(
+        item.idProduit,
+        item.quantite,
+        item.idProduitVariation,
+        token
+      );
+    }
+
+    // ✅ Vider le localStorage après synchronisation réussie
+    CartStorage.clearLocalCart();
+    console.log('✅ Panier local synchronisé et vidé avec succès');
+  } catch (error) {
+    console.error('❌ Erreur lors de la synchronisation du panier:', error);
+    throw error;
+  }
+}
 }
 
 export default new PanierService();
