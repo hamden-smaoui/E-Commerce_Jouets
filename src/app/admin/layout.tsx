@@ -9,8 +9,11 @@ import RequireAdmin from "@/components/RequireAdmin";
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'Jouets E-Commerce - Admin',
-  description: 'Panneau d’administration pour la gestion des utilisateurs',
+ title: "Bamby Joy",
+  description: "Magasin en ligne pour jouets",
+  icons: {
+    icon: '/logoBamby.png',
+  },
 };
 
 export default function AdminLayout({

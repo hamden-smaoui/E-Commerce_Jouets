@@ -9,8 +9,9 @@ import SessionTokenSync from "@/components/SessionTokenSync";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Toy Universe",
-  description: "Toy Universe - Online Toy Store",
+  title: "Bamby Joy",
+  description: "Magasin en ligne pour jouets",
+   
 };
 
 export default function RootLayout({

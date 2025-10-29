@@ -9,8 +9,11 @@ import CookieBanner from "@/components/CookieBanner";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Jouets E-Commerce",
+ title: "Bamby Joy",
   description: "Magasin en ligne pour jouets",
+  icons: {
+    icon: '/logoBamby.png',
+  },
 };
 
 export default function RootLayout({
