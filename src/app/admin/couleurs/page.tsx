@@ -10,10 +10,11 @@ import CouleursService, { Couleur, CouleurFormData } from '@/services/couleurs-s
 import { useSession } from "next-auth/react";
 import { ColorPicker, useColor } from "react-color-palette";
 import "react-color-palette/css";
+
 interface FormData {
   idCouleur: number | null;
   nom: string;
-  ref: string; // Code couleur hex
+  ref: string;
 }
 
 interface Field<T> {
@@ -39,6 +40,91 @@ interface Field<T> {
   disabled?: boolean;
 }
 
+// ✅ NOUVEAU COMPOSANT SÉPARÉ pour le Color Picker
+const ColorPickerField: React.FC<{ value: string; onChange: (value: string) => void }> = ({ value, onChange }) => {
+  const [color, setColor] = useColor(value || "#000000");
+
+  // Synchroniser : picker → formData
+  useEffect(() => {
+    onChange(color.hex.toUpperCase());
+  }, [color.hex, onChange]);
+
+  // Gérer la saisie manuelle du code HEX
+  const handleHexInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const input = e.target.value.toUpperCase();
+    if (input === '' || /^#[0-9A-F]{0,6}$/.test(input)) {
+      onChange(input);
+      if (/^#[0-9A-F]{6}$/.test(input)) {
+        setColor({ ...color, hex: input });
+      }
+    }
+  };
+
+  return (
+    <div className="space-y-5">
+      {/* Color Picker */}
+      <div className="bg-white p-4 rounded-xl border shadow-md">
+        <ColorPicker
+          color={color}
+          onChange={setColor}
+          hideInput={["rgb", "hsv"]}
+          height={200}
+        />
+      </div>
+
+      {/* Champ texte + aperçu */}
+      <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-xl border">
+        <div
+          className="w-20 h-20 rounded-xl border-2 border-gray-300 shadow-inner"
+          style={{ backgroundColor: color.hex }}
+        />
+
+        <div className="flex-1 space-y-2">
+          <input
+            type="text"
+            value={value || ''}
+            onChange={handleHexInput}
+            placeholder="#000000"
+            maxLength={7}
+            className="input input-bordered w-full font-mono text-lg"
+            style={{ textTransform: 'uppercase' }}
+          />
+          <p className="text-xs text-gray-500">
+            Saisissez ou modifiez le code HEX
+          </p>
+        </div>
+      </div>
+
+      {/* Palette rapide */}
+      <div className="space-y-2">
+        <p className="text-sm font-medium text-gray-700">Couleurs populaires :</p>
+        <div className="grid grid-cols-8 gap-2">
+          {[
+            '#FF0000', '#FF6B6B', '#FFA500', '#FFD700',
+            '#00FF00', '#4CAF50', '#00CED1', '#1E90FF',
+            '#0000FF', '#8B00FF', '#FF1493', '#FF69B4',
+            '#000000', '#666666', '#999999', '#FFFFFF'
+          ].map((c) => (
+            <button
+              key={c}
+              type="button"
+              onClick={() => {
+                setColor({ ...color, hex: c });
+                onChange(c);
+              }}
+              className={`aspect-square rounded-lg border-2 transition-all hover:scale-110 ${
+                color.hex.toUpperCase() === c ? 'border-blue-500 ring-2 ring-blue-300' : 'border-gray-300'
+              }`}
+              style={{ backgroundColor: c }}
+              title={c}
+            />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const Couleurs: React.FC = () => {
   const [couleurs, setCouleurs] = useState<Couleur[]>([]);
   const [loading, setLoading] = useState(true);
@@ -56,7 +142,7 @@ const Couleurs: React.FC = () => {
   const [notification, setNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [formKey, setFormKey] = useState(0);
 
-  const { data: session, status } = useSession();
+  const { data: session } = useSession();
   const token = session?.customToken;
 
   useEffect(() => {
@@ -89,13 +175,11 @@ const Couleurs: React.FC = () => {
        (couleur.ref && couleur.ref.toLowerCase().includes(searchTerm.toLowerCase())))
   );
 
-  // ✅ COLONNES AVEC AFFICHAGE VISUEL DE LA COULEUR
   const columns = [
     {
       header: 'Couleur',
       render: (item: Couleur) => (
         <div className="flex items-center gap-3">
-          {/* ✅ Pastille de couleur */}
           <div 
             className="w-10 h-10 rounded-lg border-2 border-gray-300 shadow-sm"
             style={{ backgroundColor: item.ref || '#CCCCCC' }}
@@ -118,7 +202,7 @@ const Couleurs: React.FC = () => {
     },
   ];
 
-  // ✅ CHAMPS DU FORMULAIRE AVEC COLOR PICKER
+  // ✅ UTILISATION DU NOUVEAU COMPOSANT
   const couleurFields: Field<FormData>[] = [
     {
       name: 'nom',
@@ -132,105 +216,15 @@ const Couleurs: React.FC = () => {
       },
       hint: 'Donnez un nom descriptif à votre couleur',
     },
-   {
-  name: 'ref',
-  label: 'Sélectionner la couleur',
-  type: 'custom', // OBLIGATOIRE
-  render: ({ value, onChange }) => {
-    const [color, setColor] = useColor(value || "#000000");
-
-    // Synchroniser : picker → formData
-    useEffect(() => {
-      onChange(color.hex.toUpperCase());
-    }, [color.hex, onChange]);
-
-    // Gérer la saisie manuelle du code HEX
-    const handleHexInput = (e: React.ChangeEvent<HTMLInputElement>) => {
-      const input = e.target.value.toUpperCase();
-      // Autoriser uniquement les codes HEX valides (ou vide temporairement)
-      if (input === '' || /^#[0-9A-F]{0,6}$/.test(input)) {
-        onChange(input);
-        if (/^#[0-9A-F]{6}$/.test(input)) {
-          setColor({ ...color, hex: input });
-        }
-      }
-    };
-
-    return (
-      <div className="space-y-5">
-        {/* Color Picker */}
-        <div className="bg-white p-4 rounded-xl border shadow-md">
-          <ColorPicker
-            color={color}
-            onChange={setColor}
-            hideInput={["rgb", "hsv"]} // On garde le champ HEX, mais on le gère nous-mêmes
-            height={200}
-          />
-        </div>
-
-        {/* Champ texte + aperçu */}
-        <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-xl border">
-          <div
-            className="w-20 h-20 rounded-xl border-2 border-gray-300 shadow-inner"
-            style={{ backgroundColor: color.hex }}
-          />
-
-          <div className="flex-1 space-y-2">
-            {/* Champ texte éditable */}
-            <input
-              type="text"
-              value={value || ''}
-              onChange={handleHexInput}
-              placeholder="#000000"
-              maxLength={7}
-              className="input input-bordered w-full font-mono text-lg"
-              style={{ textTransform: 'uppercase' }}
-            />
-            <p className="text-xs text-gray-500">
-              Saisissez ou modifiez le code HEX
-            </p>
-          </div>
-        </div>
-
-        {/* Palette rapide */}
-        <div className="space-y-2">
-          <p className="text-sm font-medium text-gray-700">Couleurs populaires :</p>
-          <div className="grid grid-cols-8 gap-2">
-            {[
-              '#FF0000', '#FF6B6B', '#FFA500', '#FFD700',
-              '#00FF00', '#4CAF50', '#00CED1', '#1E90FF',
-              '#0000FF', '#8B00FF', '#FF1493', '#FF69B4',
-              '#000000', '#666666', '#999999', '#FFFFFF'
-            ].map((c) => (
-              <button
-                key={c}
-                type="button"
-                onClick={() => {
-                  setColor({ ...color, hex: c });
-                  onChange(c);
-                }}
-                className={`aspect-square rounded-lg border-2 transition-all hover:scale-110 ${
-                  color.hex.toUpperCase() === c ? 'border-blue-500 ring-2 ring-blue-300' : 'border-gray-300'
-                }`}
-                style={{ backgroundColor: c }}
-                title={c}
-              />
-            ))}
-          </div>
-        </div>
-      </div>
-    );
-  },
-},
+    {
+      name: 'ref',
+      label: 'Sélectionner la couleur',
+      type: 'custom',
+      render: ({ value, onChange }) => (
+        <ColorPickerField value={value} onChange={onChange} />
+      ),
+    },
   ];
-
-  // ✅ Fonction helper pour convertir HEX en RGB
-  const hexToRgb = (hex: string): string => {
-    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-    return result
-      ? `${parseInt(result[1], 16)}, ${parseInt(result[2], 16)}, ${parseInt(result[3], 16)}`
-      : '0, 0, 0';
-  };
 
   const handleAddSubmit = async (data: FormData) => {
     try {
