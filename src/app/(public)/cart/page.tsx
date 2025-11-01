@@ -118,7 +118,7 @@ const CartItemWithPromotion = ({ item, index, onIncrement, onDecrement, onQuanti
           type="number"
           value={item.quantite}
           onChange={(e) => onQuantityChange(item, e)}
-          className="w-12 h-8 text-center border-0 bg-transparent focus:outline-none focus:ring-0 text-sm font-medium"
+          className="w-12 h-8 text-center border-0 bg-transparent focus:outline-none focus:ring-0 text-sm font-medium text-gray-700"
           min="1"
           max={stockDisponible}
           disabled={actionLoading}
@@ -260,7 +260,13 @@ function Cart() {
       } catch (error) {}
     }
   };
-
+const formatAgeLabel = (age: any): string => {
+  if (!age) return 'N/A';
+  if (age.minTypeAge === age.maxTypeAge) {
+    return `${age.minAge}-${age.maxAge} ${age.minTypeAge}`;
+  }
+  return `${age.minAge} ${age.minTypeAge} - ${age.maxAge} ${age.maxTypeAge}`;
+};
   const handleQuantityChange = async (item: any, e: React.ChangeEvent<HTMLInputElement>) => {
     const value = parseInt(e.target.value);
     const stockDisponible = item.variation ? item.variation.quantiteStock : item.produit.quantiteStock;
@@ -403,18 +409,18 @@ function Cart() {
                         <span>-{totalSavings.toFixed(2)} <span className="text-xs">TND</span></span>
                       </div>
                     )}
-                    <div className="flex justify-between">
+                    <div className="flex justify-between text-gray-700">
                       <span>Sous-total</span>
-                      <span className="font-bold">{totalFinal.toFixed(2)} <span className="text-xs">TND</span></span>
+                      <span className="font-bold text-gray-700">{totalFinal.toFixed(2)} <span className="text-xs text-gray-700">TND</span></span>
                     </div>
-                    <div className="flex justify-between">
+                    <div className="flex justify-between text-gray-700">
                       <span>Livraison</span>
-                      <span className={`font-bold ${livraison === 0 ? "text-green-600" : ""}`}>
-                        {livraison === 0 ? "Gratuite" : (<>{livraison.toFixed(2)} <span className="text-xs">TND</span></>)}
+                      <span className={`font-bold text-gray-700 ${livraison === 0 ? "text-green-600" : ""}`}>
+                        {livraison === 0 ? "Gratuite" : (<>{livraison.toFixed(2)} <span className="text-xs text-gray-700">TND</span></>)}
                       </span>
                     </div>
                     <div className="border-t pt-4">
-                      <div className="flex justify-between font-extrabold text-lg">
+                      <div className="flex justify-between font-extrabold text-lg text-gray-700">
                         <span>Total TTC</span>
                         <span className="text-purple-600">{totalTTC.toFixed(2)} <span className="text-xs">TND</span></span>
                       </div>

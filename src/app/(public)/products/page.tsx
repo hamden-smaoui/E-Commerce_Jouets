@@ -24,17 +24,17 @@ export default function Products() {
 
   const searchParams = useSearchParams();
   const [currentFilters, setCurrentFilters] = useState<FilterState>(() => {
-    const categoriesParam = searchParams.get('categories');
-    const typesParam = searchParams.get('types');
-    return {
-      categories: categoriesParam ? [parseInt(categoriesParam)] : [],
-      marques: [],
-      types: typesParam ? [parseInt(typesParam)] : [],
-      genres: [],
-      prix: { min: 0, max: 1500 },
-      age: { min: 0, max: 144 },
-    };
-  });
+  const categoriesParam = searchParams.get('categories');
+  const typesParam = searchParams.get('types');
+  return {
+    categories: categoriesParam ? [parseInt(categoriesParam)] : [],
+    marques: [],
+    types: typesParam ? [parseInt(typesParam)] : [],
+    genres: [],
+    prix: { min: 0, max: 1500 },
+    age: { min: 0, max: 144 }, // ✅ RETOUR au format min/max
+  };
+});
   const PRODUCTS_PER_PAGE = 12;
 
   useEffect(() => {
@@ -68,87 +68,126 @@ export default function Products() {
       setLoading(false);
     }
   };
+const calculateProductLimits = useMemo(() => {
+  if (products.length === 0) {
+    return {
+      minPrix: 0,
+      maxPrix: 1500,
+      minAge: 0,
+      maxAge: 144
+    };
+  }
 
-  useEffect(() => {
-    const categoriesParam = searchParams.get('categories');
-    const typesParam = searchParams.get('types');
-    setCurrentFilters({
-      categories: categoriesParam ? [parseInt(categoriesParam)] : [],
-      marques: [],
-      types: typesParam ? [parseInt(typesParam)] : [],
-      genres: [],
-      prix: { min: 0, max: 1500 },
-      age: { min: 0, max: 144 },
+  const prices = products.map(p => p.prix).filter(p => p != null);
+  const ages = products
+    .map(p => p.age)
+    .filter(age => age != null)
+    .flatMap(age => {
+      const minInMonths = age!.minTypeAge === 'ans' ? age!.minAge * 12 : age!.minAge;
+      const maxInMonths = age!.maxTypeAge === 'ans' ? age!.maxAge * 12 : age!.maxAge;
+      return [minInMonths, maxInMonths];
     });
-  }, [searchParams]);
 
-  const matchesAgeFilter = (product: ProductWithDetails): boolean => {
-    if (currentFilters.age.min === 0 && currentFilters.age.max === 144) return true;
-    
-    if (product.variations && product.variations.length > 0) {
-      return product.variations.some(variation => {
-        if (!variation.age) return true;
-        
-        const ageMinInMonths = variation.age.typeAge === 'ans' 
-          ? variation.age.minAge * 12 
-          : variation.age.minAge;
-        const ageMaxInMonths = variation.age.typeAge === 'ans' 
-          ? variation.age.maxAge * 12 
-          : variation.age.maxAge;
-        
-        return !(ageMaxInMonths < currentFilters.age.min || ageMinInMonths > currentFilters.age.max);
-      });
-    }
-    
-    return true;
+  return {
+    minPrix: prices.length > 0 ? Math.floor(Math.min(...prices)) : 0,
+    maxPrix: prices.length > 0 ? Math.ceil(Math.max(...prices)) : 1500,
+    minAge: ages.length > 0 ? Math.min(...ages) : 0,
+    maxAge: ages.length > 0 ? Math.max(...ages) : 144
   };
+}, [products]);
+useEffect(() => {
+  const categoriesParam = searchParams.get('categories');
+  const typesParam = searchParams.get('types');
+  setCurrentFilters({
+    categories: categoriesParam ? [parseInt(categoriesParam)] : [],
+    marques: [],
+    types: typesParam ? [parseInt(typesParam)] : [],
+    genres: [],
+    prix: { min: calculateProductLimits.minPrix, max: calculateProductLimits.maxPrix },
+    age: { min: calculateProductLimits.minAge, max: calculateProductLimits.maxAge },
+  });
+}, [searchParams, calculateProductLimits]);
+// ✅ NOUVEAU - Détecter si un filtre d'âge est actif
+const isAgeFilterActive = currentFilters.age.min !== calculateProductLimits.minAge || 
+                         currentFilters.age.max !== calculateProductLimits.maxAge;
 
-  const filteredProducts = useMemo(() => {
-    let filtered = [...products];
-    
-    if (currentFilters.categories.length > 0) {
-      filtered = filtered.filter(product => 
-        currentFilters.categories.includes(product.idCategorie)
-      );
-    }
-    
-    if (currentFilters.marques.length > 0) {
-      filtered = filtered.filter(product => 
-        currentFilters.marques.includes(product.idMarque)
-      );
-    }
-    
-    if (currentFilters.types.length > 0) {
-      filtered = filtered.filter(product => 
-        product.idType && currentFilters.types.includes(product.idType)
-      );
-    }
-    
-    if (currentFilters.genres.length > 0) {
-      filtered = filtered.filter(product => 
-        currentFilters.genres.includes(product.genre)
-      );
-    }
-    
+// ✅ MODIFIÉ - Compteur de filtres actifs (inclure l'âge si modifié)
+const activeFiltersCount = currentFilters.categories.length + 
+                           currentFilters.marques.length + 
+                           currentFilters.types.length + 
+                           currentFilters.genres.length +
+                           (isAgeFilterActive ? 1 : 0); 
+
+ const matchesAgeFilter = (product: ProductWithDetails): boolean => {
+  // Si les limites sont aux valeurs par défaut, on affiche tous les produits
+  if (currentFilters.age.min === calculateProductLimits.minAge && 
+      currentFilters.age.max === calculateProductLimits.maxAge) {
+    return true;
+  }
+  
+  // Si le produit n'a pas d'âge défini, on ne l'affiche pas quand un filtre âge est actif
+  if (!product.age) return false;
+  
+  // Convertir les âges du produit en mois
+  const ageMinInMonths = product.age.minTypeAge === 'ans' 
+    ? product.age.minAge * 12 
+    : product.age.minAge;
+  const ageMaxInMonths = product.age.maxTypeAge === 'ans' 
+    ? product.age.maxAge * 12 
+    : product.age.maxAge;
+  
+  // Vérifier si la tranche d'âge du produit chevauche le filtre
+  return !(ageMaxInMonths < currentFilters.age.min || ageMinInMonths > currentFilters.age.max);
+};
+
+
+const filteredProducts = useMemo(() => {
+  let filtered = [...products];
+  
+  if (currentFilters.categories.length > 0) {
     filtered = filtered.filter(product => 
-      product.prix >= currentFilters.prix.min && 
-      product.prix <= currentFilters.prix.max
+      currentFilters.categories.includes(product.idCategorie)
     );
-    
-    filtered = filtered.filter(matchesAgeFilter);
-    
-    if (sortBy) {
-      switch (sortBy) {
-        case 'a-z': filtered.sort((a, b) => a.nom.localeCompare(b.nom)); break;
-        case 'z-a': filtered.sort((a, b) => b.nom.localeCompare(b.nom)); break;
-        case 'price-asc': filtered.sort((a, b) => a.prix - b.prix); break;
-        case 'price-desc': filtered.sort((a, b) => b.prix - b.prix); break;
-        case 'stock-desc': filtered.sort((a, b) => (b.totalStock || 0) - (a.totalStock || 0)); break;
-        default: break;
-      }
+  }
+  
+  if (currentFilters.marques.length > 0) {
+    filtered = filtered.filter(product => 
+      currentFilters.marques.includes(product.idMarque)
+    );
+  }
+  
+  if (currentFilters.types.length > 0) {
+    filtered = filtered.filter(product => 
+      product.idType && currentFilters.types.includes(product.idType)
+    );
+  }
+  
+  if (currentFilters.genres.length > 0) {
+    filtered = filtered.filter(product => 
+      currentFilters.genres.includes(product.genre)
+    );
+  }
+  
+  filtered = filtered.filter(product => 
+    product.prix >= currentFilters.prix.min && 
+    product.prix <= currentFilters.prix.max
+  );
+  
+  filtered = filtered.filter(matchesAgeFilter);
+  
+  if (sortBy) {
+    switch (sortBy) {
+      case 'a-z': filtered.sort((a, b) => a.nom.localeCompare(b.nom)); break;
+      case 'z-a': filtered.sort((a, b) => b.nom.localeCompare(a.nom)); break;
+      case 'price-asc': filtered.sort((a, b) => a.prix - b.prix); break;
+      case 'price-desc': filtered.sort((a, b) => b.prix - a.prix); break;
+      case 'stock-desc': filtered.sort((a, b) => (b.totalStock || 0) - (a.totalStock || 0)); break;
+      default: break;
     }
-    return filtered;
-  }, [products, currentFilters, sortBy]);
+  }
+  return filtered;
+}, [products, currentFilters, sortBy, calculateProductLimits]);
+
 
   const totalPages = Math.ceil(filteredProducts.length / PRODUCTS_PER_PAGE);
   const startIndex = (currentPage - 1) * PRODUCTS_PER_PAGE;
@@ -184,21 +223,21 @@ export default function Products() {
     setCurrentFilters(filters);
   }, []);
 
-  const resetAllFilters = () => {
-    setCurrentFilters({
-      categories: [],
-      marques: [],
-      types: [],
-      genres: [],
-      prix: { min: 0, max: 1500 },
-      age: { min: 0, max: 144 },
-    });
-  };
+ const resetAllFilters = () => {
+  setCurrentFilters({
+    categories: [],
+    marques: [],
+    types: [],
+    genres: [],
+    prix: { min: calculateProductLimits.minPrix, max: calculateProductLimits.maxPrix },
+    age: { min: calculateProductLimits.minAge, max: calculateProductLimits.maxAge },
+  });
+};
 
-  const activeFiltersCount = currentFilters.categories.length + 
-                           currentFilters.marques.length + 
-                           currentFilters.types.length + 
-                           currentFilters.genres.length;
+
+
+
+  
 
   if (loading) {
     return (
@@ -251,6 +290,8 @@ export default function Products() {
               <Filter 
                 onFiltersChange={handleFiltersChange} 
                 initialFilters={currentFilters}
+                productLimits={calculateProductLimits} // ✅ AJOUTÉ
+
               />
             </div>
           </div>
@@ -463,6 +504,7 @@ export default function Products() {
                 onFiltersChange={handleFiltersChange} 
                 initialFilters={currentFilters}
                 hideTitle={true}
+                  productLimits={calculateProductLimits} // ✅ AJOUTÉ
               />
             </div>
             <div className="sticky bottom-0 bg-white border-t border-pink-200 p-4 shadow-lg">

@@ -3,9 +3,12 @@ import api from './api';
 export interface Couleur {
   idCouleur: number;
   nom: string;
+  ref?: string | null; // ✅ Ajout du champ ref
 }
+
 export interface CouleurFormData {
   nom: string;
+  ref?: string | null; // ✅ Ajout du champ ref
 }
 
 class CouleursService {

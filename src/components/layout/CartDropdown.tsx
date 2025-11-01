@@ -51,7 +51,13 @@ const CartDropdownItem = ({ item, onIncrement, onDecrement, onRemove }: any) => 
     if (age) parts.push(age.label);
     return parts.length > 0 ? parts.join(" / ") : "";
   };
-
+const formatAgeLabel = (age: any): string => {
+  if (!age) return 'N/A';
+  if (age.minTypeAge === age.maxTypeAge) {
+    return `${age.minAge}-${age.maxAge} ${age.minTypeAge}`;
+  }
+  return `${age.minAge} ${age.minTypeAge} - ${age.maxAge} ${age.maxTypeAge}`;
+};
   return (
     <div className="flex items-start gap-3 p-2 hover:bg-gray-50 rounded-lg transition-colors">
       {/* Image du produit */}
@@ -94,48 +100,37 @@ const CartDropdownItem = ({ item, onIncrement, onDecrement, onRemove }: any) => 
         </div>
 
         {/* Contrôles de quantité */}
-        <div className="flex items-center justify-between mt-2">
-          <div className="flex items-center gap-1">
-            <button
-              onClick={() =>
-                onDecrement(item.idProduit, item.quantite, item.idProduitVariation)
-              }
-              disabled={item.quantite <= 1}
-              className="w-6 h-6 rounded border border-gray-300 flex items-center justify-center hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              <MinusIcon className="w-3 h-3" />
-            </button>
-            <span className="w-8 text-center text-sm font-medium">
-              {item.quantite}
-            </span>
-            <button
-              onClick={() =>
-                onIncrement(
-                  item.idProduit,
-                  item.quantite,
-                  stockDisponible,
-                  item.idProduitVariation
-                )
-              }
-              disabled={item.quantite >= stockDisponible}
-              className="w-6 h-6 rounded border border-gray-300 flex items-center justify-center hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              <PlusIcon className="w-3 h-3" />
-            </button>
-          </div>
+       <div className="flex items-center justify-between mt-2 bg-white p-2 rounded-lg shadow-sm">
+  <div className="flex items-center gap-1">
+    <button
+      onClick={() => onDecrement(item.idProduit, item.quantite, item.idProduitVariation)}
+      disabled={item.quantite <= 1}
+      className="w-6 h-6 rounded border border-gray-400 flex items-center justify-center hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+    >
+      <MinusIcon className="w-3 h-3" />
+    </button>
 
-<button
-            onClick={() => onRemove(
-              item.idPanierProduit, 
-              item.idProduit, 
-              item.idProduitVariation // ← Ajouter ce paramètre
-            )}
-            className="text-red-500 hover:text-red-700 transition-colors p-1"
-            title="Supprimer"
-          >
-            <TrashIcon className="w-4 h-4" />
-          </button>
-        </div>
+    <span className="w-8 text-center text-sm font-bold text-gray-800">
+      {item.quantite}
+    </span>
+
+    <button
+      onClick={() => onIncrement(item.idProduit, item.quantite, stockDisponible, item.idProduitVariation)}
+      disabled={item.quantite >= stockDisponible}
+      className="w-6 h-6 rounded border border-gray-400 flex items-center justify-center hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+    >
+      <PlusIcon className="w-3 h-3" />
+    </button>
+  </div>
+
+  <button
+    onClick={() => onRemove(item.idPanierProduit, item.idProduit, item.idProduitVariation)}
+    className="text-red-500 hover:text-red-700 transition-colors p-1"
+    title="Supprimer"
+  >
+    <TrashIcon className="w-4 h-4" />
+  </button>
+</div>
       </div>
     </div>
   );

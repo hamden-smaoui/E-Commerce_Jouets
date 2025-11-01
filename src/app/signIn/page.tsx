@@ -5,10 +5,9 @@ import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { EyeIcon, EyeSlashIcon, LockClosedIcon } from "@heroicons/react/24/solid";
 import GoogleAuthButton from "@/components/ui/GoogleAuthButton";
-import FacebookAuthButton from '@/components/ui/FacebookAuthButton';
 import KidsCornerLoader from "@/components/ui/KidsCornerLoader";
 import { toast } from "react-hot-toast";
-import { signIn } from "next-auth/react";
+import { signIn, useSession } from "next-auth/react";
 import authService from "@/services/auth-service";
 
 function SignInContent() {
@@ -20,6 +19,10 @@ function SignInContent() {
   const [loading, setLoading] = useState(false);
   const searchParams = useSearchParams();
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const { data: session, status } = useSession();
+  
+  // ✅ Récupérer le callbackUrl
+  const callbackUrl = searchParams.get('callbackUrl') || '/';
 
   useEffect(() => {
     const message = searchParams.get('message');
@@ -28,6 +31,13 @@ function SignInContent() {
       toast.success(message);
     }
   }, [searchParams]);
+
+  // ✅ Rediriger si déjà connecté
+  useEffect(() => {
+    if (status === 'authenticated') {
+      router.push(callbackUrl);
+    }
+  }, [status, callbackUrl, router]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -55,47 +65,43 @@ function SignInContent() {
     return Object.keys(newErrors).length === 0;
   };
 
-  // signIn/page.tsx
-const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
-  if (!validateForm()) return;
-  setLoading(true);
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!validateForm()) return;
+    setLoading(true);
 
-  try {
-    // 1️⃣ Appelle d'abord le backend pour créer le refreshToken cookie
-    await authService.loginWithBackend(formData.emailOrPhone, formData.motDePasse);
-    
-    console.log("✅ Backend login réussi, cookie refreshToken défini");
+    try {
+      await authService.loginWithBackend(formData.emailOrPhone, formData.motDePasse);
+      
+      const result = await signIn("credentials", {
+        emailOrPhone: formData.emailOrPhone,
+        password: formData.motDePasse,
+        callbackUrl: callbackUrl, // ✅ Utiliser le callbackUrl
+        redirect: false,
+      });
 
-    // 2️⃣ PUIS appelle NextAuth pour créer la session
-    const result = await signIn("credentials", {
-      emailOrPhone: formData.emailOrPhone,
-      password: formData.motDePasse,
-      redirect: false,
-    });
+      if (result?.error) {
+        const errorMessage = result.error || "Email ou mot de passe incorrect";
+        setErrors({ submit: errorMessage });
+        toast.error(errorMessage);
+        setLoading(false);
+        return;
+      }
 
-    if (result?.error) {
-      const errorMessage = result.error || "Email ou mot de passe incorrect";
+      if (result?.ok) {
+        toast.success('Connexion réussie!');
+        router.push(callbackUrl); // ✅ Rediriger vers callbackUrl
+        router.refresh();
+      }
+    } catch (error: any) {
+      console.error("Erreur lors de la connexion:", error);
+      const errorMessage = error?.message || "Une erreur est survenue";
       setErrors({ submit: errorMessage });
       toast.error(errorMessage);
+    } finally {
       setLoading(false);
-      return;
     }
-
-    if (result?.ok) {
-      toast.success('Connexion réussie!');
-      router.push("");
-      router.refresh();
-    }
-  } catch (error: any) {
-    console.error("Erreur lors de la connexion:", error);
-    const errorMessage = error?.message || "Une erreur est survenue";
-    setErrors({ submit: errorMessage });
-    toast.error(errorMessage);
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
@@ -107,8 +113,17 @@ const handleSubmit = async (e: React.FormEvent) => {
           <h2 className="text-3xl font-bold text-gray-900 mb-2">Connexion</h2>
         </div>
         
+        {/* ✅ Message si redirection */}
+        {callbackUrl !== '/' && (
+          <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-4">
+            <p className="text-sm text-blue-800 font-semibold text-center">
+              📍 Connectez-vous pour continuer
+            </p>
+          </div>
+        )}
+        
         {successMessage && (
-          <div className="bg-green-50 border border-green-200 text-green-600 px-4 py-3 rounded-lg mb-6">
+          <div className="bg-green-50 border border-green-200 text-green-600 px-4 py-3 rounded-lg">
             {successMessage}
           </div>
         )}
@@ -130,7 +145,7 @@ const handleSubmit = async (e: React.FormEvent) => {
                 name="emailOrPhone"
                 value={formData.emailOrPhone}
                 onChange={handleInputChange}
-                className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 ${
+                className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-base ${
                   errors.emailOrPhone ? "border-red-500" : "border-gray-300"
                 }`}
                 placeholder="votre.email@example.com ou 12345678"
@@ -151,7 +166,7 @@ const handleSubmit = async (e: React.FormEvent) => {
                   name="motDePasse"
                   value={formData.motDePasse}
                   onChange={handleInputChange}
-                  className={`w-full pl-10 pr-12 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 ${
+                  className={`w-full pl-10 pr-12 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-base ${
                     errors.motDePasse ? "border-red-500" : "border-gray-300"
                   }`}
                   placeholder="Votre mot de passe"
@@ -213,15 +228,16 @@ const handleSubmit = async (e: React.FormEvent) => {
             <div className="mt-6">
               <GoogleAuthButton mode="signin" />
             </div>
-           {/* <div className="mt-3">
-              <FacebookAuthButton mode="signin" />
-           </div>*/}
           </div>
           
           <div className="mt-6 text-center">
             <p className="text-gray-600">
               Pas encore inscrit ?{" "}
-              <Link href="/signUp" className="text-purple-600 hover:text-purple-800 font-semibold">
+              {/* ✅ Transmettre aussi le callbackUrl au lien d'inscription */}
+              <Link 
+                href={callbackUrl !== '/' ? `/signUp?returnUrl=${encodeURIComponent(callbackUrl)}` : "/signUp"} 
+                className="text-purple-600 hover:text-purple-800 font-semibold"
+              >
                 Créer un compte
               </Link>
             </p>

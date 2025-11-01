@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import codesPromoService from '@/services/codes-promo-service';
-import { useSession } from "next-auth/react";
-import Link from 'next/link';
+import { useSession, signIn } from "next-auth/react"; // ✅ Ajouter signIn
+import { usePathname } from 'next/navigation'; // ✅ Ajouter usePathname
 
 interface CodePromoInputProps {
   montantPanier: number;
@@ -23,15 +23,19 @@ const CodePromoInput: React.FC<CodePromoInputProps> = ({
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string; montantMinimum?: number } | null>(null);
   const { data: session, status } = useSession();
   const token = session?.customToken;
+  const pathname = usePathname(); // ✅ Pour récupérer la page actuelle
   
-  // ✅ Vérifier si l'utilisateur est connecté
   const isAuthenticated = status === "authenticated";
+
+  // ✅ NOUVELLE FONCTION : Redirection intelligente
+  const handleLoginRedirect = () => {
+    signIn(undefined, { callbackUrl: pathname });
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!code.trim()) return;
 
-    // ✅ Bloquer si non connecté
     if (!isAuthenticated) {
       setMessage({ 
         type: 'error', 
@@ -88,34 +92,27 @@ const CodePromoInput: React.FC<CodePromoInputProps> = ({
         )}
       </div>
 
-      {/* ✅ NOUVEAU : Message si non connecté */}
       {!isAuthenticated ? (
-        <div className="p-4 bg-blue-50 border-2 border-blue-200 rounded-lg w-full">
+        <div className="p-4 bg-gradient-to-r from-purple-50 to-pink-50 border-2 border-purple-200 rounded-xl w-full">
           <div className="flex items-start gap-3">
-            <svg className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+            <svg className="w-6 h-6 text-purple-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7" />
             </svg>
             <div className="flex-1">
-              <p className="text-sm font-semibold text-blue-800 mb-1">
-                Codes promo réservés aux membres
+              <h4 className="font-bold text-purple-800 mb-1">Codes promo disponibles !</h4>
+              <p className="text-sm text-purple-700 mb-3">
+                Connectez-vous pour appliquer vos codes promo et bénéficier de réductions exclusives
               </p>
-              <p className="text-xs text-blue-700 mb-2">
-                Connectez-vous pour bénéficier de nos codes promo exclusifs et profiter de réductions supplémentaires !
-              </p>
-              <Link 
-                href="/signIn"
-                className="inline-flex items-center gap-1 text-sm font-medium text-blue-600 hover:text-blue-800 underline"
+              <button
+                onClick={handleLoginRedirect}
+                className="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white py-2.5 rounded-lg hover:from-purple-700 hover:to-pink-700 transition-all transform hover:scale-105 font-bold text-sm shadow-lg"
               >
-                <span>Se connecter</span>
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
-              </Link>
+                🎁 Se connecter pour économiser
+              </button>
             </div>
           </div>
         </div>
       ) : codeActuel ? (
-        // Code promo appliqué
         <div className="p-3 bg-green-50 border border-green-200 rounded-lg w-full">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
             <div>
@@ -132,7 +129,6 @@ const CodePromoInput: React.FC<CodePromoInputProps> = ({
           </div>
         </div>
       ) : (
-        // Formulaire de saisie (uniquement si connecté)
         <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-2 w-full">
           <input
             type="text"
@@ -156,7 +152,6 @@ const CodePromoInput: React.FC<CodePromoInputProps> = ({
         </form>
       )}
 
-      {/* Messages de succès/erreur */}
       {message && (
         <div className={`p-3 rounded-lg w-full ${
           message.type === 'success'

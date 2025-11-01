@@ -2,9 +2,8 @@
 import Image from "next/image";
 import Link from "next/link";
 import GoogleAuthButton from "@/components/ui/GoogleAuthButton";
-import FacebookAuthButton from '@/components/ui/FacebookAuthButton';
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { 
   EyeIcon, 
   EyeSlashIcon,
@@ -16,8 +15,11 @@ import {
 import authService from '@/services/auth-service';
 import { toast } from 'react-hot-toast';
 
-export default function SignUp() {
+function SignUpContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const returnUrl = searchParams.get('returnUrl'); // ✅ Récupérer le returnUrl
+  
   const [formData, setFormData] = useState({
     prenom: '',
     nom: '',
@@ -57,16 +59,14 @@ export default function SignUp() {
       newErrors.nom = 'Le nom est requis';
     }
 
-    if (!formData.email.trim()) {
-      newErrors.email = 'L\'email est requis';
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
+    if (formData.email.trim() && !/\S+@\S+\.\S+/.test(formData.email)) {
       newErrors.email = 'Format d\'email invalide';
     }
 
     if (!formData.telephone.trim()) {
       newErrors.telephone = 'Le téléphone est requis';
-    } else if (!/^\d{8}$/.test(formData.telephone.replace(/\s/g, ''))) {
-      newErrors.telephone = 'Le numéro doit contenir 8 chiffres';
+    } else if (!/^[24579]\d{7}$/.test(formData.telephone.replace(/\s/g, ''))) {
+      newErrors.telephone = 'Le numéro doit commencer par 2, 4, 5, 7 ou 9 et contenir 8 chiffres';
     }
 
     if (!formData.motDePasse) {
@@ -83,7 +83,6 @@ export default function SignUp() {
     return Object.keys(newErrors).length === 0;
   };
 
-  // ✅ INSCRIPTION MANUELLE
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validateForm()) return;
@@ -98,8 +97,12 @@ export default function SignUp() {
         motDePasse: formData.motDePasse,
       });
 
-      toast.success('Inscription réussie!');
-      router.push("/signIn?message=Inscription réussie! Veuillez vous connecter.");
+      // ✅ Transmettre le returnUrl à la page signIn
+      if (returnUrl) {
+        router.push(`/signIn?message=Inscription réussie! Veuillez vous connecter.&callbackUrl=${returnUrl}`);
+      } else {
+        router.push("/signIn?message=Inscription réussie! Veuillez vous connecter.");
+      }
 
     } catch (err: any) {
       console.error("Erreur lors de l'inscription:", err);
@@ -114,6 +117,15 @@ export default function SignUp() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
+        {/* ✅ Message si redirection depuis une autre page */}
+        {returnUrl && (
+          <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-4">
+            <p className="text-sm text-blue-800 font-semibold text-center">
+              📍 Créez votre compte pour continuer
+            </p>
+          </div>
+        )}
+        
         <div className="text-center">
           <div className="flex justify-center mb-6">
             <Image
@@ -139,6 +151,7 @@ export default function SignUp() {
               </div>
             )}
 
+            {/* ... Reste du formulaire identique ... */}
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -153,7 +166,7 @@ export default function SignUp() {
                     name="prenom"
                     value={formData.prenom}
                     onChange={handleInputChange}
-                    className={`w-full pl-10 pr-3 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 ${
+                    className={`w-full pl-10 pr-3 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-base ${
                       errors.prenom ? 'border-red-500' : 'border-gray-300'
                     }`}
                     placeholder="Votre prénom"
@@ -177,7 +190,7 @@ export default function SignUp() {
                     name="nom"
                     value={formData.nom}
                     onChange={handleInputChange}
-                    className={`w-full pl-10 pr-3 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 ${
+                    className={`w-full pl-10 pr-3 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-base ${
                       errors.nom ? 'border-red-500' : 'border-gray-300'
                     }`}
                     placeholder="Votre nom"
@@ -191,7 +204,7 @@ export default function SignUp() {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Adresse email *
+                Adresse email (optionnel)
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -202,7 +215,7 @@ export default function SignUp() {
                   name="email"
                   value={formData.email}
                   onChange={handleInputChange}
-                  className={`w-full pl-10 pr-3 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 ${
+                  className={`w-full pl-10 pr-3 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-base ${
                     errors.email ? 'border-red-500' : 'border-gray-300'
                   }`}
                   placeholder="votre.email@example.com"
@@ -226,7 +239,7 @@ export default function SignUp() {
                   name="telephone"
                   value={formData.telephone}
                   onChange={handleInputChange}
-                  className={`w-full pl-10 pr-3 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 ${
+                  className={`w-full pl-10 pr-3 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-base ${
                     errors.telephone ? 'border-red-500' : 'border-gray-300'
                   }`}
                   placeholder="12345678"
@@ -250,7 +263,7 @@ export default function SignUp() {
                   name="motDePasse"
                   value={formData.motDePasse}
                   onChange={handleInputChange}
-                  className={`w-full pl-10 pr-12 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 ${
+                  className={`w-full pl-10 pr-12 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-base ${
                     errors.motDePasse ? 'border-red-500' : 'border-gray-300'
                   }`}
                   placeholder="Minimum 6 caractères"
@@ -285,7 +298,7 @@ export default function SignUp() {
                   name="confirmPassword"
                   value={formData.confirmPassword}
                   onChange={handleInputChange}
-                  className={`w-full pl-10 pr-12 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 ${
+                  className={`w-full pl-10 pr-12 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-base ${
                     errors.confirmPassword ? 'border-red-500' : 'border-gray-300'
                   }`}
                   placeholder="Confirmez votre mot de passe"
@@ -328,15 +341,16 @@ export default function SignUp() {
             <div className="mt-6">
               <GoogleAuthButton mode="signup" />
             </div>
-           {/* <div className="mt-3">
-              <FacebookAuthButton mode="signup" />
-            </div>*/}
           </div>
 
           <div className="mt-6 text-center">
             <p className="text-gray-600">
               Vous avez déjà un compte ?{" "}
-              <Link href="/signIn" className="text-purple-600 hover:text-purple-800 font-semibold">
+              {/* ✅ Transmettre aussi le returnUrl au lien de connexion */}
+              <Link 
+                href={returnUrl ? `/signIn?callbackUrl=${returnUrl}` : "/signIn"} 
+                className="text-purple-600 hover:text-purple-800 font-semibold"
+              >
                 Se connecter
               </Link>
             </p>
@@ -350,5 +364,13 @@ export default function SignUp() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function SignUp() {
+  return (
+    <Suspense fallback={<div>Chargement...</div>}>
+      <SignUpContent />
+    </Suspense>
   );
 }

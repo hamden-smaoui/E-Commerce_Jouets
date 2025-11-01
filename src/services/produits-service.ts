@@ -17,10 +17,11 @@ interface Type {
   nom: string;
 }
 
-// Nouveaux interfaces pour les variations
+// Interfaces pour les variations
 export interface Couleur {
   idCouleur: number;
   nom: string;
+  ref: string;
 }
 export interface Taille {
   idTaille: number;
@@ -30,7 +31,8 @@ export interface Age {
   idAge: number;
   minAge: number;
   maxAge: number;
-  typeAge: 'mois' | 'ans';
+  minTypeAge: 'mois' | 'ans'; // ✅ MODIFIÉ
+  maxTypeAge: 'mois' | 'ans';  // ✅ MODIFIÉ
   label: string;
 }
 export interface ProduitVariation {
@@ -61,11 +63,12 @@ export interface Produit {
   idMarque: number;
   idFournisseur: number;
   idType: number | null;
+  idAge: number | null; // ✅ NOUVEAU CHAMP
   genre: 'fille' | 'garçon' | 'enfant';
-  livraisonGratuite?: boolean; // ✅ CHAMP AJOUTÉ
+  livraisonGratuite?: boolean;
 }
 
-// Nouveau format pour les données du formulaire
+// Format pour les données du formulaire
 export interface ProduitFormData {
   idProduit?: number | null;
   nom: string;
@@ -76,8 +79,9 @@ export interface ProduitFormData {
   idMarque: number;
   idFournisseur: number;
   idType: number | null;
+  idAge: number | null; // ✅ NOUVEAU CHAMP
   genre: 'fille' | 'garçon' | 'enfant';
-  livraisonGratuite?: boolean; // ✅ CHAMP AJOUTÉ
+  livraisonGratuite?: boolean;
   images?: File[];
   imageRangs?: number[];
   variants?: {
@@ -97,6 +101,7 @@ export interface ProduitResponse extends Produit {
   marque?: Marque;
   fournisseur?: Fournisseur;
   type?: Type;
+  age?: Age;
   images?: ImageData[];
   variations?: ProduitVariation[];
 }
@@ -115,9 +120,8 @@ class ProduitsService {
     formData.append('idMarque', produitData.idMarque.toString());
     formData.append('idFournisseur', produitData.idFournisseur.toString());
     if (produitData.idType) formData.append('idType', produitData.idType.toString());
+    if (produitData.idAge) formData.append('idAge', produitData.idAge.toString()); // ✅ NOUVEAU
     formData.append('genre', produitData.genre);
-    
-    // ✅ AJOUT DU CHAMP livraisonGratuite
     formData.append('livraisonGratuite', produitData.livraisonGratuite ? 'true' : 'false');
     
     if (produitData.variants?.length) formData.append('variants', JSON.stringify(produitData.variants));
@@ -152,9 +156,8 @@ class ProduitsService {
     formData.append('idMarque', produitData.idMarque.toString());
     formData.append('idFournisseur', produitData.idFournisseur.toString());
     if (produitData.idType) formData.append('idType', produitData.idType.toString());
+    if (produitData.idAge) formData.append('idAge', produitData.idAge.toString()); // ✅ NOUVEAU
     formData.append('genre', produitData.genre);
-    
-    // ✅ AJOUT DU CHAMP livraisonGratuite
     formData.append('livraisonGratuite', produitData.livraisonGratuite ? 'true' : 'false');
     
     if (produitData.variants?.length) formData.append('variants', JSON.stringify(produitData.variants));
@@ -178,6 +181,38 @@ class ProduitsService {
   async deleteImage(imageId: number, token?: string): Promise<void> {
     const headers = token ? { Authorization: `Bearer ${token}` } : {};
     await api.delete(`/produits/images/${imageId}`, { headers });
+  }
+
+  // ✅ NOUVELLE MÉTHODE : Recherche avec filtres
+  async searchProduits(params: {
+    q?: string;
+    category?: number;
+    marque?: number;
+    minPrice?: number;
+    maxPrice?: number;
+    inStock?: boolean;
+    livraisonGratuite?: boolean;
+    genre?: string;
+    type?: number;
+    age?: number; // ✅ NOUVEAU FILTRE
+    sortBy?: string;
+    order?: string;
+    page?: number;
+    limit?: number;
+  }, token?: string): Promise<{ data: ProduitResponse[]; pagination: any }> {
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    const response = await api.get('/produits/search', { headers, params });
+    return response.data;
+  }
+
+  // ✅ NOUVELLE MÉTHODE : Obtenir les produits par tranche d'âge
+  async getProduitsByAge(ageId: number, page: number = 1, limit: number = 12, token?: string): Promise<any> {
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    const response = await api.get(`/produits/age/${ageId}`, {
+      headers,
+      params: { page, limit }
+    });
+    return response.data;
   }
 }
 

@@ -17,18 +17,38 @@ export interface FilterState {
 interface FilterProps {
   onFiltersChange?: (filters: FilterState) => void;
   initialFilters?: Partial<FilterState>;
-  hideTitle?: boolean; 
+  hideTitle?: boolean;
+  // ✅ NOUVEAU - Recevoir les limites réelles depuis Products
+  productLimits?: {
+    minPrix: number;
+    maxPrix: number;
+    minAge: number;
+    maxAge: number;
+  };
 }
 
-const Filter: React.FC<FilterProps> = ({ onFiltersChange, initialFilters, hideTitle }) => {
+const Filter: React.FC<FilterProps> = ({ 
+  onFiltersChange, 
+  initialFilters, 
+  hideTitle,
+  productLimits // ✅ NOUVEAU
+}) => {
+  // ✅ Utiliser les limites réelles ou des valeurs par défaut
+  const limits = productLimits || {
+    minPrix: 0,
+    maxPrix: 1500,
+    minAge: 0,
+    maxAge: 144
+  };
+
   const [categories, setCategories] = useState<number[]>(initialFilters?.categories || []);
   const [marques, setMarques] = useState<number[]>(initialFilters?.marques || []);
   const [types, setTypes] = useState<number[]>(initialFilters?.types || []);
   const [genres, setGenres] = useState<("fille" | "garçon" | "enfant")[]>(initialFilters?.genres || []);
-  const [prixMin, setPrixMin] = useState<number>(0);
-  const [prixMax, setPrixMax] = useState<number>(1500);
-  const [ageMin, setAgeMin] = useState<number>(0);
-  const [ageMax, setAgeMax] = useState<number>(144);
+  const [prixMin, setPrixMin] = useState<number>(initialFilters?.prix?.min ?? limits.minPrix);
+  const [prixMax, setPrixMax] = useState<number>(initialFilters?.prix?.max ?? limits.maxPrix);
+  const [ageMin, setAgeMin] = useState<number>(initialFilters?.age?.min ?? limits.minAge);
+  const [ageMax, setAgeMax] = useState<number>(initialFilters?.age?.max ?? limits.maxAge);
 
   const [showCategories, setShowCategories] = useState(false);
   const [showMarques, setShowMarques] = useState(false);
@@ -57,12 +77,30 @@ const Filter: React.FC<FilterProps> = ({ onFiltersChange, initialFilters, hideTi
 
   const genresList: ("fille" | "garçon" | "enfant")[] = ["enfant", "fille", "garçon"];
 
+  // ✅ NOUVEAU - Mettre à jour les valeurs quand les limites changent
+  useEffect(() => {
+    if (productLimits) {
+      setPrixMin(prev => Math.max(prev, productLimits.minPrix));
+      setPrixMax(prev => Math.min(prev, productLimits.maxPrix));
+      setAgeMin(prev => Math.max(prev, productLimits.minAge));
+      setAgeMax(prev => Math.min(prev, productLimits.maxAge));
+    }
+  }, [productLimits]);
+
   useEffect(() => {
     if (initialFilters) {
       setCategories(initialFilters.categories || []);
       setMarques(initialFilters.marques || []);
       setTypes(initialFilters.types || []);
       setGenres(initialFilters.genres || []);
+      if (initialFilters.prix) {
+        setPrixMin(initialFilters.prix.min);
+        setPrixMax(initialFilters.prix.max);
+      }
+      if (initialFilters.age) {
+        setAgeMin(initialFilters.age.min);
+        setAgeMax(initialFilters.age.max);
+      }
     }
   }, [initialFilters]);
 
@@ -115,7 +153,7 @@ const Filter: React.FC<FilterProps> = ({ onFiltersChange, initialFilters, hideTi
       const data = await CategoriesService.getAllCategories();
       setCategoriesList(data);
     } catch (error) {
-      // silent
+      console.error('Erreur chargement catégories:', error);
     } finally {
       setLoadingCategories(false);
     }
@@ -127,7 +165,7 @@ const Filter: React.FC<FilterProps> = ({ onFiltersChange, initialFilters, hideTi
       const data = await MarquesService.getAllMarques();
       setMarquesList(data);
     } catch (error) {
-      // silent
+      console.error('Erreur chargement marques:', error);
     } finally {
       setLoadingMarques(false);
     }
@@ -140,7 +178,7 @@ const Filter: React.FC<FilterProps> = ({ onFiltersChange, initialFilters, hideTi
       setTypesList(data);
       setIsInitialized(true);
     } catch (error) {
-      // silent
+      console.error('Erreur chargement types:', error);
     } finally {
       setLoadingTypes(false);
     }
@@ -179,11 +217,11 @@ const Filter: React.FC<FilterProps> = ({ onFiltersChange, initialFilters, hideTi
     setMarques([]);
     setTypes([]);
     setGenres([]);
-    setPrixMin(0);
-    setPrixMax(1500);
-    setAgeMin(0);
-    setAgeMax(144);
-  }, []);
+    setPrixMin(limits.minPrix);
+    setPrixMax(limits.maxPrix);
+    setAgeMin(limits.minAge);
+    setAgeMax(limits.maxAge);
+  }, [limits]);
 
   const getSelectedNames = (selectedIds: number[], itemsList: any[], nameKey: string) => {
     return selectedIds.map(id => {
@@ -313,9 +351,10 @@ const Filter: React.FC<FilterProps> = ({ onFiltersChange, initialFilters, hideTi
           idKey="idType"
         />
 
+        {/* ✅ MODIFIÉ - Utiliser les limites réelles */}
         <DualRangeSlider
-          min={0}
-          max={1500}
+          min={limits.minPrix}
+          max={limits.maxPrix}
           step={1}
           minValue={prixMin}
           maxValue={prixMax}
@@ -328,9 +367,10 @@ const Filter: React.FC<FilterProps> = ({ onFiltersChange, initialFilters, hideTi
           valueFormatter={(v: number) => `${v} TND`}
         />
 
+        {/* ✅ MODIFIÉ - Utiliser les limites réelles */}
         <DualRangeSlider
-          min={0}
-          max={144}
+          min={limits.minAge}
+          max={limits.maxAge}
           step={1}
           minValue={ageMin}
           maxValue={ageMax}

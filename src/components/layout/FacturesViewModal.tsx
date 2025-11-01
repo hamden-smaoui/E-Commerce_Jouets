@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { FactureResponse ,ProduitVariation} from '@/services/facture-service';
+import { FactureResponse, ProduitVariation } from '@/services/facture-service';
 import FacturesService from '@/services/facture-service';
 import { useStoreInfo } from "@/hooks/useStoreInfo";
 
@@ -23,14 +23,28 @@ const FactureViewModal: React.FC<FactureViewModalProps> = ({
   const { storeInfo } = useStoreInfo();
 
   if (!facture) return null;
-const formatVariation = (variation?: ProduitVariation) => {
-  if (!variation) return '';
-  const parts = [];
-  if (variation.couleur) parts.push(variation.couleur.nom);
-  if (variation.taille) parts.push(variation.taille.nom);
-  if (variation.age) parts.push(variation.age.label);
-  return parts.length > 0 ? parts.join(' / ') : '';
-};
+
+  // ✅ NOUVELLE FONCTION - Formater l'affichage des âges
+  const formatAgeLabel = (age: any): string => {
+    if (!age) return 'N/A';
+    if (age.minTypeAge === age.maxTypeAge) {
+      return `${age.minAge}-${age.maxAge} ${age.minTypeAge}`;
+    }
+    return `${age.minAge} ${age.minTypeAge} - ${age.maxAge} ${age.maxTypeAge}`;
+  };
+
+  // ✅ FONCTION MODIFIÉE - Affichage des variations
+  const formatVariation = (variation?: ProduitVariation): string => {
+    if (!variation) return '';
+    const parts = [];
+    if (variation.couleur) parts.push(variation.couleur.nom);
+    if (variation.taille) parts.push(variation.taille.nom);
+    if (variation.age) parts.push(variation.age.label);
+    return parts.length > 0 ? parts.join(' / ') : '';
+  };
+
+ 
+
   return (
     <div className={`modal ${isOpen ? 'modal-open' : ''}`}>
       <div className="modal-box w-11/12 max-w-5xl">
@@ -105,7 +119,6 @@ const formatVariation = (variation?: ProduitVariation) => {
           {/* En-tête avec logo */}
           <div className="flex justify-between items-start mb-8">
             <div className="flex items-start gap-4">
-              {/* Logo si disponible */}
               {storeInfo?.logo1 && (
                 <img 
                   src={`${storeInfo.logo1}`}
@@ -154,100 +167,100 @@ const formatVariation = (variation?: ProduitVariation) => {
             </div>
           </div>
 
-         {/* Détails de la commande */}
-{facture.commande?.lignesCommandes && (
-  <div className="mb-8">
-    <h3 className="text-lg font-semibold mb-3">DÉTAILS:</h3>
-    <div className="overflow-x-auto">
-      <table className="table w-full">
-        <thead>
-          <tr>
-            <th>Description</th>
-            <th className="text-right">Qté</th>
-            <th className="text-right">Prix unit. HT</th>
-            <th className="text-right">Prix HT</th>
-            <th className="text-right">TVA</th>
-            <th className="text-right">Prix TTC</th>
-          </tr>
-        </thead>
-        <tbody>
-          {facture.commande.lignesCommandes.map((ligne, index) => {
-            const prixUnitaireTTC = ligne.prixUnitaireFinal ?? 0;
-            
-            // Calculer tous les montants
-            const tauxTVADecimal = 1 + facture.tauxTVA / 100;
-            const prixUnitaireHT = prixUnitaireTTC / tauxTVADecimal;
-            const totalLigneHT = prixUnitaireHT * ligne.quantite;
-            const montantTVALigne = (totalLigneHT * facture.tauxTVA) / 100;
-            const totalLigneTTC = totalLigneHT + montantTVALigne;
+          {/* Détails de la commande */}
+          {facture.commande?.lignesCommandes && (
+            <div className="mb-8">
+              <h3 className="text-lg font-semibold mb-3">DÉTAILS:</h3>
+              <div className="overflow-x-auto">
+                <table className="table w-full">
+                  <thead>
+                    <tr>
+                      <th>Description</th>
+                      <th className="text-right">Qté</th>
+                      <th className="text-right">Prix unit. HT</th>
+                      <th className="text-right">Prix HT</th>
+                      <th className="text-right">TVA</th>
+                      <th className="text-right">Prix TTC</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {facture.commande.lignesCommandes.map((ligne, index) => {
+                      const prixUnitaireTTC = ligne.prixUnitaireFinal ?? 0;
+                      
+                      const tauxTVADecimal = 1 + facture.tauxTVA / 100;
+                      const prixUnitaireHT = prixUnitaireTTC / tauxTVADecimal;
+                      const totalLigneHT = prixUnitaireHT * ligne.quantite;
+                      const montantTVALigne = (totalLigneHT * facture.tauxTVA) / 100;
+                      const totalLigneTTC = totalLigneHT + montantTVALigne;
 
-            return (
-              <tr key={index}>
-                <td>
-                  <div>
-                    <div className="font-semibold">{ligne.produit?.nom}</div>
-                    <div className="text-xs text-gray-500 italic">
-                      {formatVariation(ligne.variation)}
-                    </div>
-                    <div className="text-sm text-gray-500">{ligne.produit?.description}</div>
-                  </div>
-                </td>
-                <td className="text-right">{ligne.quantite}</td>
-                <td className="text-right">
-                  {FacturesService.formatAmount(prixUnitaireHT)}
-                </td>
-                <td className="text-right">
-                  {FacturesService.formatAmount(totalLigneHT)}
-                </td>
-                <td className="text-right">
-                  {facture.tauxTVA}%
-                </td>
-                <td className="text-right font-semibold">
-                  {FacturesService.formatAmount(totalLigneTTC)}
-                </td>
-              </tr>
-            );
-          })}
+                      return (
+                        <tr key={index}>
+                          <td>
+                            <div>
+                              <div className="font-semibold">{ligne.produit?.nom}</div>
+                              {/* ✅ MODIFIÉ - Affichage simple */}
+                              <div className="text-xs text-gray-500 italic mb-1">
+                                {formatVariation(ligne.variation)}
+                              </div>                   
+                              <div className="text-sm text-gray-500 mt-1">{ligne.produit?.description}</div>
+                            </div>
+                          </td>
+                          <td className="text-right">{ligne.quantite}</td>
+                          <td className="text-right">
+                            {FacturesService.formatAmount(prixUnitaireHT)}
+                          </td>
+                          <td className="text-right">
+                            {FacturesService.formatAmount(totalLigneHT)}
+                          </td>
+                          <td className="text-right">
+                            {facture.tauxTVA}%
+                          </td>
+                          <td className="text-right font-semibold">
+                            {FacturesService.formatAmount(totalLigneTTC)}
+                          </td>
+                        </tr>
+                      );
+                    })}
 
-          {/* LIGNE FRAIS DE LIVRAISON */}
-          {facture.commande.fraisLivraison !== undefined && facture.commande.fraisLivraison !== null && (
-            <tr className="border-t-2 border-gray-300">
-              <td>
-                <div>
-                  <div className="font-semibold">Frais de livraison</div>
-                  {facture.commande.fraisLivraison === 0 && (
-                    <div className="text-xs text-green-600 italic">Livraison gratuite 🎉</div>
-                  )}
-                </div>
-              </td>
-              <td className="text-right">-</td>
-              <td className="text-right">
-                {facture.commande.fraisLivraison === 0 
-                  ? '0.000 DT' 
-                  : FacturesService.formatAmount(
-                      facture.commande.fraisLivraison / (1 + facture.tauxTVA / 100)
-                    )
-                }
-              </td>
-              <td className="text-right">
-                {facture.commande.fraisLivraison === 0 
-                  ? '0.000 DT' 
-                  : FacturesService.formatAmount(
-                      facture.commande.fraisLivraison / (1 + facture.tauxTVA / 100)
-                    )
-                }
-              </td>
-              <td className="text-right">{facture.tauxTVA}%</td>
-              <td className="text-right font-semibold">
-                {FacturesService.formatAmount(facture.commande.fraisLivraison)}
-              </td>
-            </tr>
+                    {/* LIGNE FRAIS DE LIVRAISON */}
+                    {facture.commande.fraisLivraison !== undefined && facture.commande.fraisLivraison !== null && (
+                      <tr className="border-t-2 border-gray-300">
+                        <td>
+                          <div>
+                            <div className="font-semibold">Frais de livraison</div>
+                            {facture.commande.fraisLivraison === 0 && (
+                              <div className="text-xs text-green-600 italic">Livraison gratuite 🎉</div>
+                            )}
+                          </div>
+                        </td>
+                        <td className="text-right">-</td>
+                        <td className="text-right">
+                          {facture.commande.fraisLivraison === 0 
+                            ? '0.000 DT' 
+                            : FacturesService.formatAmount(
+                                facture.commande.fraisLivraison / (1 + facture.tauxTVA / 100)
+                              )
+                          }
+                        </td>
+                        <td className="text-right">
+                          {facture.commande.fraisLivraison === 0 
+                            ? '0.000 DT' 
+                            : FacturesService.formatAmount(
+                                facture.commande.fraisLivraison / (1 + facture.tauxTVA / 100)
+                              )
+                          }
+                        </td>
+                        <td className="text-right">{facture.tauxTVA}%</td>
+                        <td className="text-right font-semibold">
+                          {FacturesService.formatAmount(facture.commande.fraisLivraison)}
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
           )}
-        </tbody>
-      </table>
-    </div>
-  </div>
-)}
 
           {/* SECTION CODE PROMO */}
           {facture.commande && (facture.commande.codePromoGlobal || (facture.commande.reductionCodePromo && facture.commande.reductionCodePromo > 0)) && (
@@ -267,81 +280,68 @@ const formatVariation = (variation?: ProduitVariation) => {
           )}
 
           {/* Totaux */}
-<div className="flex justify-end">
-  <div className="w-64">
-    {(() => {
-      // Calculer le sous-total HT des produits
-      const tauxTVADecimal = 1 + facture.tauxTVA / 100;
-      
-      // Sous-total HT des produits
-      const produitsHT = facture.commande?.lignesCommandes?.reduce((acc, ligne) => {
-        const prixUnitaireTTC = ligne.prixUnitaireFinal ?? 0;
-        const prixUnitaireHT = prixUnitaireTTC / tauxTVADecimal;
-        return acc + (prixUnitaireHT * ligne.quantite);
-      }, 0) ?? 0;
+          <div className="flex justify-end">
+            <div className="w-64">
+              {(() => {
+                const tauxTVADecimal = 1 + facture.tauxTVA / 100;
+                
+                const produitsHT = facture.commande?.lignesCommandes?.reduce((acc, ligne) => {
+                  const prixUnitaireTTC = ligne.prixUnitaireFinal ?? 0;
+                  const prixUnitaireHT = prixUnitaireTTC / tauxTVADecimal;
+                  return acc + (prixUnitaireHT * ligne.quantite);
+                }, 0) ?? 0;
 
-      // Frais de livraison HT
-      const fraisLivraisonTTC = facture.commande?.fraisLivraison ?? 0;
-      const fraisLivraisonHT = fraisLivraisonTTC / tauxTVADecimal;
+                const fraisLivraisonTTC = facture.commande?.fraisLivraison ?? 0;
+                const fraisLivraisonHT = fraisLivraisonTTC / tauxTVADecimal;
 
-      // Sous-total HT AVANT réduction
-      const sousTotalHTAvantReduction = produitsHT + fraisLivraisonHT;
+                const sousTotalHTAvantReduction = produitsHT + fraisLivraisonHT;
 
-      // Réduction code promo (en TTC, on doit la convertir en HT)
-      const reductionTTC = facture.commande?.reductionCodePromo ?? 0;
-      const reductionHT = reductionTTC / tauxTVADecimal;
+                const reductionTTC = facture.commande?.reductionCodePromo ?? 0;
+                const reductionHT = reductionTTC / tauxTVADecimal;
 
-      // Total HT APRÈS réduction
-      const totalHTApresReduction = sousTotalHTAvantReduction - reductionHT;
+                const totalHTApresReduction = sousTotalHTAvantReduction - reductionHT;
 
-      // TVA calculée sur le total HT après réduction
-      const montantTVA = (totalHTApresReduction * facture.tauxTVA) / 100;
+                const montantTVA = (totalHTApresReduction * facture.tauxTVA) / 100;
 
-      // Total TTC
-      const totalTTC = totalHTApresReduction + montantTVA;
+                const totalTTC = totalHTApresReduction + montantTVA;
 
-      return (
-        <>
-          {/* Sous-total HT (produits + livraison) */}
-          <div className="flex justify-between py-2">
-            <span>Sous-total HT:</span>
-            <span>{FacturesService.formatAmount(sousTotalHTAvantReduction)}</span>
-          </div>
+                return (
+                  <>
+                    <div className="flex justify-between py-2">
+                      <span>Sous-total HT:</span>
+                      <span>{FacturesService.formatAmount(sousTotalHTAvantReduction)}</span>
+                    </div>
 
-          {/* Affichage de la réduction du code promo */}
-          {reductionTTC > 0 && (
-            <div className="flex justify-between py-2 text-green-600">
-              <span>Réduction code promo:</span>
-              <span>-{FacturesService.formatAmount(reductionHT)}</span>
-            </div>
-          )}
+                    {reductionTTC > 0 && (
+                      <div className="flex justify-between py-2 text-green-600">
+                        <span>Réduction code promo:</span>
+                        <span>-{FacturesService.formatAmount(reductionHT)}</span>
+                      </div>
+                    )}
 
-          {/* Total HT après réduction (optionnel, pour plus de clarté) */}
-          {reductionTTC > 0 && (
-            <div className="flex justify-between py-2 font-medium border-t border-gray-200 pt-2">
-              <span>Total HT après réduction:</span>
-              <span>{FacturesService.formatAmount(totalHTApresReduction)}</span>
-            </div>
-          )}
+                    {reductionTTC > 0 && (
+                      <div className="flex justify-between py-2 font-medium border-t border-gray-200 pt-2">
+                        <span>Total HT après réduction:</span>
+                        <span>{FacturesService.formatAmount(totalHTApresReduction)}</span>
+                      </div>
+                    )}
 
-          {/* TVA */}
-          <div className="flex justify-between py-2">
-            <span>TVA ({facture.tauxTVA}%):</span>
-            <span>{FacturesService.formatAmount(montantTVA)}</span>
-          </div>
+                    <div className="flex justify-between py-2">
+                      <span>TVA ({facture.tauxTVA}%):</span>
+                      <span>{FacturesService.formatAmount(montantTVA)}</span>
+                    </div>
 
-          {/* Total TTC */}
-          <div className="border-t border-gray-300 mt-2 pt-2">
-            <div className="flex justify-between font-bold text-lg">
-              <span>TOTAL TTC:</span>
-              <span>{FacturesService.formatAmount(totalTTC)}</span>
+                    <div className="border-t border-gray-300 mt-2 pt-2">
+                      <div className="flex justify-between font-bold text-lg">
+                        <span>TOTAL TTC:</span>
+                        <span>{FacturesService.formatAmount(totalTTC)}</span>
+                      </div>
+                    </div>
+                  </>
+                );
+              })()}
             </div>
           </div>
-        </>
-      );
-    })()}
-  </div>
-</div>
 
           {/* Notes */}
           {facture.notes && (

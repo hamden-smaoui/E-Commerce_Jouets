@@ -10,7 +10,8 @@ import Notification from '@/components/layout/Notification';
 import ConfirmDeleteModal from '@/components/layout/ConfirmDeleteModal';
 import CommandeDetailsModal from '@/components/layout/CommandeDetailsModal';
 import CommandeStatsCards from '@/components/layout/CommandeStatsCards';
-import CommandesService, { 
+import CommandesService, {
+  Age, 
   CommandeResponse, 
   CommandeFormData, 
   CommandeStats 
@@ -143,14 +144,27 @@ const token = session?.customToken;
       setStatsLoading(false);
     }
   };
-const formatVariation = (ligne: any) => {
-  if (!ligne.variation) return '';
+const formatVariation = (ligne: any): string => {
+  if (!ligne.variation) return 'Aucune variation';
+  
   const { couleur, taille, age } = ligne.variation;
   const parts = [];
-  if (couleur) parts.push(couleur.nom);
-  if (taille) parts.push(taille.nom);
-  if (age) parts.push(age.label);
-  return parts.length > 0 ? parts.join(' / ') : '';
+  
+  if (couleur) {
+    parts.push(`Couleur: ${couleur.nom}`);
+  }
+  if (taille) {
+    parts.push(`Taille: ${taille.nom}`);
+  }
+  if (age) {
+    // Affichage détaillé avec la plage complète
+    const ageDetail = age.minTypeAge === age.maxTypeAge 
+      ? `${age.minAge}-${age.maxAge} ${age.minTypeAge}`
+      : `${age.minAge} ${age.minTypeAge} - ${age.maxAge} ${age.maxTypeAge}`;
+    parts.push(`Âge: ${age.label} (${ageDetail})`);
+  }
+  
+  return parts.length > 0 ? parts.join(' • ') : 'Aucune variation';
 };
   const formatPrice = (prix: any): string => {
     if (prix === null || prix === undefined || prix === '' || isNaN(Number(prix))) {
@@ -168,7 +182,13 @@ const formatVariation = (ligne: any) => {
       minute: '2-digit',
     });
   };
-
+const formatAgeLabel = (age: Age | undefined): string => {
+    if (!age) return 'N/A';
+    if (age.minTypeAge === age.maxTypeAge) {
+      return `${age.minAge}-${age.maxAge} ${age.minTypeAge}`;
+    }
+    return `${age.minAge} ${age.minTypeAge} - ${age.maxAge} ${age.maxTypeAge}`;
+  };
   const getStatusBadge = (statut: string): string => {
     const badges = {
       'en attente': 'badge-warning',

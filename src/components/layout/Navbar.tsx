@@ -2,8 +2,8 @@
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
-import { useSession, signOut } from "next-auth/react";
+import { useRouter, usePathname } from "next/navigation"; // ✅ Ajouter usePathname
+import { useSession, signOut, signIn } from "next-auth/react"; // ✅ Ajouter signIn
 import {
   EnvelopeIcon,
   HeartIcon,
@@ -27,9 +27,9 @@ export default function Navbar() {
   const [isDropdownOpen, setIsDropdownOpen] = useState<boolean>(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
+  const pathname = usePathname(); // ✅ Pour récupérer la page actuelle
   const { favorites } = useFavorites();
 
-  // ✅ AJOUT : États pour la gestion du logo
   const [logoLoading, setLogoLoading] = useState(true);
   const [logoError, setLogoError] = useState(false);
 
@@ -58,6 +58,19 @@ export default function Navbar() {
   const handleNavigate = (path: string) => {
     setIsDropdownOpen(false);
     router.push(path);
+  };
+
+  // ✅ NOUVELLE FONCTION : Se connecter avec retour automatique
+  const handleLogin = () => {
+    setIsDropdownOpen(false);
+    signIn(undefined, { callbackUrl: pathname });
+  };
+
+  // ✅ NOUVELLE FONCTION : S'inscrire avec retour automatique
+  const handleSignUp = () => {
+    setIsDropdownOpen(false);
+    const returnUrl = encodeURIComponent(pathname);
+    router.push(`/signUp?returnUrl=${returnUrl}`);
   };
 
   const handleLogout = async () => {
@@ -90,18 +103,15 @@ export default function Navbar() {
   return (
     <div className="navbar bg-base-100 shadow-md px-4 py-2 font-[Comic_Sans_MS,sans-serif]">
       <div className="flex flex-col w-full md:flex-row md:items-center">
-        {/* Logo */}
         <div className="flex items-center justify-between w-full md:justify-start md:w-auto">
           <Link href="/" className="flex items-center">
             <div className="relative h-16 w-auto sm:h-20 min-w-[80px]">
-              {/* ✅ CORRECTION : Afficher le spinner pendant le chargement */}
               {logoLoading && storeInfo?.logo1 && (
                 <div className="absolute inset-0 flex items-center justify-center z-10">
                   <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-pink-500"></div>
                 </div>
               )}
               
-              {/* ✅ CORRECTION : Afficher le logo depuis le backend ou le fallback */}
               {storeInfo?.logo1 && !logoError ? (
                 <Image
                   src={`${storeInfo.logo1}`}
@@ -119,7 +129,6 @@ export default function Navbar() {
                   }}
                 />
               ) : (
-                // ✅ Logo de fallback si erreur ou pas de logo backend
                 !logoLoading && (
                   <img
                     src="/images/logoBamby.png"
@@ -131,7 +140,6 @@ export default function Navbar() {
             </div>
           </Link>
 
-          {/* Mobile Icons */}
           <div className="flex space-x-2 md:hidden">
             <Link href="/contact" className="btn btn-ghost btn-circle btn-sm bg-pink-100 hover:bg-pink-200" title="Contact">
               <EnvelopeIcon className="h-5 w-5 text-pink-600" />
@@ -146,7 +154,6 @@ export default function Navbar() {
             </div>
             <CartDropdown />
             
-            {/* Mobile User Dropdown */}
             <div className="relative z-50">
               <button
                 onClick={toggleDropdown}
@@ -158,13 +165,11 @@ export default function Navbar() {
               
               {isDropdownOpen && (
                 <>
-                  {/* Overlay pour fermer le dropdown */}
                   <div 
                     className="fixed inset-0 z-40" 
                     onClick={() => setIsDropdownOpen(false)}
                   />
                   
-                  {/* Menu dropdown */}
                   <ul 
                     className="absolute right-0 mt-2 p-2 shadow-xl bg-white rounded-lg w-56 border border-gray-200 z-50"
                   >
@@ -220,7 +225,7 @@ export default function Navbar() {
                         <li>
                           <button
                             className="flex items-center px-4 py-3 hover:bg-blue-50 font-bold text-blue-600 w-full text-left rounded-md"
-                            onClick={() => handleNavigate("/signIn")}
+                            onClick={handleLogin}
                           >
                             <ArrowRightOnRectangleIcon className="h-5 w-5 text-blue-500 mr-3" />
                             Se connecter
@@ -229,7 +234,7 @@ export default function Navbar() {
                         <li>
                           <button
                             className="flex items-center px-4 py-3 hover:bg-pink-50 font-bold text-pink-600 w-full text-left rounded-md"
-                            onClick={() => handleNavigate("/signUp")}
+                            onClick={handleSignUp}
                           >
                             <UserIcon className="h-5 w-5 text-pink-500 mr-3" />
                             S'inscrire
@@ -244,7 +249,6 @@ export default function Navbar() {
           </div>
         </div>
 
-        {/* Search Bar */}
         <div className="relative w-full mt-2 md:mt-0 md:flex-1 md:mx-4">
           <SearchInput 
             placeholder="Rechercher vos jouets..."
@@ -252,7 +256,6 @@ export default function Navbar() {
           />
         </div>
 
-        {/* Desktop menu */}
         <div className="hidden md:flex space-x-2 md:ml-2">
           <Link href="/contact" className="btn btn-ghost btn-circle bg-pink-100 hover:bg-pink-200 shadow-md hover:scale-105 transition-all" title="Contact">
             <EnvelopeIcon className="h-5 w-5 sm:h-6 sm:w-6 text-pink-600 drop-shadow-lg" />
@@ -340,7 +343,7 @@ export default function Navbar() {
                     <li>
                       <button
                         className="flex items-center px-4 py-3 hover:bg-blue-50 font-bold text-blue-600 w-full text-left rounded-md"
-                        onClick={() => handleNavigate("/signIn")}
+                        onClick={handleLogin}
                       >
                         <ArrowRightOnRectangleIcon className="h-5 w-5 text-blue-500 mr-3" />
                         Se connecter
@@ -349,7 +352,7 @@ export default function Navbar() {
                     <li>
                       <button
                         className="flex items-center px-4 py-3 hover:bg-pink-50 font-bold text-pink-600 w-full text-left rounded-md"
-                        onClick={() => handleNavigate("/signUp")}
+                        onClick={handleSignUp}
                       >
                         <UserIcon className="h-5 w-5 text-pink-500 mr-3" />
                         S'inscrire

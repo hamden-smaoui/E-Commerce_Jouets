@@ -49,6 +49,7 @@ interface FormData {
   idFournisseur: number;
   livraisonGratuite: boolean;
   idType: number | null;
+  idAge: number | null; // ✅ NOUVEAU
   genre: 'fille' | 'garçon' | 'enfant';
   images: File[];
   variants: {
@@ -64,6 +65,7 @@ interface ProduitResponse extends Produit {
   marque?: Marque;
   fournisseur?: Fournisseur;
   type?: Type;
+  age?:Age;
   images?: ImageData[];
   variations?: ProduitVariation[];
 }
@@ -108,21 +110,22 @@ const Produits: React.FC = () => {
   const [existingImages, setExistingImages] = useState<ImageData[]>([]);
   const [imagesToDelete, setImagesToDelete] = useState<number[]>([]);
 
-  const [formData, setFormData] = useState<FormData>({
-    idProduit: null,
-    nom: '',
-    description: '',
-    prix: 0,
-    quantiteStock: 0,
-    idCategorie: 0,
-    idMarque: 0,
-    idFournisseur: 0,
-    idType: null,
-    genre: 'enfant',
-     livraisonGratuite: false,
-    images: [],
-    variants: [],
-  });
+ const [formData, setFormData] = useState<FormData>({
+  idProduit: null,
+  nom: '',
+  description: '',
+  prix: 0,
+  quantiteStock: 0,
+  idCategorie: 0,
+  idMarque: 0,
+  idFournisseur: 0,
+  idType: null,
+  idAge: null, // ✅ NOUVEAU
+  genre: 'enfant',
+  livraisonGratuite: false,
+  images: [],
+  variants: [],
+});
   const [selectedProduits, setSelectedProduits] = useState<number[]>([]);
   const [notification, setNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const { data: session, status } = useSession();
@@ -187,7 +190,13 @@ useEffect(() => {
     if (!variations || variations.length === 0) return 0;
     return variations.reduce((total, variation) => total + (variation.quantiteStock || 0), 0);
   };
-
+const formatAgeLabel = (age: Age | undefined): string => {
+  if (!age) return 'N/A';
+  if (age.minTypeAge === age.maxTypeAge) {
+    return `${age.minAge}-${age.maxAge} ${age.minTypeAge}`;
+  }
+  return `${age.minAge} ${age.minTypeAge} - ${age.maxAge} ${age.maxTypeAge}`;
+};
   // Formatage des variations pour l'affichage
   const formatVariations = (variations: ProduitVariation[] | undefined): string => {
     if (!variations || variations.length === 0) return 'Aucune variation';
@@ -292,6 +301,21 @@ useEffect(() => {
       header: 'Genre',
       render: (item: ProduitResponse) => item.genre || 'N/A',
     },
+      {
+    header: 'Tranche d\'âge',
+    render: (item: ProduitResponse) => (
+      <div>
+        {item.age ? (
+          <>
+            <div className="font-semibold text-sm">{item.age.label}</div>
+            <div className="text-xs text-gray-500">{formatAgeLabel(item.age)}</div>
+          </>
+        ) : (
+          <span className="text-gray-400">Non spécifié</span>
+        )}
+      </div>
+    ),
+  },
     { 
       header: 'Livraison Gratuite', 
       render: (produit: ProduitResponse) => (
@@ -617,6 +641,59 @@ useEffect(() => {
       hint: 'Définissez les variations de couleur, taille et âge avec leurs stocks',
     },
     {
+    name: 'idAge',
+    label: 'Tranche d\'âge',
+    type: 'custom',
+    render: ({ value, onChange }) => {
+      const currentIdAge = value || null;
+      const selectedAge = currentIdAge ? ages.find((a) => a.idAge === currentIdAge) : null;
+      
+      return (
+        <div>
+          <Select
+            options={ages.map((age) => ({
+              value: age.idAge,
+              label: `${age.label} (${age.minAge} ${age.minTypeAge} - ${age.maxAge} ${age.maxTypeAge})`,
+            }))}
+            value={
+              selectedAge
+                ? { 
+                    value: selectedAge.idAge, 
+                    label: `${selectedAge.label} (${selectedAge.minAge} ${selectedAge.minTypeAge} - ${selectedAge.maxAge} ${selectedAge.maxTypeAge})`
+                  }
+                : null
+            }
+            onChange={(selectedOption) => {
+              const newValue = selectedOption ? selectedOption.value : null;
+              setFormData((prev) => ({
+                ...prev,
+                idAge: newValue,
+              }));
+              onChange(newValue);
+            }}
+            placeholder="Sélectionnez une tranche d'âge (optionnel)"
+            className="w-full"
+            isClearable
+            styles={customSelectStyles}
+            menuPortalTarget={document.body}
+            menuPosition="absolute"
+            menuShouldScrollIntoView={true}
+          />
+          {ages.length === 0 && (
+            <div className="text-sm text-gray-500 mt-1">
+              Aucune tranche d'âge disponible
+            </div>
+          )}
+        </div>
+      );
+    },
+    validation: {
+      required: false,
+      title: 'Sélectionnez une tranche d\'âge (optionnel)',
+    },
+    hint: 'Choisissez une tranche d\'âge pour ce produit (optionnel)',
+  },
+    {
       name: 'genre',
       label: 'Genre',
       type: 'custom',
@@ -694,125 +771,133 @@ useEffect(() => {
   ];
 
   const handleAddSubmit = async (data: FormData) => {
-    try {
-      if (data.idCategorie === 0) {
-        setNotification({
-          type: 'error',
-          message: 'Veuillez sélectionner une catégorie valide.',
-        });
-        return;
-      }
-
-      if (!data.variants || data.variants.length === 0) {
-        setNotification({
-          type: 'error',
-          message: 'Veuillez ajouter au moins une variation du produit.',
-        });
-        return;
-      }
-
-      const produitData: ProduitFormData = {
-        ...data,
-        images: selectedImages,
-        variants: data.variants,
-      };
-
-      const response = await ProduitsService.createProduit(produitData,token);
-      const newProduit: ProduitResponse = {
-        ...response,
-        categorie: categories.find((cat) => cat.idCategorie === data.idCategorie),
-        marque: marques.find((m) => m.idMarque === data.idMarque),
-        fournisseur: fournisseurs.find((f) => f.idFournisseur === data.idFournisseur),
-        type: data.idType ? types.find((t) => t.idType === data.idType) : undefined,
-      };
-
-      setProduits([...produits, newProduit]);
-      setIsAddModalOpen(false);
-      setSelectedImages([]);
-      setExistingImages([]);
-      setNotification({
-        type: 'success',
-        message: 'Produit ajouté avec succès !',
-      });
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Erreur inconnue';
+  try {
+    if (data.idCategorie === 0) {
       setNotification({
         type: 'error',
-        message: `Erreur ! Échec de l'ajout du produit: ${message}`,
+        message: 'Veuillez sélectionner une catégorie valide.',
       });
+      return;
     }
-  };
 
-  const handleEditSubmit = async (data: FormData) => {
-    try {
-      if (!data.idProduit) {
-        setNotification({
-          type: 'error',
-          message: 'Aucun produit sélectionné pour modification.',
-        });
-        return;
-      }
-      if (data.idCategorie === 0) {
-        setNotification({
-          type: 'error',
-          message: 'Veuillez sélectionner une catégorie valide.',
-        });
-        return;
-      }
-      if (data.idMarque === 0) {
-        setNotification({
-          type: 'error',
-          message: 'Veuillez sélectionner une marque valide.',
-        });
-        return;
-      }
-      if (data.idFournisseur === 0) {
-        setNotification({
-          type: 'error',
-          message: 'Veuillez sélectionner un fournisseur valide.',
-        });
-        return;
-      }
-       if (imagesToDelete.length > 0) {
+    if (!data.variants || data.variants.length === 0) {
+      setNotification({
+        type: 'error',
+        message: 'Veuillez ajouter au moins une variation du produit.',
+      });
+      return;
+    }
+
+    const produitData: ProduitFormData = {
+      ...data,
+      idAge: data.idAge, // ✅ NOUVEAU
+      images: selectedImages,
+      variants: data.variants,
+    };
+
+    const response = await ProduitsService.createProduit(produitData, token);
+    const newProduit: ProduitResponse = {
+      ...response,
+      categorie: categories.find((cat) => cat.idCategorie === data.idCategorie),
+      marque: marques.find((m) => m.idMarque === data.idMarque),
+      fournisseur: fournisseurs.find((f) => f.idFournisseur === data.idFournisseur),
+      type: data.idType ? types.find((t) => t.idType === data.idType) : undefined,
+      age: data.idAge ? ages.find((a) => a.idAge === data.idAge) : undefined, // ✅ NOUVEAU
+    };
+
+    setProduits([...produits, newProduit]);
+    setIsAddModalOpen(false);
+    setSelectedImages([]);
+    setExistingImages([]);
+    setNotification({
+      type: 'success',
+      message: 'Produit ajouté avec succès !',
+    });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Erreur inconnue';
+    setNotification({
+      type: 'error',
+      message: `Erreur ! Échec de l'ajout du produit: ${message}`,
+    });
+  }
+};
+
+const handleEditSubmit = async (data: FormData) => {
+  try {
+    if (!data.idProduit) {
+      setNotification({
+        type: 'error',
+        message: 'Aucun produit sélectionné pour modification.',
+      });
+      return;
+    }
+    if (data.idCategorie === 0) {
+      setNotification({
+        type: 'error',
+        message: 'Veuillez sélectionner une catégorie valide.',
+      });
+      return;
+    }
+    if (data.idMarque === 0) {
+      setNotification({
+        type: 'error',
+        message: 'Veuillez sélectionner une marque valide.',
+      });
+      return;
+    }
+    if (data.idFournisseur === 0) {
+      setNotification({
+        type: 'error',
+        message: 'Veuillez sélectionner un fournisseur valide.',
+      });
+      return;
+    }
+    
+    if (imagesToDelete.length > 0) {
       for (const imageId of imagesToDelete) {
         await ProduitsService.deleteImage(imageId, token);
       }
     }
 
-      const produitData = {
-        ...data,
-        images: selectedImages,
-      };
-      const updatedProduit = await ProduitsService.updateProduit(data.idProduit, produitData,token);
-      const updatedProduitWithDetails: ProduitResponse = {
-        ...updatedProduit,
-        categorie: categories.find((cat) => cat.idCategorie === data.idCategorie),
-        marque: marques.find((m) => m.idMarque === data.idMarque),
-        fournisseur: fournisseurs.find((f) => f.idFournisseur === data.idFournisseur),
-        type: data.idType ? types.find((t) => t.idType === data.idType) : undefined,
-      };
+    const produitData = {
+      ...data,
+      images: selectedImages,
+    };
+    
+    const updatedProduit = await ProduitsService.updateProduit(data.idProduit, produitData, token);
+    
+    const updatedProduitWithDetails: ProduitResponse = {
+      ...updatedProduit,
+      categorie: categories.find((cat) => cat.idCategorie === data.idCategorie),
+      marque: marques.find((m) => m.idMarque === data.idMarque),
+      fournisseur: fournisseurs.find((f) => f.idFournisseur === data.idFournisseur),
+      type: data.idType ? types.find((t) => t.idType === data.idType) : undefined,
+      age: data.idAge ? ages.find((a) => a.idAge === data.idAge) : undefined, // ✅ AJOUTÉ
+    };
 
-      setProduits(
-        produits.map((produit) =>
-          produit.idProduit === data.idProduit ? updatedProduitWithDetails : produit
-        )
-      );
-      setIsEditModalOpen(false);
-      setSelectedImages([]);
-      setExistingImages([]);
-      setImagesToDelete([]);
-      setNotification({
-        type: 'success',
-        message: 'Produit modifié avec succès !',
-      });
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Erreur inconnue';
-      setNotification({
-        type: 'error',
-        message: `Erreur ! Échec de la modification du produit: ${message}`,
-      });
-    }
-  };
+    setProduits(
+      produits.map((produit) =>
+        produit.idProduit === data.idProduit ? updatedProduitWithDetails : produit
+      )
+    );
+    
+    setIsEditModalOpen(false);
+    setSelectedImages([]);
+    setExistingImages([]);
+    setImagesToDelete([]);
+    
+    setNotification({
+      type: 'success',
+      message: 'Produit modifié avec succès !',
+    });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Erreur inconnue';
+    setNotification({
+      type: 'error',
+      message: `Erreur ! Échec de la modification du produit: ${message}`,
+    });
+  }
+};
 
   const handleDelete = () => {
     setIsDeleteModalOpen(true);
@@ -867,63 +952,64 @@ const formatAgeRanges = (variations: ProduitVariation[] | undefined): string => 
   };
 
   const handleAdd = () => {
-    const newFormData: FormData = {
-      idProduit: null,
-      nom: '',
-      description: '',
-      prix: 0,
-      quantiteStock: 0,
-      idCategorie: 0,
-      idMarque: 0,
-      idFournisseur: 0,
-      idType: null,
-      genre: 'enfant',
-      livraisonGratuite: false,
-      images: [],
-      variants: [],
-    };
-    setFormData(newFormData);
-    setTypes([]);
-    setSelectedImages([]);
-    setExistingImages([]);
-    setIsAddModalOpen(true);
+  const newFormData: FormData = {
+    idProduit: null,
+    nom: '',
+    description: '',
+    prix: 0,
+    quantiteStock: 0,
+    idCategorie: 0,
+    idMarque: 0,
+    idFournisseur: 0,
+    idType: null,
+    idAge: null, // ✅ NOUVEAU
+    genre: 'enfant',
+    livraisonGratuite: false,
+    images: [],
+    variants: [],
   };
+  setFormData(newFormData);
+  setTypes([]);
+  setSelectedImages([]);
+  setExistingImages([]);
+  setIsAddModalOpen(true);
+};
 
   const handleEdit = async (produit: ProduitResponse) => {
-    try {
-      const fetchedProduit = await ProduitsService.getProduitById(produit.idProduit,token);
-      const selectedCategory = categories.find((cat) => cat.idCategorie === fetchedProduit.idCategorie);
-      setTypes(selectedCategory?.types || []);
+  try {
+    const fetchedProduit = await ProduitsService.getProduitById(produit.idProduit, token);
+    const selectedCategory = categories.find((cat) => cat.idCategorie === fetchedProduit.idCategorie);
+    setTypes(selectedCategory?.types || []);
 
-      const newFormData: FormData = {
-        idProduit: fetchedProduit.idProduit,
-        nom: fetchedProduit.nom || '',
-        description: fetchedProduit.description || '',
-        prix: fetchedProduit.prix || 0,
-        quantiteStock: fetchedProduit.quantiteStock || 0,
-        idCategorie: fetchedProduit.idCategorie || 0,
-        idMarque: fetchedProduit.idMarque || 0,
-        idFournisseur: fetchedProduit.idFournisseur || 0,
-        idType: fetchedProduit.idType || null,
-        genre: fetchedProduit.genre || 'enfant',
-        livraisonGratuite: fetchedProduit.livraisonGratuite || false, // ✅ RÉCUPÉRATION
+    const newFormData: FormData = {
+      idProduit: fetchedProduit.idProduit,
+      nom: fetchedProduit.nom || '',
+      description: fetchedProduit.description || '',
+      prix: fetchedProduit.prix || 0,
+      quantiteStock: fetchedProduit.quantiteStock || 0,
+      idCategorie: fetchedProduit.idCategorie || 0,
+      idMarque: fetchedProduit.idMarque || 0,
+      idFournisseur: fetchedProduit.idFournisseur || 0,
+      idType: fetchedProduit.idType || null,
+      idAge: fetchedProduit.idAge || null, // ✅ NOUVEAU
+      genre: fetchedProduit.genre || 'enfant',
+      livraisonGratuite: fetchedProduit.livraisonGratuite || false,
+      images: [],
+      variants: fetchedProduit.variations || [],
+    };
 
-        images: [],
-variants: fetchedProduit.variations || [],
-      };
-
-      setFormData(newFormData);
-      setSelectedImages([]);
-      setExistingImages(fetchedProduit.images || []);
-      setIsEditModalOpen(true);
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Erreur inconnue';
-      setNotification({
-        type: 'error',
-        message: `Erreur lors du chargement des données du produit: ${message}`,
-      });
-    }
-  };
+    setFormData(newFormData);
+    setSelectedImages([]);
+    setExistingImages(fetchedProduit.images || []);
+    setIsEditModalOpen(true);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Erreur inconnue';
+    setNotification({
+      type: 'error',
+      message: `Erreur lors du chargement des données du produit: ${message}`,
+    });
+  }
+};
 
   if (loading) {
     return (

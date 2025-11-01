@@ -24,8 +24,14 @@ export interface ProduitVariation {
   quantiteStock: number;
   couleur?: { idCouleur: number; nom: string };
   taille?: { idTaille: number; nom: string };
-  age?: { idAge: number; minAge: number; maxAge: number; typeAge: 'mois' | 'ans'; label: string };
-}
+age?: { 
+    idAge: number; 
+    minAge: number; 
+    maxAge: number; 
+    minTypeAge: 'mois' | 'ans'; // ✅ MODIFIÉ
+    maxTypeAge: 'mois' | 'ans';  // ✅ MODIFIÉ
+    label: string 
+  };}
 
 export interface CartItem {
   idPanierProduit?: number; // Optionnel pour le localStorage

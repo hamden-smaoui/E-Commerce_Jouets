@@ -9,12 +9,12 @@ import ConfirmDeleteModal from '@/components/layout/ConfirmDeleteModal';
 import AgesService, { Age, AgeFormData } from '@/services/ages-service';
 import { useSession } from "next-auth/react";
 
-
 interface FormData {
   idAge: number | null;
   minAge: number;
   maxAge: number;
-  typeAge: 'mois' | 'ans';
+  minTypeAge: 'mois' | 'ans'; // ✅ MODIFIÉ
+  maxTypeAge: 'mois' | 'ans'; // ✅ MODIFIÉ
   label: string;
 }
 
@@ -53,15 +53,16 @@ const Ages: React.FC = () => {
     idAge: null,
     minAge: 0,
     maxAge: 0,
-    typeAge: 'ans',
+    minTypeAge: 'mois', // ✅ MODIFIÉ
+    maxTypeAge: 'ans',  // ✅ MODIFIÉ
     label: '',
   });
   const [selectedAges, setSelectedAges] = useState<number[]>([]);
   const [notification, setNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [formKey, setFormKey] = useState(0);
 
-const { data: session, status } = useSession();
-const token = session?.customToken;
+  const { data: session, status } = useSession();
+  const token = session?.customToken;
   
   useEffect(() => {
     const fetchAges = async () => {
@@ -80,7 +81,7 @@ const token = session?.customToken;
       }
     };
     fetchAges();
-  }, []);
+  }, [token]);
 
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(e.target.value);
@@ -90,8 +91,17 @@ const token = session?.customToken;
     (age) =>
       age &&
       ((age.label && age.label.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (age.typeAge && age.typeAge.toLowerCase().includes(searchTerm.toLowerCase())))
+        (age.minTypeAge && age.minTypeAge.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (age.maxTypeAge && age.maxTypeAge.toLowerCase().includes(searchTerm.toLowerCase())))
   );
+
+  // ✅ Fonction helper pour formater l'affichage de l'âge
+  const formatAgeRange = (age: Age): string => {
+    if (age.minTypeAge === age.maxTypeAge) {
+      return `${age.minAge}-${age.maxAge} ${age.minTypeAge}`;
+    }
+    return `${age.minAge} ${age.minTypeAge} - ${age.maxAge} ${age.maxTypeAge}`;
+  };
 
   const columns = [
     {
@@ -101,7 +111,7 @@ const token = session?.customToken;
           <div>
             <div className="font-bold">{item.label || 'N/A'}</div>
             <div className="text-sm opacity-50">
-              {item.minAge} - {item.maxAge} {item.typeAge}
+              {formatAgeRange(item)}
             </div>
           </div>
         </div>
@@ -109,18 +119,38 @@ const token = session?.customToken;
     },
     {
       header: 'Min',
-      render: (item: Age) => `${item.minAge}`,
+      render: (item: Age) => (
+        <div>
+          <div className="font-semibold">{item.minAge}</div>
+          <div className="text-xs text-gray-500">{item.minTypeAge}</div>
+        </div>
+      ),
     },
     {
       header: 'Max',
-      render: (item: Age) => `${item.maxAge}`,
+      render: (item: Age) => (
+        <div>
+          <div className="font-semibold">{item.maxAge}</div>
+          <div className="text-xs text-gray-500">{item.maxTypeAge}</div>
+        </div>
+      ),
     },
     {
       header: 'Type',
       render: (item: Age) => (
-        <span className={`badge ${item.typeAge === 'mois' ? 'badge-info' : 'badge-success'}`}>
-          {item.typeAge}
-        </span>
+        <div className="flex gap-1">
+          <span className={`badge badge-sm ${item.minTypeAge === 'mois' ? 'badge-info' : 'badge-success'}`}>
+            {item.minTypeAge}
+          </span>
+          {item.minTypeAge !== item.maxTypeAge && (
+            <>
+              <span>→</span>
+              <span className={`badge badge-sm ${item.maxTypeAge === 'mois' ? 'badge-info' : 'badge-success'}`}>
+                {item.maxTypeAge}
+              </span>
+            </>
+          )}
+        </div>
       ),
     },
   ];
@@ -130,7 +160,7 @@ const token = session?.customToken;
       name: 'label',
       label: 'Label',
       type: 'text',
-      placeholder: 'ex: Nouveau-né, Enfant, Adolescent',
+      placeholder: 'ex: 6 mois - 2 ans, 0-3 mois, 2-4 ans',
       validation: {
         required: true,
         minLength: 2,
@@ -151,13 +181,36 @@ const token = session?.customToken;
         max: 100,
         step: 1,
         validate: (value: any, allData: any) => {
-          if (allData.maxAge && parseInt(value) >= parseInt(allData.maxAge)) {
+          // Convertir en mois pour comparer
+          const minInMonths = allData.minTypeAge === 'ans' ? parseInt(value) * 12 : parseInt(value);
+          const maxInMonths = allData.maxTypeAge === 'ans' ? parseInt(allData.maxAge) * 12 : parseInt(allData.maxAge);
+          
+          if (allData.maxAge && minInMonths >= maxInMonths) {
             return 'L\'âge minimum doit être inférieur à l\'âge maximum';
           }
           return '';
         },
       },
       hint: 'Âge minimum de 0 à 100',
+    },
+    {
+      name: 'minTypeAge',
+      label: 'Type d\'âge minimum',
+      type: 'custom',
+      render: ({ value, onChange }) => (
+        <select
+          className="select select-bordered w-full"
+          value={value}
+          onChange={(e) => onChange(e.target.value as 'mois' | 'ans')}
+        >
+          <option value="mois">Mois</option>
+          <option value="ans">Ans</option>
+        </select>
+      ),
+      validation: {
+        required: true,
+      },
+      hint: 'Type pour l\'âge minimum',
     },
     {
       name: 'maxAge',
@@ -170,7 +223,11 @@ const token = session?.customToken;
         max: 100,
         step: 1,
         validate: (value: any, allData: any) => {
-          if (allData.minAge && parseInt(value) <= parseInt(allData.minAge)) {
+          // Convertir en mois pour comparer
+          const minInMonths = allData.minTypeAge === 'ans' ? parseInt(allData.minAge) * 12 : parseInt(allData.minAge);
+          const maxInMonths = allData.maxTypeAge === 'ans' ? parseInt(value) * 12 : parseInt(value);
+          
+          if (allData.minAge && maxInMonths <= minInMonths) {
             return 'L\'âge maximum doit être supérieur à l\'âge minimum';
           }
           return '';
@@ -179,8 +236,8 @@ const token = session?.customToken;
       hint: 'Âge maximum de 0 à 100',
     },
     {
-      name: 'typeAge',
-      label: 'Type d\'âge',
+      name: 'maxTypeAge',
+      label: 'Type d\'âge maximum',
       type: 'custom',
       render: ({ value, onChange }) => (
         <select
@@ -188,14 +245,14 @@ const token = session?.customToken;
           value={value}
           onChange={(e) => onChange(e.target.value as 'mois' | 'ans')}
         >
-          <option value="ans">Ans</option>
           <option value="mois">Mois</option>
+          <option value="ans">Ans</option>
         </select>
       ),
       validation: {
         required: true,
       },
-      hint: 'Choisir entre mois ou ans',
+      hint: 'Type pour l\'âge maximum',
     },
   ];
 
@@ -204,10 +261,11 @@ const token = session?.customToken;
       const ageData: AgeFormData = {
         minAge: data.minAge,
         maxAge: data.maxAge,
-        typeAge: data.typeAge,
+        minTypeAge: data.minTypeAge,
+        maxTypeAge: data.maxTypeAge,
         label: data.label,
       };
-      const newAge = await AgesService.createAge(ageData,token);
+      const newAge = await AgesService.createAge(ageData, token);
       setAges([...ages, newAge]);
       setIsAddModalOpen(false);
 
@@ -215,12 +273,13 @@ const token = session?.customToken;
         idAge: null,
         minAge: 0,
         maxAge: 0,
-        typeAge: 'ans',
+        minTypeAge: 'mois',
+        maxTypeAge: 'ans',
         label: '',
       });
       setFormKey((prev) => prev + 1);
 
-     setNotification({
+      setNotification({
         type: 'success',
         message: 'Tranche d\'âge ajoutée avec succès !',
       });
@@ -247,10 +306,11 @@ const token = session?.customToken;
       const ageData: AgeFormData = {
         minAge: data.minAge,
         maxAge: data.maxAge,
-        typeAge: data.typeAge,
+        minTypeAge: data.minTypeAge,
+        maxTypeAge: data.maxTypeAge,
         label: data.label,
       };
-      const updatedAge = await AgesService.updateAge(data.idAge, ageData,token);
+      const updatedAge = await AgesService.updateAge(data.idAge, ageData, token);
 
       setAges(ages.map((age) => (age.idAge === data.idAge ? updatedAge : age)));
       setIsEditModalOpen(false);
@@ -277,7 +337,7 @@ const token = session?.customToken;
   const confirmDelete = async () => {
     try {
       for (const id of selectedAges) {
-        await AgesService.deleteAge(id,token);
+        await AgesService.deleteAge(id, token);
       }
       setAges(ages.filter((age) => !selectedAges.includes(age.idAge)));
       setSelectedAges([]);
@@ -317,7 +377,8 @@ const token = session?.customToken;
       idAge: null,
       minAge: 0,
       maxAge: 0,
-      typeAge: 'ans',
+      minTypeAge: 'mois',
+      maxTypeAge: 'ans',
       label: '',
     });
     setFormKey((prev) => prev + 1);
@@ -326,13 +387,14 @@ const token = session?.customToken;
 
   const handleEdit = async (age: Age) => {
     try {
-      const fetchedAge = await AgesService.getAgeById(age.idAge,token);
+      const fetchedAge = await AgesService.getAgeById(age.idAge, token);
 
       setFormData({
         idAge: fetchedAge.idAge,
         minAge: fetchedAge.minAge,
         maxAge: fetchedAge.maxAge,
-        typeAge: fetchedAge.typeAge,
+        minTypeAge: fetchedAge.minTypeAge,
+        maxTypeAge: fetchedAge.maxTypeAge,
         label: fetchedAge.label || '',
       });
       

@@ -12,7 +12,8 @@ export interface Age {
   idAge: number;
   minAge: number;
   maxAge: number;
-  typeAge: 'mois' | 'ans';
+  minTypeAge: 'mois' | 'ans'; 
+  maxTypeAge: 'mois' | 'ans'; 
   label: string;
 }
 export interface ProduitVariation {

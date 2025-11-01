@@ -86,7 +86,11 @@ export default function Contact() {
           ? "Format d'email invalide"
           : '';
       case 'telephone':
-        return value.trim().length < 6 ? 'Le téléphone doit contenir au moins 6 chiffres.' : '';
+        return !value.trim()
+          ? 'Le téléphone est requis'
+          : !/^[24579]\d{7}$/.test(value.replace(/\s/g, ''))
+          ? 'Le numéro doit commencer par 2, 4, 5, 7 ou 9 et contenir 8 chiffres'
+          : '';
       case 'sujet':
         return !value.trim() ? 'Le sujet est requis.' : '';
       case 'message':

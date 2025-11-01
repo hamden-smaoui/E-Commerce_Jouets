@@ -13,6 +13,8 @@ import KidsCornerLoader from '@/components/ui/KidsCornerLoader';
 import AvisComponent from '@/components/ui/avis';
 import CommentaireComponent from '@/components/ui/commentaireSection';
 import * as fbq from "@/lib/fpixel";
+import LoginRequiredModal from '@/components/layout/LoginRequiredModal';
+import { useSession } from "next-auth/react";
 interface Product {
   idProduit: number;
   nom: string;
@@ -69,7 +71,9 @@ export default function ProduitDetails() {
   const { promotions, calculatePriceWithPromotion, hasPromotions } = usePromotions(produit?.idProduit || 0);
   const [linkCopied, setLinkCopied] = useState(false);
   const priceData = produit ? calculatePriceWithPromotion(produit.prix) : null;
-
+const [showLoginModal, setShowLoginModal] = useState(false);
+const { data: session, status } = useSession();
+const isAuthenticated = status === "authenticated";
   useEffect(() => {
     const token = localStorage.getItem('authToken');
     setIsLoggedIn(!!token);
@@ -374,20 +378,28 @@ await addToCart(
   };
 
   const handleToggleFavorite = async () => {
-    if (!produit) return;
-    try {
-      setIsTogglingFavorite(true);
-      if (isFavorite(produit.idProduit)) {
-        await removeFromFavorites(produit.idProduit);
-      } else {
-        await addToFavorites(produit.idProduit);
-      }
-    } catch (error) {
-      console.error('Error toggling favorite:', error);
-    } finally {
-      setIsTogglingFavorite(false);
+  if (!produit) return;
+  
+  // Vérifier si connecté
+  if (!isAuthenticated) {
+    setShowLoginModal(true); // Ouvrir modal
+    return;
+  }
+
+  // Si connecté, procéder normalement
+  try {
+    setIsTogglingFavorite(true);
+    if (isFavorite(produit.idProduit)) {
+      await removeFromFavorites(produit.idProduit);
+    } else {
+      await addToFavorites(produit.idProduit);
     }
-  };
+  } catch (error) {
+    console.error('Error toggling favorite:', error);
+  } finally {
+    setIsTogglingFavorite(false);
+  }
+};
 // Ajoutez cette fonction avec vos autres fonctions
 const handleCopyLink = async () => {
   try {
@@ -454,6 +466,11 @@ const handleCopyLink = async () => {
   ] as const;
 
   return (
+    <>
+    <LoginRequiredModal
+    isOpen={showLoginModal}
+    onClose={() => setShowLoginModal(false)}
+  />
     <div className="min-h-screen bg-gradient-to-br from-pink-50 via-blue-50 to-white  font-[Comic_Sans_MS,sans-serif]">
       <div className="container mx-auto px-4 py-6 max-w-7xl">
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 lg:gap-10">
@@ -464,7 +481,7 @@ const handleCopyLink = async () => {
                 <div className="flex flex-col lg:flex-row gap-4">
                   {sortedImages.length > 1 && (
                     <div className="flex lg:flex-col gap-2 order-2 lg:order-1 w-full lg:w-25 overflow-x-auto lg:overflow-x-visible lg:overflow-y-auto lg:max-h-96">
-                      {sortedImages.slice(0, 5).map((image, index) => (
+                      {sortedImages.slice(0, 15).map((image, index) => (
                         <button
                           key={image.idImage}
                           onClick={() => handleImageSelect(image.url)}
@@ -613,36 +630,52 @@ const handleCopyLink = async () => {
                           Couleur *
                         </label>
                         <div className="flex flex-wrap gap-2">
-                          {availableCouleurs.map((couleur) => {
-                            const couleurVariations = produit.variations?.filter(
-                              v => v.idCouleur === couleur.idCouleur
-                            ) || [];
-                            const hasStock = couleurVariations.some(v => v.quantiteStock > 0);
+                      {availableCouleurs.map((couleur) => {
+  const couleurVariations = produit.variations?.filter(
+    v => v.idCouleur === couleur.idCouleur
+  ) || [];
+  const hasStock = couleurVariations.some(v => v.quantiteStock > 0);
 
-                            return (
-                              <button
-                                key={couleur.idCouleur}
-                                onClick={() => {
-                                  setSelectedCouleur(couleur.idCouleur);
-                                  setSelectedTaille(null);
-                                  setSelectedAge(null);
-                                  setQuantity(1);
-                                }}
-                                disabled={!hasStock}
-                                className={`px-4 py-2 rounded-lg border-2 text-sm font-medium transition-all relative
-                                  ${!hasStock
-                                    ? 'border-gray-300 bg-gray-100 text-gray-400 cursor-not-allowed opacity-50'
-                                    : (selectedCouleur === couleur.idCouleur
-                                        ? 'border-pink-500 bg-pink-100 text-pink-700'
-                                        : 'border-gray-200 bg-white text-gray-700 hover:border-pink-300'
-                                      )
-                                  }`
-                                }
-                              >
-                                {couleur.nom}
-                              </button>
-                            );
-                          })}
+  return (
+    <button
+      key={couleur.idCouleur}
+      onClick={() => {
+        if (hasStock) {
+          setSelectedCouleur(couleur.idCouleur);
+          setSelectedTaille(null);
+          setSelectedAge(null);
+          setQuantity(1);
+        }
+      }}
+      disabled={!hasStock}
+      title={couleur.nom} // Nom au survol
+      className={`relative w-12 h-12 rounded-full border-4 transition-all duration-200 
+        ${!hasStock
+          ? 'opacity-50 cursor-not-allowed grayscale border-gray-300'
+          : selectedCouleur === couleur.idCouleur
+            ? 'scale-125 shadow-xl' // Effet discret : plus grand + ombre
+            : 'border-gray-300 hover:scale-110 hover:border-gray-400'
+        }`}
+      style={{
+        backgroundColor: couleur.ref || '#CCCCCC',
+      }}
+    >
+      {/* Petit point rouge si rupture */}
+      {!hasStock && (
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
+        </div>
+      )}
+
+      {/* Petit cercle blanc au centre si sélectionné */}
+      {hasStock && selectedCouleur === couleur.idCouleur && (
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="w-3 h-3 bg-white rounded-full shadow-sm"></div>
+        </div>
+      )}
+    </button>
+  );
+})}
                         </div>
                       </div>
                     )}
@@ -968,5 +1001,7 @@ const handleCopyLink = async () => {
       </div>
       <Footer />
     </div>
+    </>
+
   );
 }

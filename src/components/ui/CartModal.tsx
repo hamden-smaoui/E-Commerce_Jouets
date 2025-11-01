@@ -90,47 +90,37 @@ const CartModalItem = ({ item, onIncrement, onDecrement, onRemove }: any) => {
             </span>
           )}
         </div>
-        <div className="flex items-center justify-between mt-2">
-          <div className="flex items-center gap-1">
-            <button
-              onClick={() =>
-                onDecrement(item.idProduit, item.quantite, item.idProduitVariation)
-              }
-              disabled={item.quantite <= 1}
-              className="w-7 h-7 rounded-full border-2 border-pink-300 flex items-center justify-center hover:bg-pink-100 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-            >
-              <MinusIcon className="w-3 h-3 text-pink-600" />
-            </button>
-            <span className="w-10 text-center text-sm font-bold">
-              {item.quantite}
-            </span>
-            <button
-              onClick={() =>
-                onIncrement(
-                  item.idProduit,
-                  item.quantite,
-                  stockDisponible,
-                  item.idProduitVariation
-                )
-              }
-              disabled={item.quantite >= stockDisponible}
-              className="w-7 h-7 rounded-full border-2 border-pink-300 flex items-center justify-center hover:bg-pink-100 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-            >
-              <PlusIcon className="w-3 h-3 text-pink-600" />
-            </button>
-          </div>
-          <button
-            onClick={() => onRemove(
-              item.idPanierProduit, 
-              item.idProduit,
-              item.idProduitVariation // ← Ajouter ce paramètre
-            )}
-            className="text-red-500 hover:text-red-700 transition-colors p-1 rounded-full hover:bg-red-50"
-            title="Supprimer"
-          >
-            <TrashIcon className="w-5 h-5" />
-          </button>
-        </div>
+        <div className="flex items-center justify-between mt-2 bg-white p-2 rounded-lg shadow-sm">
+  <div className="flex items-center gap-1">
+    <button
+      onClick={() => onDecrement(item.idProduit, item.quantite, item.idProduitVariation)}
+      disabled={item.quantite <= 1}
+      className="w-7 h-7 rounded-full border-2 border-pink-300 flex items-center justify-center hover:bg-pink-100 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+    >
+      <MinusIcon className="w-3 h-3 text-pink-600" />
+    </button>
+
+    <span className="w-10 text-center text-sm font-bold text-pink-700">
+      {item.quantite}
+    </span>
+
+    <button
+      onClick={() => onIncrement(item.idProduit, item.quantite, stockDisponible, item.idProduitVariation)}
+      disabled={item.quantite >= stockDisponible}
+      className="w-7 h-7 rounded-full border-2 border-pink-300 flex items-center justify-center hover:bg-pink-100 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+    >
+      <PlusIcon className="w-3 h-3 text-pink-600" />
+    </button>
+  </div>
+
+  <button
+    onClick={() => onRemove(item.idPanierProduit, item.idProduit, item.idProduitVariation)}
+    className="text-red-500 hover:text-red-700 transition-colors p-1 rounded-full hover:bg-red-50"
+    title="Supprimer"
+  >
+    <TrashIcon className="w-5 h-5" />
+  </button>
+</div>
       </div>
     </div>
   );
@@ -193,7 +183,13 @@ export default function CartModal({ isOpen, onClose }: CartModalProps) {
       } catch (error) {}
     }
   };
-
+const formatAgeLabel = (age: any): string => {
+  if (!age) return 'N/A';
+  if (age.minTypeAge === age.maxTypeAge) {
+    return `${age.minAge}-${age.maxAge} ${age.minTypeAge}`;
+  }
+  return `${age.minAge} ${age.minTypeAge} - ${age.maxAge} ${age.maxTypeAge}`;
+};
    const handleRemove = async (
     idPanierProduit: number | undefined, 
     idProduit: number,

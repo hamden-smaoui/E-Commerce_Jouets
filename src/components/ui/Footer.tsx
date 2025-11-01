@@ -102,10 +102,10 @@ export default function Footer() {
               Liens Rapides
             </h3>
             <ul className="space-y-3">
-              <li><a href="site/contact" className="text-purple-100 hover:text-pink-400 font-semibold transition-colors duration-300">À Propos</a></li>
-              <li><a href="site/products" className="text-purple-100 hover:text-pink-400 font-semibold transition-colors duration-300">Nos Produits</a></li>
-              <li><a href="site/products" className="text-purple-100 hover:text-pink-400 font-semibold transition-colors duration-300">Promotions</a></li>
-              <li><a href="site/contact" className="text-purple-100 hover:text-pink-400 font-semibold transition-colors duration-300">Contact</a></li>
+              <li><a href="/contact" className="text-purple-100 hover:text-pink-400 font-semibold transition-colors duration-300">À Propos</a></li>
+              <li><a href="/products" className="text-purple-100 hover:text-pink-400 font-semibold transition-colors duration-300">Nos Produits</a></li>
+              <li><a href="/products" className="text-purple-100 hover:text-pink-400 font-semibold transition-colors duration-300">Promotions</a></li>
+              <li><a href="/contact" className="text-purple-100 hover:text-pink-400 font-semibold transition-colors duration-300">Contact</a></li>
             </ul>
           </div>
 

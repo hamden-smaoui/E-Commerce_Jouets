@@ -129,7 +129,7 @@ export default function BestOffers({ offers }: BestOffersProps) {
         {/* SEE ALL BUTTON */}
         <div className="text-center mt-8 sm:mt-12">
           <a
-            href="/site/products"
+            href="/products"
             className="inline-flex items-center gap-2 px-8 py-3 bg-gradient-to-r from-pink-400 to-sky-400 text-white font-bold rounded-xl shadow-lg hover:from-pink-500 hover:to-sky-500 transition-all transform hover:scale-105"
           >
             Voir tous les produits

@@ -33,15 +33,31 @@ const CommandeDetailsModal: React.FC<CommandeDetailsModalProps> = ({
       minute: '2-digit',
     });
   };
-const formatVariation = (ligne: any) => {
-  if (!ligne.variation) return '';
-  const { couleur, taille, age } = ligne.variation;
-  const parts = [];
-  if (couleur) parts.push(couleur.nom);
-  if (taille) parts.push(taille.nom);
-  if (age) parts.push(age.label);
-  return parts.length > 0 ? parts.join(' / ') : '';
-};
+
+  // ✅ NOUVELLE FONCTION - Formater l'affichage des âges
+  const formatAgeLabel = (age: any): string => {
+    if (!age) return 'N/A';
+    if (age.minTypeAge === age.maxTypeAge) {
+      return `${age.minAge}-${age.maxAge} ${age.minTypeAge}`;
+    }
+    return `${age.minAge} ${age.minTypeAge} - ${age.maxAge} ${age.maxTypeAge}`;
+  };
+
+  // ✅ FONCTION MODIFIÉE - Affichage amélioré des variations
+  const formatVariation = (ligne: any): string => {
+    if (!ligne.variation) return '';
+    const { couleur, taille, age } = ligne.variation;
+    const parts = [];
+    
+    if (couleur) parts.push(couleur.nom);
+    if (taille) parts.push(taille.nom);
+    if (age) parts.push(age.label);
+    
+    return parts.length > 0 ? parts.join(' / ') : '';
+  };
+
+  
+
   const getStatusBadge = (statut: string): string => {
     const badges = {
       'en attente': 'badge-warning',
@@ -219,24 +235,25 @@ const formatVariation = (ligne: any) => {
               <tbody>
                 {commande.lignesCommandes?.map((ligne, index) => (
                   <tr key={index} className={ligne.reductionUnitaire && ligne.reductionUnitaire > 0 ? 'bg-success/5' : ''}>
-                   <td>
-        <div className="flex items-center gap-3">
-          {ligne.produit?.images && ligne.produit.images.length > 0 && (
-            <div className="avatar">
-              <div className="mask mask-squircle w-12 h-12">
-                <img 
-                  src={`${ligne.produit.images[0].url}`} 
-                  alt={ligne.produit.nom} 
-                />
-              </div>
-            </div>
-          )}
-          <div>
-            <div className="font-bold text-sm">{ligne.produit?.nom || 'N/A'}</div>
-            <div className="text-xs text-gray-500 italic">{formatVariation(ligne)}</div>
-          </div>
-        </div>
-      </td>
+                    <td>
+                      <div className="flex items-center gap-3">
+                        {ligne.produit?.images && ligne.produit.images.length > 0 && (
+                          <div className="avatar">
+                            <div className="mask mask-squircle w-12 h-12">
+                              <img 
+                                src={`${ligne.produit.images[0].url}`} 
+                                alt={ligne.produit.nom} 
+                              />
+                            </div>
+                          </div>
+                        )}
+                        <div>
+                          <div className="font-bold text-sm">{ligne.produit?.nom || 'N/A'}</div>
+                          <div className="text-xs text-gray-500 italic">{formatVariation(ligne)}</div>
+                         
+                        </div>
+                      </div>
+                    </td>
                     <td>
                       <div>
                         <div className="font-bold">{formatPrice(ligne.prixUnitaireFinal || ligne.prixUnitaire)}</div>
@@ -299,9 +316,12 @@ const formatVariation = (ligne: any) => {
                       </div>
                     )}
                     <div className="flex-grow min-w-0">
-                     <div className="font-bold text-sm mb-2">{ligne.produit?.nom || 'N/A'}</div>
-                      <div className="text-xs text-gray-500 italic">{formatVariation(ligne)}</div>
-                      <div className="grid grid-cols-2 gap-2 text-xs">
+                      <div className="font-bold text-sm mb-2">{ligne.produit?.nom || 'N/A'}</div>
+                      <div className="text-xs text-gray-500 italic mb-2">{formatVariation(ligne)}</div>
+                      
+                 
+                      
+                      <div className="grid grid-cols-2 gap-2 text-xs mt-2">
                         <div>
                           <span className="opacity-70">Prix: </span>
                           <span className="font-bold">{formatPrice(ligne.prixUnitaireFinal || ligne.prixUnitaire)}</span>
@@ -325,6 +345,7 @@ const formatVariation = (ligne: any) => {
                           )}
                         </div>
                       </div>
+                      
                       {/* Promotions sur mobile */}
                       {ligne.promotionAppliquee && (
                         <div className="mt-2">

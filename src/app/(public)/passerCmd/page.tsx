@@ -239,7 +239,7 @@ function Checkout() {
       case 'clientNom':
         return value.trim().length < 2;
       case 'clientTelephone':
-        return value.trim().length < 6;
+        return !/^[24579]\d{7}$/.test(value.replace(/\s/g, ''));
       case 'clientEmail':
         return value && !isValidEmail(value);
       case 'clientAdresseRue':
@@ -247,7 +247,7 @@ function Checkout() {
       case 'clientAdresseVille':
         return value.trim().length < 2;
       case 'clientAdresseCodePostal':
-        return value.trim().length < 2;
+        return !/^\d{4}$/.test(value.trim());
       case 'notesLivraison':
         return value.length > 300;
       default:
@@ -672,7 +672,7 @@ function Checkout() {
                         <span>-{totalSavings.toFixed(2)} <span className="text-xs">TND</span></span>
                       </div>
                     )}
-                    <div className="flex justify-between">
+                    <div className="flex justify-between text-gray-700">
                       <span>Sous-total</span>
                       <span className="font-bold">{totalFinal.toFixed(2)} <span className="text-xs">TND</span></span>
                     </div>
@@ -682,9 +682,9 @@ function Checkout() {
                         <span>-{totalEconomiesCodePromo.toFixed(2)} <span className="text-xs">TND</span></span>
                       </div>
                     )}
-                    <div className="flex justify-between">
+                    <div className="flex justify-between text-gray-700">
                       <span>Livraison</span>
-                      <span className={`font-bold ${livraison === 0 ? "text-pink-600" : ""}`}>
+                      <span className={`font-bold text-gray-700 ${livraison === 0 ? "text-pink-600" : ""}`}>
                         {livraison === 0 ? "Gratuite" : `${livraison.toFixed(2)} TND`}
                       </span>
                     </div>
@@ -694,7 +694,7 @@ function Checkout() {
                       </div>
                     )}
                     <div className="border-t pt-4">
-                      <div className="flex justify-between font-extrabold text-lg">
+                      <div className="flex justify-between font-extrabold text-lg text-gray-700">
                         <span>Total TTC</span>
                         <span className="text-pink-600">{totalTTC.toFixed(2)} <span className="text-xs">TND</span></span>
                       </div>
