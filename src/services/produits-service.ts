@@ -21,7 +21,7 @@ interface Type {
 export interface Couleur {
   idCouleur: number;
   nom: string;
-  ref: string;
+  ref?: string | null;
 }
 export interface Taille {
   idTaille: number;
