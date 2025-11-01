@@ -15,7 +15,12 @@ const Age = sequelize.define('Age', {
     type: DataTypes.INTEGER,
     allowNull: false,
   },
-  typeAge: {
+  minTypeAge: {
+    type: DataTypes.ENUM('mois', 'ans'),
+    allowNull: false,
+    defaultValue: 'mois',
+  },
+  maxTypeAge: {
     type: DataTypes.ENUM('mois', 'ans'),
     allowNull: false,
     defaultValue: 'ans',
@@ -23,6 +28,7 @@ const Age = sequelize.define('Age', {
   label: {
     type: DataTypes.STRING, 
     allowNull: false,
+    unique: true,
   },
 }, {
   tableName: 'ages',

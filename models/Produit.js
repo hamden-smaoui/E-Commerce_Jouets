@@ -61,7 +61,14 @@ const Produit = sequelize.define('Produit', {
             key: 'idType',
         },
     },
-    
+     idAge: {
+        type: DataTypes.INTEGER,
+        allowNull: true, 
+        references: {
+            model: 'ages',
+            key: 'idAge',
+        },
+    },
     genre: {
         type: DataTypes.ENUM('fille', 'garçon', 'enfant'),
         allowNull: false,

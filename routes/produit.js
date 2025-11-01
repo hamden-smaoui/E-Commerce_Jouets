@@ -14,6 +14,7 @@ router.get('/:id', ProduitController.getProduitById);
 router.put('/:id',authMiddleware ,adminMiddleware, ProduitController.updateProduit);
 router.delete('/:id',authMiddleware ,adminMiddleware, ProduitController.deleteProduit);
 router.delete('/images/:imageId',authMiddleware ,adminMiddleware, ProduitController.deleteImage);
- 
+ router.get('/age/:ageId', ProduitController.getProduitsByAge);
+router.get('/search/stats/age', ProduitController.getSearchStatsByAge);
 
 module.exports = router;

@@ -8,5 +8,7 @@ router.get('/',authMiddleware,adminMiddleware, AgeController.getAll);
 router.get('/:id', authMiddleware,adminMiddleware,AgeController.getById);
 router.put('/:id', authMiddleware,adminMiddleware,AgeController.edit);
 router.delete('/:id',authMiddleware,adminMiddleware, AgeController.delete);
+router.get('/:id/produits', AgeController.getProductsByAge);
+
 
 module.exports = router;

@@ -40,18 +40,30 @@ class AuthController {
     try {
       const { prenom, nom, email, motDePasse, telephone, role = 'client' } = req.body;
 
-      // Validation
-      if (!prenom || !nom || !email || !motDePasse || !telephone) {
-        const error = new Error('Tous les champs sont requis');
-        error.code = "VALIDATION_ERROR";
-        return next(error);
-      }
+      if (!prenom || !nom || !motDePasse || !telephone) {
+  const error = new Error('Prénom, nom, mot de passe et téléphone sont requis');
+  error.code = "VALIDATION_ERROR";
+  return next(error);
+}
 
-      if (!validator.isEmail(email)) {
-        const error = new Error('Email invalide');
-        error.code = "VALIDATION_ERROR";
-        return next(error);
-      }
+      // Validation email seulement s'il est fourni
+if (email && !validator.isEmail(email)) {
+  const error = new Error('Email invalide');
+  error.code = "VALIDATION_ERROR";
+  return next(error);
+}
+// Validation téléphone
+if (!/^[24579]\d{7}$/.test(telephone.trim())) {
+  const error = new Error('Le numéro doit commencer par 2, 4, 5, 7 ou 9 et contenir 8 chiffres');
+  error.code = "VALIDATION_ERROR";
+  return next(error);
+}
+const existingPhone = await Utilisateur.findOne({ where: { telephone: telephone.trim() } });
+if (existingPhone) {
+  const error = new Error('Un utilisateur avec ce numéro de téléphone existe déjà');
+  error.code = "VALIDATION_ERROR";
+  return next(error);
+}
 
       if (motDePasse.length < 6) {
         const error = new Error('Le mot de passe doit contenir au moins 6 caractères');
@@ -59,13 +71,14 @@ class AuthController {
         return next(error);
       }
 
-      // Vérifie si l'utilisateur existe déjà
-      const existingUser = await Utilisateur.findOne({ where: { email } });
-      if (existingUser) {
-        const error = new Error('Un utilisateur avec cet email existe déjà');
-        error.code = "VALIDATION_ERROR";
-        return next(error);
-      }
+      if (email) {
+  const existingUser = await Utilisateur.findOne({ where: { email } });
+  if (existingUser) {
+    const error = new Error('Un utilisateur avec cet email existe déjà');
+    error.code = "VALIDATION_ERROR";
+    return next(error);
+  }
+}
 
       // Hash du mot de passe
       const saltRounds = 12;
@@ -75,8 +88,8 @@ class AuthController {
       const newUser = await Utilisateur.create({
         prenom: validator.escape(prenom.trim()),
         nom: validator.escape(nom.trim()),
-        email: validator.normalizeEmail(email),
-        motDePasse: hashedPassword,
+ email: email ? validator.normalizeEmail(email) : null,
+         motDePasse: hashedPassword,
         telephone: validator.escape(telephone.trim()),
         role,
         isGoogleUser: false,

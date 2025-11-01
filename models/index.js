@@ -205,6 +205,9 @@ ProduitVariation.hasMany(PanierProduit, {
 LigneCommande.belongsTo(ProduitVariation, { as: 'variation', foreignKey: 'idProduitVariation' });
 ProduitVariation.hasMany(LigneCommande, { as: 'lignesCommandes', foreignKey: 'idProduitVariation' });
 
+Age.hasMany(Produit, { foreignKey: 'idAge', as: 'produits' });
+Produit.belongsTo(Age, { foreignKey: 'idAge', as: 'age' });
+
 module.exports = {
     sequelize,
     Utilisateur,

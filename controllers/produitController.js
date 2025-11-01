@@ -23,9 +23,10 @@ class ProduitController {
           idCategorie, 
           idMarque, 
           idFournisseur, 
-          idType, 
+          idType,
+          idAge, // ✅ NOUVEAU CHAMP
           genre, 
-          livraisonGratuite, // ✅ NOUVEAU CHAMP
+          livraisonGratuite,
           variants 
         } = req.body;
         
@@ -38,22 +39,24 @@ class ProduitController {
           idMarque: parseInt(idMarque),
           idType: idType ? parseInt(idType) : null,
           idFournisseur: parseInt(idFournisseur),
+          idAge: idAge ? parseInt(idAge) : null, // ✅ NOUVEAU CHAMP
           genre,
-          livraisonGratuite: livraisonGratuite === 'true' || livraisonGratuite === true, // ✅ NOUVEAU CHAMP
+          livraisonGratuite: livraisonGratuite === 'true' || livraisonGratuite === true,
         });
 
         // Utiliser Cloudinary URLs
         if (req.files && Array.isArray(req.files)) {
-         console.log('🔍 IMAGE MODEL DEFINITION:', Image.rawAttributes.publicId);
+          console.log('🔍 IMAGE MODEL DEFINITION:', Image.rawAttributes.publicId);
 
-const images = req.files.map((file, i) => ({
-  url: file.path,
-  publicId: file.filename,
-  rang: i + 1,
-  idProduit: produit.idProduit,
-}));
+          const images = req.files.map((file, i) => ({
+            url: file.path,
+            publicId: file.filename,
+            rang: i + 1,
+            idProduit: produit.idProduit,
+          }));
 
-console.log('🔍 DATA TO INSERT:', images);
+          console.log('🔍 DATA TO INSERT:', images);
+          await Image.bulkCreate(images);
         }
 
         let variantsArray = [];
@@ -76,6 +79,7 @@ console.log('🔍 DATA TO INSERT:', images);
             { model: Marque, as: 'marque' },
             { model: Type, as: 'type' },
             { model: Fournisseur, as: 'fournisseur' },
+            { model: Age, as: 'age' }, // ✅ NOUVEAU
             { model: Image, as: 'images', order: [['rang', 'ASC']] },
             { 
               model: ProduitVariation, as: 'variations',
@@ -113,6 +117,7 @@ console.log('🔍 DATA TO INSERT:', images);
           { model: Marque, as: 'marque' },
           { model: Type, as: 'type' },
           { model: Fournisseur, as: 'fournisseur' },
+          { model: Age, as: 'age' }, // ✅ NOUVEAU
           { model: Image, as: 'images', order: [['rang', 'ASC']] },
           { 
             model: ProduitVariation, as: 'variations',
@@ -138,6 +143,7 @@ console.log('🔍 DATA TO INSERT:', images);
           { model: Marque, as: 'marque' },
           { model: Type, as: 'type' },
           { model: Fournisseur, as: 'fournisseur' },
+          { model: Age, as: 'age' }, // ✅ NOUVEAU
           { model: Image, as: 'images', order: [['rang', 'ASC']] },
           { 
             model: ProduitVariation, as: 'variations',
@@ -171,11 +177,12 @@ console.log('🔍 DATA TO INSERT:', images);
           'description',
           'prix',
           'quantiteStock',
-          'livraisonGratuite', // ✅ AJOUTÉ
+          'livraisonGratuite',
           'idCategorie',
           'idMarque',
           'idType',
           'idFournisseur',
+          'idAge', // ✅ NOUVEAU
           'genre',
           [Sequelize.fn('COALESCE', Sequelize.fn('SUM', Sequelize.col('lignesCommandes.quantite')), 0), 'totalVendu'],
         ],
@@ -190,6 +197,7 @@ console.log('🔍 DATA TO INSERT:', images);
           { model: Marque, as: 'marque', attributes: ['idMarque', 'nom'] },
           { model: Type, as: 'type', attributes: ['idType', 'nom'] },
           { model: Fournisseur, as: 'fournisseur', attributes: ['idFournisseur', 'nom'] },
+          { model: Age, as: 'age', attributes: ['idAge', 'label', 'minAge', 'maxAge', 'minTypeAge', 'maxTypeAge'] }, // ✅ NOUVEAU
           { 
             model: Image, 
             as: 'images', 
@@ -213,6 +221,7 @@ console.log('🔍 DATA TO INSERT:', images);
           'marque.idMarque',
           'type.idType', 
           'fournisseur.idFournisseur',
+          'age.idAge', // ✅ NOUVEAU
           'variations.idProduitVariation',
           'variations.couleur.idCouleur',
           'variations.taille.idTaille',
@@ -233,15 +242,13 @@ console.log('🔍 DATA TO INSERT:', images);
     }
   }
 
-async updateProduit(req, res, next) {
+  async updateProduit(req, res, next) {
     ProduitController.uploadImages(req, res, async (err) => {
       if (err) {
         const error = new Error('Erreur upload');
         error.code = "VALIDATION_ERROR";
         return next(error);
       }
-      
-       
       
       try {
         const produit = await Produit.findByPk(req.params.id, { include: [{ model: Image, as: 'images' }] });
@@ -260,6 +267,7 @@ async updateProduit(req, res, next) {
           idMarque,
           idType,
           idFournisseur,
+          idAge, // ✅ NOUVEAU
           genre,
           livraisonGratuite, 
           imagesToDelete,
@@ -276,8 +284,9 @@ async updateProduit(req, res, next) {
           idMarque: parseInt(idMarque),
           idType: idType ? parseInt(idType) : null,
           idFournisseur: parseInt(idFournisseur),
+          idAge: idAge ? parseInt(idAge) : null, // ✅ NOUVEAU
           genre,
-          livraisonGratuite: livraisonGratuite === 'true' || livraisonGratuite === true, // ✅ NOUVEAU CHAMP
+          livraisonGratuite: livraisonGratuite === 'true' || livraisonGratuite === true,
         });
 
         if (imagesToDelete) {
@@ -341,6 +350,7 @@ async updateProduit(req, res, next) {
             { model: Marque, as: 'marque' },
             { model: Type, as: 'type' },
             { model: Fournisseur, as: 'fournisseur' },
+            { model: Age, as: 'age' }, // ✅ NOUVEAU
             { model: Image, as: 'images', order: [['rang', 'ASC']] },
             { 
               model: ProduitVariation, as: 'variations',
@@ -397,9 +407,10 @@ async updateProduit(req, res, next) {
         minPrice,
         maxPrice,
         inStock,
-        livraisonGratuite, // ✅ NOUVEAU FILTRE
+        livraisonGratuite,
         genre,
         type,
+        age, // ✅ NOUVEAU FILTRE
         sortBy = 'nom',
         order = 'ASC',
         page = 1,
@@ -422,9 +433,9 @@ async updateProduit(req, res, next) {
       if (marque) whereClause.idMarque = marque;
       if (type) whereClause.idType = type;
       if (genre) whereClause.genre = genre;
+      if (age) whereClause.idAge = age; // ✅ NOUVEAU FILTRE
       if (inStock === 'true') whereClause.quantiteStock = { [Op.gt]: 0 };
       
-      // ✅ NOUVEAU FILTRE - Livraison gratuite
       if (livraisonGratuite === 'true') {
         whereClause.livraisonGratuite = true;
       }
@@ -440,6 +451,7 @@ async updateProduit(req, res, next) {
         { model: Marque, as: 'marque', attributes: ['idMarque', 'nom'] },
         { model: Type, as: 'type', attributes: ['idType', 'nom'] },
         { model: Fournisseur, as: 'fournisseur', attributes: ['idFournisseur', 'nom'] },
+        { model: Age, as: 'age', attributes: ['idAge', 'label', 'minAge', 'maxAge', 'minTypeAge', 'maxTypeAge'] }, // ✅ NOUVEAU
         { 
           model: Image, 
           as: 'images', 
@@ -498,6 +510,7 @@ async updateProduit(req, res, next) {
     const categories = [...new Set(results.map(p => p.categorie?.nom).filter(Boolean))];
     const marques = [...new Set(results.map(p => p.marque?.nom).filter(Boolean))];
     const types = [...new Set(results.map(p => p.type?.nom).filter(Boolean))];
+    const ages = [...new Set(results.map(p => p.age?.label).filter(Boolean))]; // ✅ NOUVEAU
 
     categories.slice(0, 3).forEach(cat => {
       suggestions.push({
@@ -526,6 +539,17 @@ async updateProduit(req, res, next) {
         query: searchTerm,
         filter: { type },
         count: results.filter(p => p.type?.nom === type).length
+      });
+    });
+
+    // ✅ NOUVEAU : Suggestions par âge
+    ages.slice(0, 2).forEach(age => {
+      suggestions.push({
+        type: 'age',
+        text: `${searchTerm} pour ${age}`,
+        query: searchTerm,
+        filter: { age },
+        count: results.filter(p => p.age?.label === age).length
       });
     });
 
@@ -625,6 +649,37 @@ async updateProduit(req, res, next) {
     }));
   }
 
+  // ✅ NOUVELLE MÉTHODE : Statistiques de recherche par âge
+  async getSearchStatsByAge(searchTerm) {
+    const stats = await Produit.findAll({
+      attributes: [
+        [Sequelize.fn('COUNT', Sequelize.col('Produit.idProduit')), 'count']
+      ],
+      include: [
+        {
+          model: Age,
+          as: 'age',
+          attributes: ['idAge', 'label'],
+          required: true
+        }
+      ],
+      where: {
+        [Op.or]: [
+          { nom: { [Op.like]: `%${searchTerm}%` } },
+          { description: { [Op.like]: `%${searchTerm}%` } },
+        ]
+      },
+      group: ['age.idAge', 'age.label'],
+      order: [[Sequelize.literal('count'), 'DESC']],
+      limit: 5
+    });
+
+    return stats.map(stat => ({
+      age: stat.age.label,
+      count: parseInt(stat.dataValues.count)
+    }));
+  }
+
   async getSearchSuggestions(req, res, next) {
     try {
       const { q } = req.query;
@@ -643,12 +698,14 @@ async updateProduit(req, res, next) {
             { '$categorie.nom$': { [Op.like]: `%${searchTerm}%` } },
             { '$marque.nom$': { [Op.like]: `%${searchTerm}%` } },
             { '$type.nom$': { [Op.like]: `%${searchTerm}%` } },
+            { '$age.label$': { [Op.like]: `%${searchTerm}%` } }, // ✅ NOUVEAU
           ]
         },
         include: [
           { model: Categorie, as: 'categorie', attributes: ['nom'], required: false },
           { model: Marque, as: 'marque', attributes: ['nom'], required: false },
-          { model: Type, as: 'type', attributes: ['nom'], required: false }
+          { model: Type, as: 'type', attributes: ['nom'], required: false },
+          { model: Age, as: 'age', attributes: ['label'], required: false }, // ✅ NOUVEAU
         ],
         limit: 15,
         attributes: ['nom']
@@ -658,6 +715,7 @@ async updateProduit(req, res, next) {
       const categories = new Set();
       const marques = new Set();
       const types = new Set();
+      const ages = new Set(); // ✅ NOUVEAU
 
       produits.slice(0, 4).forEach(produit => {
         suggestions.push({
@@ -676,6 +734,9 @@ async updateProduit(req, res, next) {
         }
         if (produit.type && produit.type.nom) {
           types.add(produit.type.nom);
+        }
+        if (produit.age && produit.age.label) { // ✅ NOUVEAU
+          ages.add(produit.age.label);
         }
       });
 
@@ -706,12 +767,22 @@ async updateProduit(req, res, next) {
         });
       });
 
+      // ✅ NOUVEAU : Suggestions par âge
+      Array.from(ages).slice(0, 2).forEach(age => {
+        suggestions.push({
+          type: 'age',
+          text: `${searchTerm} pour ${age}`,
+          query: searchTerm,
+          filter: { age }
+        });
+      });
+
       res.status(200).json(suggestions);
     } catch (error) {
       next(error);
     }
   }
-  // ✅ NOUVELLE MÉTHODE : Supprimer une image spécifique
+
   async deleteImage(req, res, next) {
     try {
       const { imageId } = req.params;
@@ -723,7 +794,6 @@ async updateProduit(req, res, next) {
         return next(error);
       }
 
-      // Supprimer de Cloudinary
       if (image.publicId) {
         try {
           await cloudinary.uploader.destroy(image.publicId);
@@ -732,12 +802,71 @@ async updateProduit(req, res, next) {
         }
       }
 
-      // Supprimer de la base de données
       await image.destroy();
 
       res.status(200).json({ 
         success: true,
         message: 'Image supprimée avec succès' 
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  // ✅ NOUVELLE MÉTHODE : Obtenir tous les produits par tranche d'âge
+  async getProduitsByAge(req, res, next) {
+    try {
+      const { ageId } = req.params;
+      const { page = 1, limit = 12 } = req.query;
+
+      const age = await Age.findByPk(ageId);
+      if (!age) {
+        const error = new Error("Tranche d'âge non trouvée");
+        error.code = "NOT_FOUND";
+        return next(error);
+      }
+
+      const offset = (parseInt(page) - 1) * parseInt(limit);
+
+      const { count, rows: produits } = await Produit.findAndCountAll({
+        where: { idAge: ageId },
+        include: [
+          { model: Categorie, as: 'categorie' },
+          { model: Marque, as: 'marque' },
+          { model: Type, as: 'type' },
+          { model: Fournisseur, as: 'fournisseur' },
+          { model: Age, as: 'age' },
+          { 
+            model: Image, 
+            as: 'images',
+            separate: true,
+            order: [['rang', 'ASC']],
+          },
+          { 
+            model: ProduitVariation, 
+            as: 'variations',
+            include: [
+              { model: Couleur, as: 'couleur' },
+              { model: Taille, as: 'taille' },
+              { model: Age, as: 'age' }
+            ]
+          }
+        ],
+        limit: parseInt(limit),
+        offset: offset,
+        order: [['nom', 'ASC']],
+      });
+
+      res.status(200).json({
+        age: age,
+        produits: produits,
+        pagination: {
+          currentPage: parseInt(page),
+          totalPages: Math.ceil(count / limit),
+          totalItems: count,
+          hasNext: page * limit < count,
+          hasPrev: page > 1,
+        }
       });
     } catch (error) {
       next(error);
