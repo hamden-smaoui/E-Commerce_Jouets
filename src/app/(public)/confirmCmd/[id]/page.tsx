@@ -428,7 +428,7 @@ useEffect(() => {
         </div>
 
         <div className="bg-white shadow-md rounded-lg p-4 sm:p-6 border border-gray-200">
-          <h2 className="text-lg sm:text-xl font-bold mb-4">Informations de livraison</h2>
+          <h2 className="text-lg sm:text-xl font-bold mb-4 dark:text-gray-700">Informations de livraison</h2>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
             <div>
               <h3 className="font-semibold text-gray-700 mb-2 text-sm sm:text-base">Destinataire</h3>

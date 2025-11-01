@@ -140,16 +140,17 @@ function SignInContent() {
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Email ou Téléphone
               </label>
-              <input
-                type="text"
-                name="emailOrPhone"
-                value={formData.emailOrPhone}
-                onChange={handleInputChange}
-                className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-base ${
-                  errors.emailOrPhone ? "border-red-500" : "border-gray-300"
-                }`}
-                placeholder="votre.email@example.com ou 12345678"
-              />
+             <input
+  type="text"
+  name="emailOrPhone"
+  value={formData.emailOrPhone}
+  onChange={handleInputChange}
+  className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-base 
+    dark:text-gray-700
+    placeholder:text-gray-500 dark:placeholder:text-gray-400
+    ${errors.emailOrPhone ? "border-red-500" : "border-gray-300"}`}
+  placeholder="votre.email@example.com ou 12345678"
+/>
               {errors.emailOrPhone && <p className="mt-1 text-sm text-red-600">{errors.emailOrPhone}</p>}
             </div>
 
@@ -161,16 +162,16 @@ function SignInContent() {
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <LockClosedIcon className="h-5 w-5 text-gray-400" />
                 </div>
-                <input
-                  type={showPassword ? "text" : "password"}
-                  name="motDePasse"
-                  value={formData.motDePasse}
-                  onChange={handleInputChange}
-                  className={`w-full pl-10 pr-12 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-base ${
-                    errors.motDePasse ? "border-red-500" : "border-gray-300"
-                  }`}
-                  placeholder="Votre mot de passe"
-                />
+               <input
+  type={showPassword ? "text" : "password"}
+  name="motDePasse"
+  value={formData.motDePasse}
+  onChange={handleInputChange}
+  className={`w-full pl-10 pr-12 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-base 
+    placeholder:text-gray-500 dark:placeholder:text-gray-400 dark:text-gray-700
+    ${errors.motDePasse ? "border-red-500" : "border-gray-300"}`}
+  placeholder="Votre mot de passe"
+/>
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}

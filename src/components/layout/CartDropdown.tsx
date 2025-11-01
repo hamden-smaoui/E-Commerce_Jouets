@@ -107,7 +107,7 @@ const formatAgeLabel = (age: any): string => {
       disabled={item.quantite <= 1}
       className="w-6 h-6 rounded border border-gray-400 flex items-center justify-center hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
     >
-      <MinusIcon className="w-3 h-3" />
+      <MinusIcon className="w-3 h-3 text-gray-700" />
     </button>
 
     <span className="w-8 text-center text-sm font-bold text-gray-800">
@@ -119,7 +119,7 @@ const formatAgeLabel = (age: any): string => {
       disabled={item.quantite >= stockDisponible}
       className="w-6 h-6 rounded border border-gray-400 flex items-center justify-center hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
     >
-      <PlusIcon className="w-3 h-3" />
+      <PlusIcon className="w-3 h-3 text-gray-700" />
     </button>
   </div>
 

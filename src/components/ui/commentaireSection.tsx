@@ -286,7 +286,7 @@ export default function CommentaireComponent({ idProduit }: CommentaireComponent
                 value={newComment}
                 onChange={(e) => setNewComment(e.target.value)}
                 placeholder="Partagez votre expérience avec ce produit..."
-                className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                className="placeholder:text-gray-500 dark:placeholder:text-gray-400 dark:text-gray-700 w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
                 rows={4}
                 maxLength={500}
               />
@@ -370,7 +370,7 @@ export default function CommentaireComponent({ idProduit }: CommentaireComponent
                           <textarea
                             value={editContent}
                             onChange={(e) => setEditContent(e.target.value)}
-                            className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                            className="placeholder:text-gray-500 dark:placeholder:text-gray-400 dark:text-gray-700 w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
                             rows={3}
                             maxLength={500}
                           />

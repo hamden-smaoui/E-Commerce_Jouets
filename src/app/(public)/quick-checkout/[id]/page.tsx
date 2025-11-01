@@ -850,14 +850,14 @@ const handleBlur = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
                           disabled={quantity <= 1}
                           className="w-10 h-10 rounded-lg border-2 border-pink-200 flex items-center justify-center hover:bg-pink-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                         >
-                          <MinusIcon className="w-4 h-4" />
+                          <MinusIcon className="w-4 h-4 text-gray-700" />
                         </button>
 
                         <input
                           type="number"
                           value={quantity}
                           onChange={handleQuantityChange}
-                          className="w-20 h-10 text-center border-2 border-pink-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-400"
+                          className="placeholder:text-gray-500 dark:placeholder:text-gray-400 dark:text-gray-700 w-20 h-10 text-center border-2 border-pink-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-400"
                           min="1"
                           max={selectedVariation?.quantiteStock || produit.quantiteStock}
                         />
@@ -867,7 +867,7 @@ const handleBlur = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
                           disabled={quantity >= (selectedVariation?.quantiteStock || produit.quantiteStock)}
                           className="w-10 h-10 rounded-lg border-2 border-pink-200 flex items-center justify-center hover:bg-pink-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                         >
-                          <PlusIcon className="w-4 h-4" />
+                          <PlusIcon className="w-4 h-4 text-gray-700" />
                         </button>
                       </div>
                     </div>
@@ -908,7 +908,7 @@ const handleBlur = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
           value={formData.clientPrenom}
           onChange={handleInputChange}
           onBlur={handleBlur}
-          className={`w-full px-4 py-2 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-400 transition-colors ${
+          className={`placeholder:text-gray-500 dark:placeholder:text-gray-400 dark:text-gray-700 w-full px-4 py-2 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-400 transition-colors ${
             errors.clientPrenom ? 'border-red-500 bg-red-50' : 'border-pink-200'
           }`}
           placeholder="Votre prénom"
@@ -930,7 +930,7 @@ const handleBlur = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
           value={formData.clientNom}
           onChange={handleInputChange}
           onBlur={handleBlur}
-          className={`w-full px-4 py-2 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-400 transition-colors ${
+          className={`placeholder:text-gray-500 dark:placeholder:text-gray-400 dark:text-gray-700 w-full px-4 py-2 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-400 transition-colors ${
             errors.clientNom ? 'border-red-500 bg-red-50' : 'border-pink-200'
           }`}
           placeholder="Votre nom"
@@ -953,7 +953,7 @@ const handleBlur = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
         value={formData.clientEmail}
         onChange={handleInputChange}
         onBlur={handleBlur}
-        className={`w-full px-4 py-2 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-400 transition-colors ${
+        className={`placeholder:text-gray-500 dark:placeholder:text-gray-400 dark:text-gray-700 w-full px-4 py-2 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-400 transition-colors ${
           errors.clientEmail ? 'border-red-500 bg-red-50' : 'border-pink-200'
         }`}
         placeholder="votre@email.com (optionnel)"
@@ -975,7 +975,7 @@ const handleBlur = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
         value={formData.clientTelephone}
         onChange={handleInputChange}
         onBlur={handleBlur}
-        className={`w-full px-4 py-2 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-400 transition-colors ${
+        className={`placeholder:text-gray-500 dark:placeholder:text-gray-400 dark:text-gray-700 w-full px-4 py-2 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-400 transition-colors ${
           errors.clientTelephone ? 'border-red-500 bg-red-50' : 'border-pink-200'
         }`}
         placeholder="2X XXX XXX ou 9X XXX XXX"
@@ -997,7 +997,7 @@ const handleBlur = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
         value={formData.clientAdresseRue}
         onChange={handleInputChange}
         onBlur={handleBlur}
-        className={`w-full px-4 py-2 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-400 transition-colors ${
+        className={`placeholder:text-gray-500 dark:placeholder:text-gray-400 dark:text-gray-700 w-full px-4 py-2 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-400 transition-colors ${
           errors.clientAdresseRue ? 'border-red-500 bg-red-50' : 'border-pink-200'
         }`}
         placeholder="Rue, numéro, bâtiment..."
@@ -1020,7 +1020,7 @@ const handleBlur = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
           value={formData.clientAdresseVille}
           onChange={handleInputChange}
           onBlur={handleBlur}
-          className={`w-full px-4 py-2 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-400 transition-colors ${
+          className={` placeholder:text-gray-500 dark:placeholder:text-gray-400 dark:text-gray-700 w-full px-4 py-2 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-400 transition-colors ${
             errors.clientAdresseVille ? 'border-red-500 bg-red-50' : 'border-pink-200'
           }`}
           placeholder="Tunis"
@@ -1042,7 +1042,7 @@ const handleBlur = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
           value={formData.clientAdresseCodePostal}
           onChange={handleInputChange}
           onBlur={handleBlur}
-          className={`w-full px-4 py-2 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-400 transition-colors ${
+          className={`placeholder:text-gray-500 dark:placeholder:text-gray-400 dark:text-gray-700 w-full px-4 py-2 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-400 transition-colors ${
             errors.clientAdresseCodePostal ? 'border-red-500 bg-red-50' : 'border-pink-200'
           }`}
           placeholder="1000"
@@ -1065,7 +1065,7 @@ const handleBlur = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
         onChange={handleInputChange}
         onBlur={handleBlur}
         rows={3}
-        className={`w-full px-4 py-2 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-400 resize-none transition-colors ${
+        className={`placeholder:text-gray-500 dark:placeholder:text-gray-400 dark:text-gray-700 w-full px-4 py-2 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-400 resize-none transition-colors ${
           errors.notesLivraison ? 'border-red-500 bg-red-50' : 'border-pink-200'
         }`}
         placeholder="Instructions spéciales pour la livraison..."
@@ -1106,7 +1106,7 @@ const handleBlur = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
                 </div>
 
                 <div className="border-t-2 border-pink-100 pt-3">
-                  <div className="flex justify-between font-extrabold text-lg">
+                  <div className="flex justify-between font-extrabold text-lg text-gray-700">
                     <span>Total TTC</span>
                     <span className="text-pink-600">{totalTTC.toFixed(2)} TND</span>
                   </div>

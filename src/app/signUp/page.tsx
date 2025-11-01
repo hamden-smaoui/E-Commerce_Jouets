@@ -166,7 +166,7 @@ function SignUpContent() {
                     name="prenom"
                     value={formData.prenom}
                     onChange={handleInputChange}
-                    className={`w-full pl-10 pr-3 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-base ${
+                    className={`w-full pl-10 pr-3 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-base placeholder:text-gray-500 dark:placeholder:text-gray-400 dark:text-gray-700 ${
                       errors.prenom ? 'border-red-500' : 'border-gray-300'
                     }`}
                     placeholder="Votre prénom"
@@ -190,7 +190,7 @@ function SignUpContent() {
                     name="nom"
                     value={formData.nom}
                     onChange={handleInputChange}
-                    className={`w-full pl-10 pr-3 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-base ${
+                    className={`placeholder:text-gray-500 dark:placeholder:text-gray-400 dark:text-gray-700 w-full pl-10 pr-3 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-base ${
                       errors.nom ? 'border-red-500' : 'border-gray-300'
                     }`}
                     placeholder="Votre nom"
@@ -215,7 +215,7 @@ function SignUpContent() {
                   name="email"
                   value={formData.email}
                   onChange={handleInputChange}
-                  className={`w-full pl-10 pr-3 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-base ${
+                  className={`placeholder:text-gray-500 dark:placeholder:text-gray-400 dark:text-gray-700 w-full pl-10 pr-3 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-base ${
                     errors.email ? 'border-red-500' : 'border-gray-300'
                   }`}
                   placeholder="votre.email@example.com"
@@ -239,7 +239,7 @@ function SignUpContent() {
                   name="telephone"
                   value={formData.telephone}
                   onChange={handleInputChange}
-                  className={`w-full pl-10 pr-3 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-base ${
+                  className={`placeholder:text-gray-500 dark:placeholder:text-gray-400 dark:text-gray-700 w-full pl-10 pr-3 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-base ${
                     errors.telephone ? 'border-red-500' : 'border-gray-300'
                   }`}
                   placeholder="12345678"
@@ -263,7 +263,7 @@ function SignUpContent() {
                   name="motDePasse"
                   value={formData.motDePasse}
                   onChange={handleInputChange}
-                  className={`w-full pl-10 pr-12 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-base ${
+                  className={`placeholder:text-gray-500 dark:placeholder:text-gray-400 dark:text-gray-700 w-full pl-10 pr-12 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-base ${
                     errors.motDePasse ? 'border-red-500' : 'border-gray-300'
                   }`}
                   placeholder="Minimum 6 caractères"
@@ -298,7 +298,7 @@ function SignUpContent() {
                   name="confirmPassword"
                   value={formData.confirmPassword}
                   onChange={handleInputChange}
-                  className={`w-full pl-10 pr-12 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-base ${
+                  className={`placeholder:text-gray-500 dark:placeholder:text-gray-400 dark:text-gray-700 w-full pl-10 pr-12 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-base ${
                     errors.confirmPassword ? 'border-red-500' : 'border-gray-300'
                   }`}
                   placeholder="Confirmez votre mot de passe"

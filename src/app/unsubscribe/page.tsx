@@ -204,7 +204,7 @@ export default function UnsubscribePage() {
                     setMessage("");
                     setStatus('idle');
                   }}
-                  className={`w-full pl-10 pr-3 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 ${
+                  className={`placeholder:text-gray-500 dark:placeholder:text-gray-400 dark:text-gray-700 w-full pl-10 pr-3 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 ${
                     status === 'error' ? "border-red-500" : "border-gray-300"
                   }`}
                   placeholder="votre.email@example.com"

@@ -126,7 +126,7 @@ function ResetPasswordContent() {
                 name="email"
                 value={formData.email}
                 onChange={handleInputChange}
-                className={`w-full px-3 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 ${
+                className={`placeholder:text-gray-500 dark:placeholder:text-gray-400 dark:text-gray-700 w-full px-3 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 ${
                   errors.email ? "border-red-500" : "border-gray-300"
                 }`}
                 placeholder="votre.email@example.com"
@@ -148,7 +148,7 @@ function ResetPasswordContent() {
                   value={formData.code}
                   onChange={handleInputChange}
                   maxLength={6}
-                  className={`w-full pl-10 pr-3 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-center font-mono text-lg tracking-widest ${
+                  className={`placeholder:text-gray-500 dark:placeholder:text-gray-400 dark:text-gray-700 w-full pl-10 pr-3 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-center font-mono text-lg tracking-widest ${
                     errors.code ? "border-red-500" : "border-gray-300"
                   }`}
                   placeholder="123456"
@@ -170,7 +170,7 @@ function ResetPasswordContent() {
                   name="newPassword"
                   value={formData.newPassword}
                   onChange={handleInputChange}
-                  className={`w-full pl-10 pr-12 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 ${
+                  className={`placeholder:text-gray-500 dark:placeholder:text-gray-400 dark:text-gray-700 w-full pl-10 pr-12 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 ${
                     errors.newPassword ? "border-red-500" : "border-gray-300"
                   }`}
                   placeholder="Minimum 6 caractères"
@@ -203,7 +203,7 @@ function ResetPasswordContent() {
                   name="confirmPassword"
                   value={formData.confirmPassword}
                   onChange={handleInputChange}
-                  className={`w-full pl-10 pr-12 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 ${
+                  className={`placeholder:text-gray-500 dark:placeholder:text-gray-400 dark:text-gray-700 w-full pl-10 pr-12 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 ${
                     errors.confirmPassword ? "border-red-500" : "border-gray-300"
                   }`}
                   placeholder="Confirmez le mot de passe"

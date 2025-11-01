@@ -430,7 +430,7 @@ useEffect(() => {
                         value={profileData.prenom}
                         onChange={handleInputChange}
                         onBlur={handleBlur}
-                        className={`input input-bordered w-full text-sm transition-colors focus:ring-2 ${
+                        className={`placeholder:text-gray-500 dark:placeholder:text-gray-400 dark:text-gray-700 input input-bordered w-full text-sm transition-colors focus:ring-2 ${
                           errors.prenom ? "border-red-500 focus:ring-red-500 bg-red-50" : "focus:ring-purple-500 focus:border-purple-500"
                         }`}
                         maxLength={50}
@@ -449,7 +449,7 @@ useEffect(() => {
                         value={profileData.nom}
                         onChange={handleInputChange}
                         onBlur={handleBlur}
-                        className={`input input-bordered w-full text-sm transition-colors focus:ring-2 ${
+                        className={`placeholder:text-gray-500 dark:placeholder:text-gray-400 dark:text-gray-700 input input-bordered w-full text-sm transition-colors focus:ring-2 ${
                           errors.nom ? "border-red-500 focus:ring-red-500 bg-red-50" : "focus:ring-purple-500 focus:border-purple-500"
                         }`}
                         maxLength={50}
@@ -467,7 +467,7 @@ useEffect(() => {
                         name="email"
                         value={profileData.email || ''}
                         disabled
-                        className="input input-bordered w-full bg-gray-100 text-gray-500"
+                        className="placeholder:text-gray-500 dark:placeholder:text-gray-400 dark:text-gray-700 input input-bordered w-full bg-gray-100 text-gray-500"
                       />
                     </div>
                     <div>
@@ -480,7 +480,7 @@ useEffect(() => {
                         value={profileData.telephone || ''}
                         onChange={handleInputChange}
                         onBlur={handleBlur}
-                        className={`input input-bordered w-full text-sm transition-colors focus:ring-2 ${
+                        className={`placeholder:text-gray-500 dark:placeholder:text-gray-400 dark:text-gray-700 input input-bordered w-full text-sm transition-colors focus:ring-2 ${
                           errors.telephone ? "border-red-500 focus:ring-red-500 bg-red-50" : "focus:ring-purple-500 focus:border-purple-500"
                         }`}
                         maxLength={20}
@@ -499,7 +499,7 @@ useEffect(() => {
                         value={profileData.adresseRue || ''}
                         onChange={handleInputChange}
                         onBlur={handleBlur}
-                        className={`input input-bordered w-full text-sm transition-colors focus:ring-2 ${
+                        className={`placeholder:text-gray-500 dark:placeholder:text-gray-400 dark:text-gray-700 input input-bordered w-full text-sm transition-colors focus:ring-2 ${
                           errors.adresseRue ? "border-red-500 focus:ring-red-500 bg-red-50" : "focus:ring-purple-500 focus:border-purple-500"
                         }`}
                         placeholder="Rue et numéro"
@@ -519,7 +519,7 @@ useEffect(() => {
                         value={profileData.adresseVille || ''}
                         onChange={handleInputChange}
                         onBlur={handleBlur}
-                        className={`input input-bordered w-full text-sm transition-colors focus:ring-2 ${
+                        className={`placeholder:text-gray-500 dark:placeholder:text-gray-400 dark:text-gray-700 input input-bordered w-full text-sm transition-colors focus:ring-2 ${
                           errors.adresseVille ? "border-red-500 focus:ring-red-500 bg-red-50" : "focus:ring-purple-500 focus:border-purple-500"
                         }`}
                         maxLength={50}
@@ -538,7 +538,7 @@ useEffect(() => {
                         value={profileData.adresseCodePostal || ''}
                         onChange={handleInputChange}
                         onBlur={handleBlur}
-                        className={`input input-bordered w-full text-sm transition-colors focus:ring-2 ${
+                        className={`placeholder:text-gray-500 dark:placeholder:text-gray-400 dark:text-gray-700 input input-bordered w-full text-sm transition-colors focus:ring-2 ${
                           errors.adresseCodePostal ? "border-red-500 focus:ring-red-500 bg-red-50" : "focus:ring-purple-500 focus:border-purple-500"
                         }`}
                         maxLength={12}
@@ -557,7 +557,7 @@ useEffect(() => {
                         value={profileData.adressePays || ''}
                         onChange={handleInputChange}
                         onBlur={handleBlur}
-                        className={`input input-bordered w-full text-sm transition-colors focus:ring-2 ${
+                        className={`placeholder:text-gray-500 dark:placeholder:text-gray-400 dark:text-gray-700 input input-bordered w-full text-sm transition-colors focus:ring-2 ${
                           errors.adressePays ? "border-red-500 focus:ring-red-500 bg-red-50" : "focus:ring-purple-500 focus:border-purple-500"
                         }`}
                         maxLength={50}
@@ -661,7 +661,7 @@ useEffect(() => {
                       >
                         <input
                           type="email"
-                          className="input input-bordered w-full"
+                          className="placeholder:text-gray-500 dark:placeholder:text-gray-400 dark:text-gray-700 input input-bordered w-full"
                           placeholder="Votre email"
                           value={newsletterEmail}
                           onChange={e => setNewsletterEmail(e.target.value)}
@@ -705,7 +705,7 @@ useEffect(() => {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Rechercher"
-                  className="input input-bordered w-full pl-10 text-sm focus:ring-purple-500 focus:border-purple-500"
+                  className="placeholder:text-gray-500 dark:placeholder:text-gray-400 dark:text-gray-700 input input-bordered w-full pl-10 text-sm focus:ring-purple-500 focus:border-purple-500"
                 />
               </div>
             </div>

@@ -135,7 +135,7 @@ const CodePromoInput: React.FC<CodePromoInputProps> = ({
             placeholder="Entrez votre code promo"
             value={code}
             onChange={(e) => setCode(e.target.value)}
-            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base"
+            className="placeholder:text-gray-500 dark:placeholder:text-gray-400 dark:text-gray-700 flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base"
             disabled={loading}
           />
           <button
