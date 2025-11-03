@@ -136,7 +136,10 @@ class ProduitsService {
     const response = await api.get<ProduitResponse[]>('/produits', { headers });
     return response.data;
   }
-
+async getAllProduitsSitemap(): Promise<ProduitResponse[]> {
+    const response = await api.get<ProduitResponse[]>('/produits');
+    return response.data;
+  }
   async getProduitById(id: number, token?: string): Promise<ProduitResponse> {
     const headers = token ? { Authorization: `Bearer ${token}` } : {};
     const response = await api.get<ProduitResponse>(`/produits/${id}`, { headers });
