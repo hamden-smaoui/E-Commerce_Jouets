@@ -117,7 +117,6 @@ export default function CommentaireComponent({ idProduit }: CommentaireComponent
     } catch (err) {
       setError('Erreur lors du chargement des commentaires');
       toast.error('Erreur lors du chargement des commentaires');
-      console.error('Error fetching commentaires:', err);
     } finally {
       setLoading(false);
       setLoadingMore(false);
@@ -152,7 +151,6 @@ export default function CommentaireComponent({ idProduit }: CommentaireComponent
       }
     } catch (err) {
       toast.error('Erreur lors de l\'envoi du commentaire');
-      console.error('Error submitting commentaire:', err);
     } finally {
       setSubmitting(false);
     }
@@ -177,7 +175,6 @@ export default function CommentaireComponent({ idProduit }: CommentaireComponent
       toast.success('Commentaire modifié avec succès');
     } catch (err) {
       toast.error('Erreur lors de la modification du commentaire');
-      console.error('Error updating commentaire:', err);
     }
   };
 
@@ -196,7 +193,6 @@ export default function CommentaireComponent({ idProduit }: CommentaireComponent
       }
     } catch (err) {
       toast.error('Erreur lors de la suppression du commentaire');
-      console.error('Error deleting commentaire:', err);
     }
   };
 

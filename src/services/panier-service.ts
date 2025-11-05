@@ -253,11 +253,9 @@ async syncLocalCartToDB(token: string): Promise<void> {
 
   // ✅ CONDITION AJOUTÉE : Ne rien faire si le panier local est vide
   if (localCart.items.length === 0) {
-    console.log('⏭️ Panier local vide, pas de synchronisation nécessaire');
     return; // Rien à synchroniser
   }
 
-  console.log(`🔄 Synchronisation de ${localCart.items.length} produits du panier local vers la BDD...`);
 
   try {
     // Envoyer tous les produits du panier local à la BDD
@@ -272,9 +270,7 @@ async syncLocalCartToDB(token: string): Promise<void> {
 
     // ✅ Vider le localStorage après synchronisation réussie
     CartStorage.clearLocalCart();
-    console.log('✅ Panier local synchronisé et vidé avec succès');
   } catch (error) {
-    console.error('❌ Erreur lors de la synchronisation du panier:', error);
     throw error;
   }
 }

@@ -63,7 +63,6 @@ const Tailles: React.FC = () => {
         setError(null);
       } catch (error: unknown) {
         const message = error instanceof Error ? error.message : 'Erreur inconnue';
-        console.error('Erreur lors de la récupération:', error);
         setError(message);
         setTailles([]);
       } finally {
@@ -132,7 +131,6 @@ const Tailles: React.FC = () => {
       });
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Erreur inconnue';
-      console.error('Erreur lors de l\'ajout:', error);
       setNotification({
         type: 'error',
         message: `Erreur ! Échec de l'ajout de la taille: ${message}`,
@@ -163,7 +161,6 @@ const Tailles: React.FC = () => {
       });
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Erreur inconnue';
-      console.error('Erreur lors de la modification:', error);
       setNotification({
         type: 'error',
         message: `Erreur ! Échec de la modification de la taille: ${message}`,
@@ -189,7 +186,6 @@ const Tailles: React.FC = () => {
       });
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Erreur inconnue';
-      console.error('Erreur lors de la suppression:', error);
       setNotification({
         type: 'error',
         message: `Erreur ! Échec de la suppression de la taille: ${message}`,
@@ -235,7 +231,6 @@ const Tailles: React.FC = () => {
       setIsEditModalOpen(true);
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Erreur inconnue';
-      console.error('Erreur lors du chargement pour modification:', error);
       setNotification({
         type: 'error',
         message: `Erreur lors du chargement des données de la taille: ${message}`,

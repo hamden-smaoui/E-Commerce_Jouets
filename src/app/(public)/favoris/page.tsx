@@ -30,7 +30,6 @@ export default function Favoris() {
   }, [status, router]);
 
   const calculateTotalStock = (variations: ProduitVariation[] | undefined): number => {
-    console.log("Calculating total stock for variations:", variations);
     if (!variations || variations.length === 0) return 0;
     return variations.reduce((total, variation) => total + (variation.quantiteStock || 0), 0);
   };
@@ -51,7 +50,6 @@ export default function Favoris() {
 
   useEffect(() => {
     setSortedProducts(products);
-    console.log("Updated sortedProducts:", products);
   }, [favorites]);
 
   const handleSortChange = (e: React.ChangeEvent<HTMLSelectElement>) => {

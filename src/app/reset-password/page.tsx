@@ -87,7 +87,6 @@ function ResetPasswordContent() {
       router.push("/signIn?message=Mot de passe réinitialisé! Vous pouvez maintenant vous connecter.");
       
     } catch (err: any) {
-      console.error("Erreur reset password:", err);
       const errorMessage = err?.response?.data?.message || "Code invalide ou expiré";
       setErrors({ submit: errorMessage });
       toast.error(errorMessage);

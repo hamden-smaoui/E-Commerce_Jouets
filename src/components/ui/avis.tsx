@@ -168,7 +168,6 @@ export default function AvisComponent({ idProduit }: AvisComponentProps) {
     } catch (err) {
       setError('Erreur lors du chargement des avis');
       toast.error('Erreur lors du chargement des avis');
-      console.error('Error fetching avis data:', err);
     } finally {
       setLoading(false);
     }
@@ -190,7 +189,6 @@ export default function AvisComponent({ idProduit }: AvisComponentProps) {
       await fetchData();
     } catch (err) {
       toast.error('Erreur lors de l\'envoi de votre avis');
-      console.error('Error submitting avis:', err);
     } finally {
       setSubmitting(false);
     }
@@ -208,7 +206,6 @@ export default function AvisComponent({ idProduit }: AvisComponentProps) {
       await fetchData();
     } catch (err) {
       toast.error('Erreur lors de la suppression de votre avis');
-      console.error('Error deleting avis:', err);
     }
   };
 

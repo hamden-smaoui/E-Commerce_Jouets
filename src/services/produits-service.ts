@@ -51,6 +51,8 @@ export interface ImageData {
   idImage: number;
   rang: number;
   url: string;
+  idCouleur?: number; 
+  couleur?: Couleur;  
 }
 
 export interface Produit {
@@ -84,6 +86,8 @@ export interface ProduitFormData {
   livraisonGratuite?: boolean;
   images?: File[];
   imageRangs?: number[];
+  imageColors?: (number | null)[];
+  existingImageColors?: {[key: number]: number | null};
   variants?: {
     idCouleur: number;
     idTaille?: number;
@@ -126,7 +130,9 @@ class ProduitsService {
     
     if (produitData.variants?.length) formData.append('variants', JSON.stringify(produitData.variants));
     if (produitData.images?.length) produitData.images.forEach(img => formData.append('images', img));
-
+if (produitData.imageColors?.length) {
+    formData.append('imageColors', JSON.stringify(produitData.imageColors));
+  }
     const response = await api.post<{ data: ProduitResponse }>('/produits', formData, { headers });
     return response.data.data;
   }
@@ -165,7 +171,13 @@ async getAllProduitsSitemap(): Promise<ProduitResponse[]> {
     
     if (produitData.variants?.length) formData.append('variants', JSON.stringify(produitData.variants));
     if (produitData.images?.length) produitData.images.forEach(img => formData.append('images', img));
-
+if (produitData.imageColors?.length) {
+    formData.append('newImageColors', JSON.stringify(produitData.imageColors));
+  }
+   // ✅ Images existantes avec couleurs modifiées
+  if (produitData.existingImageColors && Object.keys(produitData.existingImageColors).length > 0) {
+    formData.append('existingImageColors', JSON.stringify(produitData.existingImageColors));
+  }
     const response = await api.put<{ data: ProduitResponse }>(`/produits/${id}`, formData, { headers });
     return response.data.data;
   }

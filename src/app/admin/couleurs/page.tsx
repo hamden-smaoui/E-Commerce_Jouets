@@ -154,7 +154,6 @@ const Couleurs: React.FC = () => {
         setError(null);
       } catch (error: unknown) {
         const message = error instanceof Error ? error.message : 'Erreur inconnue';
-        console.error('Erreur lors de la récupération:', error);
         setError(message);
         setCouleurs([]);
       } finally {
@@ -249,7 +248,6 @@ const Couleurs: React.FC = () => {
       });
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Erreur inconnue';
-      console.error('Erreur lors de l\'ajout:', error);
       setNotification({
         type: 'error',
         message: `Erreur ! ${message}`,
@@ -283,7 +281,6 @@ const Couleurs: React.FC = () => {
       });
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Erreur inconnue';
-      console.error('Erreur lors de la modification:', error);
       setNotification({
         type: 'error',
         message: `Erreur ! ${message}`,
@@ -309,7 +306,6 @@ const Couleurs: React.FC = () => {
       });
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Erreur inconnue';
-      console.error('Erreur lors de la suppression:', error);
       setNotification({
         type: 'error',
         message: `Erreur ! ${message}`,
@@ -357,7 +353,6 @@ const Couleurs: React.FC = () => {
       setIsEditModalOpen(true);
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Erreur inconnue';
-      console.error('Erreur lors du chargement pour modification:', error);
       setNotification({
         type: 'error',
         message: `Erreur lors du chargement: ${message}`,

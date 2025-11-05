@@ -140,7 +140,6 @@ export default function QuickCheckout() {
     }
   }, [id]);
 
-  // Facebook Pixel tracking
   useEffect(() => {
     if (produit && !pixelTracked) {
       const priceData = calculatePriceWithPromotion(produit.prix);
@@ -158,7 +157,6 @@ export default function QuickCheckout() {
     }
   }, [produit, pixelTracked, calculatePriceWithPromotion]);
 
-  // Update available variations based on selections
   useEffect(() => {
     if (!produit?.variations) return;
 
@@ -216,7 +214,6 @@ export default function QuickCheckout() {
 
   const economiesCodePromo = sousTotal - totalAvecPromo;
 
-  // Quantity handlers
   const handleIncrement = () => {
     const maxStock = selectedVariation ? selectedVariation.quantiteStock : produit?.quantiteStock || 0;
     if (quantity < maxStock) {
@@ -238,7 +235,6 @@ export default function QuickCheckout() {
     }
   };
 
-  // Form handlers
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({
@@ -252,108 +248,117 @@ export default function QuickCheckout() {
       }));
     }
   };
+
   const isValidEmail = (email: string): boolean => {
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  return emailRegex.test(email);
-};
-const validateField = (name: any, value: any) => {
-  switch (name) {
-    case 'clientPrenom':
-    case 'clientNom':
-      return value.trim().length < 2;
-    case 'clientTelephone':
-      return !/^[24579]\d{7}$/.test(value.replace(/\s/g, ''));
-    case 'clientEmail':
-      return value && !isValidEmail(value);
-    case 'clientAdresseRue':
-      return value.trim().length < 4;
-    case 'clientAdresseVille':
-      return value.trim().length < 2;
-    case 'clientAdresseCodePostal':
-      return !/^\d{4}$/.test(value.trim());
-    case 'notesLivraison':
-      return value.length > 300;
-    default:
-      return false;
-  }
-};
-const handleBlur = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-  const { name, value } = e.target;
-  setErrors(prev => ({
-    ...prev,
-    [name]: validateField(name, value)
-  }));
-};
- const validateForm = (): boolean => {
-  const requiredFields = [
-    { key: 'clientPrenom', label: 'Prénom' },
-    { key: 'clientNom', label: 'Nom' },
-    { key: 'clientTelephone', label: 'Téléphone' },
-    { key: 'clientAdresseRue', label: 'Adresse' },
-    { key: 'clientAdresseVille', label: 'Ville' },
-    { key: 'clientAdresseCodePostal', label: 'Code postal' }
-  ];
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
 
-  const newErrors: FormErrors = {};
-  const missingFields: string[] = [];
+  const validateField = (name: any, value: any) => {
+    switch (name) {
+      case 'clientPrenom':
+      case 'clientNom':
+        return value.trim().length < 2;
+      case 'clientTelephone':
+        return !/^[24579]\d{7}$/.test(value.replace(/\s/g, ''));
+      case 'clientEmail':
+        return value && !isValidEmail(value);
+      case 'clientAdresseRue':
+        return value.trim().length < 4;
+      case 'clientAdresseVille':
+        return value.trim().length < 2;
+      case 'clientAdresseCodePostal':
+        return !/^\d{4}$/.test(value.trim());
+      case 'notesLivraison':
+        return value.length > 300;
+      default:
+        return false;
+    }
+  };
 
-  for (const field of requiredFields) {
-    if (!formData[field.key as keyof FormData].trim()) {
-      newErrors[field.key] = true;
-      missingFields.push(field.label);
-    } else {
-      // Valider le format
-      const isInvalid = validateField(field.key, formData[field.key as keyof FormData]);
-      if (isInvalid) {
+  const handleBlur = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setErrors(prev => ({
+      ...prev,
+      [name]: validateField(name, value)
+    }));
+  };
+
+  const validateForm = (): boolean => {
+    const requiredFields = [
+      { key: 'clientPrenom', label: 'Prénom' },
+      { key: 'clientNom', label: 'Nom' },
+      { key: 'clientTelephone', label: 'Téléphone' },
+      { key: 'clientAdresseRue', label: 'Adresse' },
+      { key: 'clientAdresseVille', label: 'Ville' },
+    ];
+
+    const newErrors: FormErrors = {};
+    const missingFields: string[] = [];
+
+    for (const field of requiredFields) {
+      if (!formData[field.key as keyof FormData].trim()) {
         newErrors[field.key] = true;
+        missingFields.push(field.label);
+      } else {
+        const isInvalid = validateField(field.key, formData[field.key as keyof FormData]);
+        if (isInvalid) {
+          newErrors[field.key] = true;
+        }
       }
     }
-  }
 
-  // Valider l'email s'il est fourni (optionnel)
-  if (formData.clientEmail && !isValidEmail(formData.clientEmail)) {
-    newErrors.clientEmail = true;
-    toast.error("L'adresse email n'est pas valide");
-    setErrors(newErrors);
-    return false;
-  }
+    if (formData.clientEmail && !isValidEmail(formData.clientEmail)) {
+      newErrors.clientEmail = true;
+      toast.error("L'adresse email n'est pas valide");
+      setErrors(newErrors);
+      return false;
+    }
 
-  // Vérifier le téléphone
-  if (formData.clientTelephone && !/^[24579]\d{7}$/.test(formData.clientTelephone.replace(/\s/g, ''))) {
-    newErrors.clientTelephone = true;
-    toast.error("Le numéro doit commencer par 2, 4, 5, 7 ou 9 et contenir 8 chiffres");
-    setErrors(newErrors);
-    return false;
-  }
+    if (formData.clientTelephone && !/^[24579]\d{7}$/.test(formData.clientTelephone.replace(/\s/g, ''))) {
+      newErrors.clientTelephone = true;
+      toast.error("Le numéro doit commencer par 2, 4, 5, 7 ou 9 et contenir 8 chiffres");
+      setErrors(newErrors);
+      return false;
+    }
 
-  // Vérifier le code postal
-  if (formData.clientAdresseCodePostal && !/^\d{4}$/.test(formData.clientAdresseCodePostal.trim())) {
+    if (formData.clientAdresseCodePostal && formData.clientAdresseCodePostal.trim() && !/^\d{4}$/.test(formData.clientAdresseCodePostal.trim())) {
     newErrors.clientAdresseCodePostal = true;
     toast.error("Le code postal doit contenir exactement 4 chiffres");
     setErrors(newErrors);
     return false;
   }
 
-  if (missingFields.length > 0) {
-    setErrors(newErrors);
-    toast.error(`Veuillez remplir les champs obligatoires: ${missingFields.join(', ')}`);
-    return false;
-  }
+    if (missingFields.length > 0) {
+      setErrors(newErrors);
+      toast.error(`Veuillez remplir les champs obligatoires: ${missingFields.join(', ')}`);
+      return false;
+    }
 
-  if (Object.keys(newErrors).length > 0) {
-    setErrors(newErrors);
-    return false;
-  }
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      return false;
+    }
 
-  setErrors({});
-  return true;
-};
-  // Variations selection handlers
+    setErrors({});
+    return true;
+  };
+
   const handleCouleurSelect = (idCouleur: number) => {
     setSelectedCouleur(idCouleur);
     setSelectedTaille(null);
     setSelectedAge(null);
     setQuantity(1);
+
+    // ✅ Réinitialiser l'image à la première image de cette couleur
+    const sortedImages = produit?.images?.sort((a, b) => a.rang - b.rang) || [];
+    const imagesForColor = sortedImages.filter(
+      img => img.idCouleur === idCouleur || img.idCouleur === null
+    );
+    if (imagesForColor.length > 0) {
+      setSelectedImage(imagesForColor[0].url);
+      setCurrentImageIndex(0);
+    }
   };
 
   const handleTailleSelect = (idTaille: number) => {
@@ -375,28 +380,39 @@ const handleBlur = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
     return produit.quantiteStock === 0;
   };
 
-  // Image navigation handlers
+  const sortedImages = produit?.images?.sort((a, b) => a.rang - b.rang) || [];
+
+  // ✅ NOUVELLE FONCTION : Filtrer les images par couleur
+  const getFilteredImages = () => {
+    if (!produit?.images) return [];
+
+    if (!selectedCouleur) return sortedImages;
+
+    return sortedImages.filter(img =>
+      img.idCouleur === selectedCouleur || img.idCouleur === null
+    );
+  };
+
+  const filteredImages = getFilteredImages();
+
   const handleImageSelect = (imageUrl: string) => {
-    const index = produit?.images?.findIndex((img) => img.url === imageUrl) || 0;
+    const index = filteredImages.findIndex((img) => img.url === imageUrl);
     setSelectedImage(imageUrl);
     setCurrentImageIndex(index);
   };
 
   const handleNextImage = () => {
-    const sortedImages = produit?.images?.sort((a, b) => a.rang - b.rang) || [];
-    const nextIndex = (currentImageIndex + 1) % sortedImages.length;
+    const nextIndex = (currentImageIndex + 1) % filteredImages.length;
     setCurrentImageIndex(nextIndex);
-    setSelectedImage(sortedImages[nextIndex].url);
+    setSelectedImage(filteredImages[nextIndex].url);
   };
 
   const handlePrevImage = () => {
-    const sortedImages = produit?.images?.sort((a, b) => a.rang - b.rang) || [];
-    const prevIndex = currentImageIndex === 0 ? sortedImages.length - 1 : currentImageIndex - 1;
+    const prevIndex = currentImageIndex === 0 ? filteredImages.length - 1 : currentImageIndex - 1;
     setCurrentImageIndex(prevIndex);
-    setSelectedImage(sortedImages[prevIndex].url);
+    setSelectedImage(filteredImages[prevIndex].url);
   };
 
-  // Stock status logic
   const getStockStatus = () => {
     if (!produit) return { text: "Sélectionnez vos options", class: "bg-white/60 backdrop-blur-md text-gray-600 font-bold", available: false };
 
@@ -462,7 +478,6 @@ const handleBlur = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
 
   const stockStatus = getStockStatus();
 
-  // Submit order
   const handleSubmit = async () => {
     if (!validateForm()) return;
     if (!produit) return;
@@ -508,7 +523,6 @@ const handleBlur = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
     }
   };
 
-  // Get unique options for variations
   const getUniqueCouleurs = () => {
     if (!produit?.variations) return [];
     const couleurs = produit.variations
@@ -536,8 +550,6 @@ const handleBlur = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   const uniqueCouleurs = getUniqueCouleurs();
   const uniqueTailles = getUniqueTailles();
   const uniqueAges = getUniqueAges();
-
-  const sortedImages = produit?.images?.sort((a, b) => a.rang - b.rang) || [];
 
   const tabs = [
     { 
@@ -574,11 +586,11 @@ const handleBlur = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
         <div className="text-center">
           <h2 className="text-2xl font-bold text-red-600 mb-4">Produit non trouvé</h2>
           <Link href="/products">
-                <button className="bg-gradient-to-r from-red-500 to-pink-600 text-white px-8 py-4 rounded-full hover:from-red-600 hover:to-pink-700 transition-all transform hover:scale-105 font-extrabold shadow-2xl flex items-center gap-2 mx-auto">
-                  <SparklesIcon className="w-5 h-5" />
-                  Découvrir nos produits
-                </button>
-              </Link>
+            <button className="bg-gradient-to-r from-red-500 to-pink-600 text-white px-8 py-4 rounded-full hover:from-red-600 hover:to-pink-700 transition-all transform hover:scale-105 font-extrabold shadow-2xl flex items-center gap-2 mx-auto">
+              <SparklesIcon className="w-5 h-5" />
+              Découvrir nos produits
+            </button>
+          </Link>
         </div>
       </div>
     );
@@ -587,7 +599,6 @@ const handleBlur = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-50 via-yellow-50 to-blue-50 font-[Comic_Sans_MS,sans-serif]">
       <div className="container mx-auto px-4 py-8 max-w-7xl">
-        {/* Header */}
         <div className="text-center mb-8">
           <div className="flex items-center justify-center gap-3 mb-4">
             <ShoppingBagIcon className="w-6 h-6 text-purple-600" />
@@ -601,14 +612,12 @@ const handleBlur = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Left Column - Product Info */}
           <div className="space-y-6">
-            {/* Product Card */}
             <div className="bg-white rounded-2xl shadow-xl border-2 border-pink-200 overflow-hidden">
               <div className="p-6">
-                {/* Product Images */}
                 <div className="flex flex-col lg:flex-row gap-4">
-                  {sortedImages.length > 1 && (
+                  {filteredImages.length > 1 && (
                     <div className="flex lg:flex-col gap-2 order-2 lg:order-1 w-full lg:w-25 overflow-x-auto lg:overflow-x-visible lg:overflow-y-auto lg:max-h-96">
-                      {sortedImages.slice(0, 15).map((image, index) => (
+                      {filteredImages.slice(0, 15).map((image, index) => (
                         <button
                           key={image.idImage}
                           onClick={() => handleImageSelect(image.url)}
@@ -641,13 +650,12 @@ const handleBlur = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
                       {priceData && priceData.reduction > 0 && (
                         <PromotionBadge pourcentageReduction={priceData.pourcentageReduction} />
                       )}
-                      {/* Stock Status Badge */}
                       <div className="absolute top-3 right-3 z-10">
                         <div className={`${stockStatus.class} text-xs px-3 py-1 rounded-full shadow-md font-[Comic_Sans_MS,sans-serif]`}>
                           {stockStatus.text}
                         </div>
                       </div>
-                      {sortedImages.length > 1 && (
+                      {filteredImages.length > 1 && (
                         <>
                           <button
                             onClick={handlePrevImage}
@@ -667,9 +675,9 @@ const handleBlur = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
                           </button>
                         </>
                       )}
-                      {sortedImages.length > 1 && (
+                      {filteredImages.length > 1 && (
                         <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-2 lg:hidden">
-                          {sortedImages.map((_, index) => (
+                          {filteredImages.map((_, index) => (
                             <div
                               key={index}
                               className={`w-2 h-2 rounded-full transition-colors ${
@@ -683,11 +691,9 @@ const handleBlur = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
                   </div>
                 </div>
 
-                {/* Product Details */}
                 <div className="space-y-4 mt-6">
                   <h2 className="text-xl font-extrabold text-gray-800">{produit.nom}</h2>
 
-                  {/* Price */}
                   <div className="flex items-center gap-3">
                     {priceData && priceData.reduction > 0 ? (
                       <>
@@ -705,12 +711,10 @@ const handleBlur = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
                     )}
                   </div>
 
-                  {/* Description */}
                   {produit.description && (
                     <p className="text-gray-600 text-sm">{produit.description}</p>
                   )}
 
-                  {/* Variations */}
                   {produit.variations && produit.variations.length > 0 && (
                     <div className="space-y-4 border-t border-pink-100 pt-4">
                       {uniqueCouleurs.length > 0 && (
@@ -719,49 +723,47 @@ const handleBlur = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
                             Couleur *
                           </label>
                           <div className="flex flex-wrap gap-2">
-          {uniqueCouleurs.map((couleur) => {
-  const couleurVariations = produit.variations?.filter(
-    v => v.idCouleur === couleur.idCouleur
-  ) || [];
-  const hasStock = couleurVariations.some(v => v.quantiteStock > 0);
+                            {uniqueCouleurs.map((couleur) => {
+                              const couleurVariations = produit.variations?.filter(
+                                v => v.idCouleur === couleur.idCouleur
+                              ) || [];
+                              const hasStock = couleurVariations.some(v => v.quantiteStock > 0);
 
-  return (
-    <button
-      key={couleur.idCouleur}
-      onClick={() => {
-        if (hasStock) {
-          handleCouleurSelect(couleur.idCouleur); // ou setSelectedCouleur(...)
-        }
-      }}
-      disabled={!hasStock}
-      title={couleur.nom}
-      className={`relative w-12 h-12 rounded-full border-4 transition-all duration-200 
-        ${!hasStock
-          ? 'opacity-50 cursor-not-allowed grayscale border-gray-300'
-          : selectedCouleur === couleur.idCouleur
-            ? 'scale-125 shadow-xl' // ← Effet discret : plus grand + ombre
-            : 'border-gray-300 hover:scale-110 hover:border-gray-400'
-        }`}
-      style={{
-        backgroundColor: couleur.ref || '#CCCCCC',
-      }}
-    >
-      {/* Petit point rouge si rupture */}
-      {!hasStock && (
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
-        </div>
-      )}
+                              return (
+                                <button
+                                  key={couleur.idCouleur}
+                                  onClick={() => {
+                                    if (hasStock) {
+                                      handleCouleurSelect(couleur.idCouleur);
+                                    }
+                                  }}
+                                  disabled={!hasStock}
+                                  title={couleur.nom}
+                                  className={`relative w-12 h-12 rounded-full border-4 transition-all duration-200 
+                                    ${!hasStock
+                                      ? 'opacity-50 cursor-not-allowed grayscale border-gray-300'
+                                      : selectedCouleur === couleur.idCouleur
+                                        ? 'scale-125 shadow-xl'
+                                        : 'border-gray-300 hover:scale-110 hover:border-gray-400'
+                                    }`}
+                                  style={{
+                                    backgroundColor: couleur.ref || '#CCCCCC',
+                                  }}
+                                >
+                                  {!hasStock && (
+                                    <div className="absolute inset-0 flex items-center justify-center">
+                                      <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
+                                    </div>
+                                  )}
 
-      {/* Optionnel : petit cercle blanc au centre si sélectionné */}
-      {hasStock && selectedCouleur === couleur.idCouleur && (
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="w-3 h-3 bg-white rounded-full shadow-sm"></div>
-        </div>
-      )}
-    </button>
-  );
-})}
+                                  {hasStock && selectedCouleur === couleur.idCouleur && (
+                                    <div className="absolute inset-0 flex items-center justify-center">
+                                      <div className="w-3 h-3 bg-white rounded-full shadow-sm"></div>
+                                    </div>
+                                  )}
+                                </button>
+                              );
+                            })}
                           </div>
                         </div>
                       )}
@@ -838,7 +840,6 @@ const handleBlur = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
                     </div>
                   )}
 
-                  {/* Quantity Selector */}
                   {selectedVariation || (!produit.variations || produit.variations.length === 0) ? (
                     <div className="border-t border-pink-100 pt-4">
                       <label className="block text-sm font-bold text-gray-700 mb-2">
@@ -873,7 +874,6 @@ const handleBlur = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
                     </div>
                   ) : null}
 
-                  {/* Selection Warning */}
                   {produit.variations && produit.variations.length > 0 && !selectedVariation && (
                     <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
                       <p className="text-sm text-yellow-800">
@@ -884,10 +884,7 @@ const handleBlur = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
                 </div>
               </div>
             </div>
-
-           
           </div>
-
           {/* Right Column - Order Form */}
           <div className="space-y-6">
             {/* Customer Info Form */}
@@ -1033,7 +1030,7 @@ const handleBlur = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
 
       <div>
         <label className="block text-sm font-bold text-gray-700 mb-2">
-          Code postal *
+          Code postal (optionelle)
           {errors.clientAdresseCodePostal && <span className="text-red-500 ml-1 text-xs">- Exactement 4 chiffres</span>}
         </label>
         <input

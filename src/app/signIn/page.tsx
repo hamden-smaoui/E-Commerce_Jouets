@@ -94,7 +94,6 @@ function SignInContent() {
         router.refresh();
       }
     } catch (error: any) {
-      console.error("Erreur lors de la connexion:", error);
       const errorMessage = error?.message || "Une erreur est survenue";
       setErrors({ submit: errorMessage });
       toast.error(errorMessage);

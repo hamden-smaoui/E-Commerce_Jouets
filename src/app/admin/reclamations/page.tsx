@@ -125,7 +125,6 @@ const Reclamations: React.FC = () => {
       }));
       setStats(statsData);
     } catch (error: unknown) {
-      console.error('Error fetching stats:', error);
     }
   };
 

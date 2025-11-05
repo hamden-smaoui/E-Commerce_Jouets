@@ -176,7 +176,6 @@ function CommandeConfirmation() {
         try {
           await clearCartWithoutToast();
         } catch (error) {
-          console.error('Erreur lors de la suppression du panier:', error);
         }
       }
     };
@@ -280,7 +279,6 @@ useEffect(() => {
       });
 
     } catch (err: any) {
-      console.error('Erreur lors de l\'annulation:', err);
       toast.dismiss('cancel-order-toast');
       toast.error(`Erreur lors de l'annulation: ${err.message}`, {
         duration: 6000,

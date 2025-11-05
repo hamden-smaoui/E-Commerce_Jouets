@@ -73,7 +73,6 @@ const Ages: React.FC = () => {
         setError(null);
       } catch (error: unknown) {
         const message = error instanceof Error ? error.message : 'Erreur inconnue';
-        console.error('Erreur lors de la récupération:', error);
         setError(message);
         setAges([]);
       } finally {
@@ -285,7 +284,6 @@ const Ages: React.FC = () => {
       });
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Erreur inconnue';
-      console.error('Erreur lors de l\'ajout:', error);
       setNotification({
         type: 'error',
         message: `Erreur ! Échec de l'ajout de la tranche d'âge: ${message}`,
@@ -322,7 +320,6 @@ const Ages: React.FC = () => {
       });
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Erreur inconnue';
-      console.error('Erreur lors de la modification:', error);
       setNotification({
         type: 'error',
         message: `Erreur ! Échec de la modification de la tranche d'âge: ${message}`,
@@ -348,7 +345,6 @@ const Ages: React.FC = () => {
       });
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Erreur inconnue';
-      console.error('Erreur lors de la suppression:', error);
       setNotification({
         type: 'error',
         message: `Erreur ! Échec de la suppression de la tranche d'âge: ${message}`,
@@ -402,7 +398,6 @@ const Ages: React.FC = () => {
       setIsEditModalOpen(true);
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Erreur inconnue';
-      console.error('Erreur lors du chargement pour modification:', error);
       setNotification({
         type: 'error',
         message: `Erreur lors du chargement des données de la tranche d'âge: ${message}`,

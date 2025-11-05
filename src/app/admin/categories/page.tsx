@@ -88,7 +88,6 @@ const token = session?.customToken;
           CategoriesService.getAllCategories(token),
           TypesService.getAllTypes(token),
         ]);
-        console.log('Données récupérées:', { fetchedCategories, fetchedTypes });
         setCategories(fetchedCategories);
         setTypes(fetchedTypes);
         setLoading(false);
@@ -190,20 +189,15 @@ const token = session?.customToken;
       label: 'Types',
       type: 'custom',
       render: ({ value, onChange }) => {
-        console.log('Render Select Types - formData complet:', formData);
 
-        const typeIds = formData.typeIds || [];
-        console.log('typeIds depuis formData:', typeIds);
-        console.log('types disponibles:', types);
+        const typeIds = formData.typeIds || [];      
 
         const options = types.map((type) => ({
           value: type.idType,
           label: type.nom,
         }));
-        console.log('Options créées pour Select Types:', options);
 
         const selectedValues = options.filter((option) => typeIds.includes(option.value));
-        console.log('Valeurs sélectionnées pour Select Types:', selectedValues);
 
         // Custom styles for react-select
         const customStyles = {
@@ -252,9 +246,7 @@ const token = session?.customToken;
               options={options}
               value={selectedValues}
               onChange={(selectedOptions) => {
-                console.log('onChange Types déclenché - selectedOptions:', selectedOptions);
                 const newValues = selectedOptions ? selectedOptions.map((option) => option.value) : [];
-                console.log('Nouvelles valeurs Types à envoyer:', newValues);
 
                 setFormData((prev) => ({
                   ...prev,
@@ -284,7 +276,6 @@ const token = session?.customToken;
   ];
 
   const handleAddSubmit = async (data: FormData) => {
-    console.log('Données à soumettre pour ajout catégorie:', data);
     try {
       const newCategorie = await CategoriesService.createCategorie(data,token);
       
@@ -306,7 +297,6 @@ const token = session?.customToken;
   };
 
   const handleEditSubmit = async (data: FormData) => {
-    console.log('Données à soumettre pour modification catégorie:', data);
     try {
       if (!data.idCategorie) {
         setNotification({
@@ -383,7 +373,6 @@ const token = session?.customToken;
       description: '',
       typeIds: [],
     };
-    console.log('Initialisation formulaire ajout catégorie:', initialFormData);
     setFormData(initialFormData);
     setIsAddModalOpen(true);
   };
@@ -391,7 +380,6 @@ const token = session?.customToken;
   const handleEdit = async (categorie: Categorie) => {
     try {
       const fetchedCategorie = await CategoriesService.getCategorieById(categorie.idCategorie,token);
-      console.log('Catégorie récupérée pour édition:', fetchedCategorie);
       
       const editFormData = {
         idCategorie: fetchedCategorie.idCategorie,
@@ -399,7 +387,6 @@ const token = session?.customToken;
         description: fetchedCategorie.description || '',
         typeIds: Array.isArray(fetchedCategorie.types) ? fetchedCategorie.types.map((type) => type.idType) : [],
       };
-      console.log('Données du formulaire d\'édition catégorie:', editFormData);
       
       setFormData(editFormData);
       setIsEditModalOpen(true);

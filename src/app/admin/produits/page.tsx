@@ -52,6 +52,7 @@ interface FormData {
   idAge: number | null; // ✅ NOUVEAU
   genre: 'fille' | 'garçon' | 'enfant';
   images: File[];
+imageColors?: (number | null)[];
   variants: {
     idCouleur: number;
     idTaille?: number;
@@ -109,6 +110,8 @@ const Produits: React.FC = () => {
   const [selectedImages, setSelectedImages] = useState<File[]>([]);
   const [existingImages, setExistingImages] = useState<ImageData[]>([]);
   const [imagesToDelete, setImagesToDelete] = useState<number[]>([]);
+const [imageColors, setImageColors] = useState<(number | null)[]>([]); // ✅ MODIFIÉ
+const [existingImageColors, setExistingImageColors] = useState<{[key: number]: number | null}>({}); // ✅ NOUVEAU
 
  const [formData, setFormData] = useState<FormData>({
   idProduit: null,
@@ -168,19 +171,14 @@ const Produits: React.FC = () => {
     fetchData();
   }, []);
 useEffect(() => {
-    console.log('useEffect: formData.idCategorie:', formData.idCategorie, 'categories:', categories);
     if (formData.idCategorie > 0) {
       const selectedCategory = categories.find((cat) => cat.idCategorie === formData.idCategorie);
-      console.log('Selected category:', selectedCategory);
       const newTypes = selectedCategory?.types || [];
       setTypes(newTypes);
-      console.log('Updated types:', newTypes);
       if (formData.idType && newTypes.length > 0 && !newTypes.some((type) => type.idType === formData.idType)) {
-        console.log('Resetting idType: Current idType', formData.idType, 'not found in types:', newTypes);
         setFormData((prev) => ({ ...prev, idType: null }));
       }
     } else {
-      console.log('No category selected, resetting types and idType');
       setTypes([]);
       setFormData((prev) => ({ ...prev, idType: null }));
     }
@@ -213,10 +211,14 @@ const formatAgeLabel = (age: Age | undefined): string => {
   };
 
   const handleDeleteExistingImage = (imageId: number) => {
-  console.log('🗑️ Image marquée pour suppression:', imageId);
   setImagesToDelete(prev => [...prev, imageId]);
 };
-
+const handleExistingImageColorChange = (imageId: number, colorId: number | null) => {
+  setExistingImageColors(prev => ({
+    ...prev,
+    [imageId]: colorId
+  }));
+};
   const formatPrice = (prix: any): string => {
     if (prix === null || prix === undefined || prix === '' || isNaN(Number(prix))) {
       return '0.00 TND';
@@ -468,7 +470,6 @@ const formatAgeLabel = (age: Age | undefined): string => {
       render: ({ value, onChange }) => {
         const currentIdType = value || null;
         const selectedType = currentIdType ? types.find((t) => t.idType === currentIdType) : null;
-        console.log('Type Select - value:', value, 'currentIdType:', currentIdType, 'selectedType:', selectedType);
         return (
           <div>
             <Select
@@ -488,7 +489,6 @@ const formatAgeLabel = (age: Age | undefined): string => {
                   idType: newValue,
                 }));
                 onChange(newValue);
-                console.log('Type sélectionné:', newValue);
               }}
               placeholder={
                 formData.idCategorie === 0 || types.length === 0
@@ -749,25 +749,28 @@ const formatAgeLabel = (age: Age | undefined): string => {
       ),
     },
     {
-      name: 'images',
-      label: 'Images du produit',
-      type: 'custom',
-      render: () => (
+  name: 'images',
+  label: 'Images du produit',
+  type: 'custom',
+  render: () => (
     <ImageManager
       images={selectedImages}
       existingImages={existingImages.filter(
-        img => !imagesToDelete.includes(img.idImage) // ✅ Filtrer
+        img => !imagesToDelete.includes(img.idImage)
       )}
       onImagesChange={setSelectedImages}
-      onDeleteExistingImage={handleDeleteExistingImage} // ✅ Callback
+      onDeleteExistingImage={handleDeleteExistingImage}
+      onImageColorsChange={setImageColors}
+      onExistingImageColorChange={handleExistingImageColorChange} // ✅ NOUVEAU
+      couleurs={couleurs}
       maxImages={10}
     />
   ),
-      validation: {
-        required: false,
-      },
-      hint: 'Sélectionnez jusqu\'à 10 images pour le produit',
-    },
+  validation: {
+    required: false,
+  },
+  hint: 'Sélectionnez jusqu\'à 10 images et associez-les à des couleurs',
+},
   ];
 
   const handleAddSubmit = async (data: FormData) => {
@@ -787,14 +790,16 @@ const formatAgeLabel = (age: Age | undefined): string => {
       });
       return;
     }
+    console.log('🎨 imageColors à envoyer:', imageColors);
 
     const produitData: ProduitFormData = {
       ...data,
       idAge: data.idAge, // ✅ NOUVEAU
       images: selectedImages,
+      imageColors: imageColors, // ✅ AJOUTER
       variants: data.variants,
     };
-
+ console.log('📦 produitData:', produitData);
     const response = await ProduitsService.createProduit(produitData, token);
     const newProduit: ProduitResponse = {
       ...response,
@@ -858,12 +863,20 @@ const handleEditSubmit = async (data: FormData) => {
         await ProduitsService.deleteImage(imageId, token);
       }
     }
+    console.log('🎨 imageColors (nouvelles images):', imageColors);
+    console.log('🎨 existingImageColors (images modifiées):', existingImageColors);
+    console.log('📦 selectedImages:', selectedImages);
+    console.log('📦 existingImages:', existingImages);
 
     const produitData = {
       ...data,
       images: selectedImages,
+      imageColors: imageColors, // Pour les nouvelles images
+      existingImageColors: existingImageColors, // ✅ NOUVEAU : Pour les images existantes
     };
     
+    console.log('📦 produitData complet:', produitData);
+
     const updatedProduit = await ProduitsService.updateProduit(data.idProduit, produitData, token);
     
     const updatedProduitWithDetails: ProduitResponse = {
@@ -972,6 +985,8 @@ const formatAgeRanges = (variations: ProduitVariation[] | undefined): string => 
   setTypes([]);
   setSelectedImages([]);
   setExistingImages([]);
+  setExistingImageColors({});
+  setImageColors([]);
   setIsAddModalOpen(true);
 };
 
@@ -1001,6 +1016,8 @@ const formatAgeRanges = (variations: ProduitVariation[] | undefined): string => 
     setFormData(newFormData);
     setSelectedImages([]);
     setExistingImages(fetchedProduit.images || []);
+    setImageColors([]);
+    setExistingImageColors({});
     setIsEditModalOpen(true);
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Erreur inconnue';
@@ -1037,7 +1054,6 @@ const formatAgeRanges = (variations: ProduitVariation[] | undefined): string => 
     );
   }
 
-  console.log('Render - formData:', formData, 'types:', types);
 
   return (
     <div className="p-6 w-full h-screen flex flex-col relative">

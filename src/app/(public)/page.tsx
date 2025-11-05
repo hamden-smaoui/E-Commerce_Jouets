@@ -59,7 +59,6 @@ export default function Home() {
         setBestOffers(bestOffersData);
         setCategories(categoriesData);
       } catch (err) {
-        console.error('Error fetching data:', err);
         setError(err instanceof Error ? err.message : 'Failed to load data');
         setBestOffers([]);
         setCategories([]);

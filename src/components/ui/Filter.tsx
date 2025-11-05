@@ -153,7 +153,6 @@ const Filter: React.FC<FilterProps> = ({
       const data = await CategoriesService.getAllCategories();
       setCategoriesList(data);
     } catch (error) {
-      console.error('Erreur chargement catégories:', error);
     } finally {
       setLoadingCategories(false);
     }

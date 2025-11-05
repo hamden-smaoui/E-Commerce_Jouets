@@ -1,12 +1,16 @@
 // components/ImageManager.tsx
 import React, { useState, useRef } from 'react';
-import { ImageData } from '@/services/produits-service';
+import Select from 'react-select';
+import { ImageData, Couleur } from '@/services/produits-service';
 
 interface ImageManagerProps {
   images: File[];
   existingImages?: ImageData[];
   onImagesChange: (images: File[]) => void;
-  onDeleteExistingImage?: (imageId: number) => void; // ✅ NOUVEAU
+  onDeleteExistingImage?: (imageId: number) => void;
+  onImageColorsChange?: (colors: (number | null)[]) => void;
+  onExistingImageColorChange?: (imageId: number, colorId: number | null) => void; // ✅ NOUVEAU
+  couleurs: Couleur[]; // ✅ NOUVEAU
   maxImages?: number;
 }
 
@@ -16,30 +20,34 @@ interface ImageWithRang {
   rang: number;
   preview?: string;
   id: string;
+  idCouleur?: number; // ✅ NOUVEAU
 }
 
 const ImageManager: React.FC<ImageManagerProps> = ({
   images,
   existingImages = [],
   onImagesChange,
-  onDeleteExistingImage, // ✅ NOUVEAU
+  onDeleteExistingImage,
+  onImageColorsChange, // ✅ NOUVEAU
+  onExistingImageColorChange,
+  couleurs, // ✅ NOUVEAU
   maxImages = 10,
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [imageList, setImageList] = useState<ImageWithRang[]>(() => {
-    // Initialiser avec les images existantes
     const existing = existingImages.map((img, index) => ({
       existing: img,
       rang: img.rang,
+      idCouleur: img.idCouleur, // ✅ Charger la couleur existante
       id: `existing-${img.idImage || index}`,
     }));
     
-    // Ajouter les nouvelles images
     const newImages = images.map((file, index) => ({
       file,
       rang: existing.length + index + 1,
       preview: URL.createObjectURL(file),
       id: `new-${Date.now()}-${index}`,
+      idCouleur: undefined, // ✅ Pas de couleur par défaut
     }));
     
     return [...existing, ...newImages];
@@ -56,6 +64,7 @@ const ImageManager: React.FC<ImageManagerProps> = ({
         rang: maxRang + index + 1,
         preview: URL.createObjectURL(file),
         id: `new-${Date.now()}-${index}`,
+        idCouleur: undefined,
       };
     });
 
@@ -68,25 +77,35 @@ const ImageManager: React.FC<ImageManagerProps> = ({
     updateParentImages(updatedList);
   };
 
-  const updateParentImages = (list: ImageWithRang[]) => {
-    const newFiles = list
+ const updateParentImages = (list: ImageWithRang[]) => {
+  // Fichiers des NOUVELLES images seulement
+  const newFiles = list
+    .filter(item => item.file)
+    .sort((a, b) => a.rang - b.rang)
+    .map(item => item.file!);
+  onImagesChange(newFiles);
+  
+  // ✅ NOUVEAU : Envoyer TOUTES les couleurs (existantes + nouvelles)
+  if (onImageColorsChange) {
+    // Couleurs des nouvelles images
+    const newImageColors = list
       .filter(item => item.file)
       .sort((a, b) => a.rang - b.rang)
-      .map(item => item.file!);
-    onImagesChange(newFiles);
-  };
+      .map(item => item.idCouleur || null);
+    
+    console.log('🎨 Couleurs des nouvelles images:', newImageColors);
+    onImageColorsChange(newImageColors);
+  }
+};
 
-  // ✅ MODIFIÉ : Gérer la suppression d'images existantes
   const removeImage = (id: string) => {
     const imageToRemove = imageList.find(img => img.id === id);
     
-    // Si c'est une image existante, appeler le callback pour la supprimer
     if (imageToRemove?.existing && onDeleteExistingImage) {
       onDeleteExistingImage(imageToRemove.existing.idImage);
     }
     
     const updatedList = imageList.filter(img => img.id !== id);
-    // Réorganiser les rangs
     const reorderedList = updatedList.map((img, index) => ({
       ...img,
       rang: index + 1,
@@ -105,7 +124,6 @@ const ImageManager: React.FC<ImageManagerProps> = ({
       return img;
     });
 
-    // Réorganiser les rangs pour éviter les doublons
     updatedList.sort((a, b) => a.rang - b.rang);
     const reorderedList = updatedList.map((img, index) => ({
       ...img,
@@ -116,15 +134,28 @@ const ImageManager: React.FC<ImageManagerProps> = ({
     updateParentImages(reorderedList);
   };
 
-  // ✅ MODIFIÉ : Utiliser la fonction helper pour les URLs
+ const updateCouleur = (id: string, idCouleur: number | null) => {
+  const updatedList = imageList.map(img => {
+    if (img.id === id) {
+      // ✅ Si c'est une image existante, notifier le parent
+      if (img.existing && onExistingImageColorChange) {
+        onExistingImageColorChange(img.existing.idImage, idCouleur);
+      }
+      return { ...img, idCouleur: idCouleur || undefined };
+    }
+    return img;
+  });
+
+  setImageList(updatedList);
+  updateParentImages(updatedList);
+};
+
   const getImageSrc = (image: ImageWithRang) => {
     if (image.preview) return image.preview;
     if (image.existing) {
-      // Si l'URL commence par http, c'est Cloudinary
       if (image.existing.url.startsWith('http')) {
         return image.existing.url;
       }
-      // Sinon, c'est une ancienne image locale
       return `${process.env.NEXT_PUBLIC_API_BASE_URL_IMAGE}${image.existing.url}`;
     }
     return '';
@@ -177,7 +208,6 @@ const ImageManager: React.FC<ImageManagerProps> = ({
                   >
                     ✕
                   </button>
-                  {/* ✅ Badge pour distinguer les types d'images */}
                   {image.existing && (
                     <span className="absolute top-1 left-1 badge badge-sm badge-info">
                       Existante
@@ -190,16 +220,46 @@ const ImageManager: React.FC<ImageManagerProps> = ({
                   )}
                 </div>
                 
-                <div className="flex items-center gap-2">
-                  <label className="text-xs text-gray-600">Rang:</label>
-                  <input
-                    type="number"
-                    min="1"
-                    max={imageList.length}
-                    value={image.rang}
-                    onChange={(e) => updateRang(image.id, parseInt(e.target.value))}
-                    className="input input-xs input-bordered w-16"
-                  />
+                <div className="space-y-2">
+                  {/* Rang */}
+                  <div className="flex items-center gap-2">
+                    <label className="text-xs text-gray-600">Rang:</label>
+                    <input
+                      type="number"
+                      min="1"
+                      max={imageList.length}
+                      value={image.rang}
+                      onChange={(e) => updateRang(image.id, parseInt(e.target.value))}
+                      className="input input-xs input-bordered w-16"
+                    />
+                  </div>
+
+                  {/* ✅ NOUVEAU : Sélection de couleur */}
+                  <div>
+                    <label className="text-xs text-gray-600 block mb-1">Couleur:</label>
+                    <Select
+                      options={couleurs.map(c => ({ 
+                        value: c.idCouleur, 
+                        label: c.nom 
+                      }))}
+                      value={
+                        image.idCouleur 
+                          ? { 
+                              value: image.idCouleur, 
+                              label: couleurs.find(c => c.idCouleur === image.idCouleur)?.nom || '' 
+                            }
+                          : null
+                      }
+                      onChange={(option) => updateCouleur(image.id, option?.value || null)}
+                      placeholder="Optionnel"
+                      isClearable
+                      className="text-xs"
+                      styles={{
+                        control: (base) => ({ ...base, minHeight: '28px', fontSize: '12px' }),
+                        menu: (base) => ({ ...base, fontSize: '12px' })
+                      }}
+                    />
+                  </div>
                 </div>
               </div>
             ))}

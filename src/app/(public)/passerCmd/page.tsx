@@ -191,7 +191,6 @@ function Checkout() {
       { key: 'clientTelephone', label: 'Téléphone' },
       { key: 'clientAdresseRue', label: 'Adresse' },
       { key: 'clientAdresseVille', label: 'Ville' },
-      { key: 'clientAdresseCodePostal', label: 'Code postal' }
     ];
 
     const newErrors: FormErrors = {};
@@ -247,7 +246,7 @@ function Checkout() {
       case 'clientAdresseVille':
         return value.trim().length < 2;
       case 'clientAdresseCodePostal':
-        return !/^\d{4}$/.test(value.trim());
+      return value.trim() && !/^\d{4}$/.test(value.trim());
       case 'notesLivraison':
         return value.length > 300;
       default:
@@ -313,8 +312,6 @@ function Checkout() {
         codePromo: codePromo?.code,
         fraisLivraison: livraison
       };
-      console.log("commmm",commandeData);
-      // 🆕 Utiliser la méthode unifiée qui gère les deux cas
       const response = await CommandesService.createCommandeUnified(
         commandeData,
         token // undefined si non connecté
@@ -551,7 +548,7 @@ function Checkout() {
                         </div>
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Code postal *
+                            Code postal (optionnel)
                             {errors.clientAdresseCodePostal && <span className="text-red-500 ml-1">- Au moins 2 caractères</span>}
                           </label>
                           <input

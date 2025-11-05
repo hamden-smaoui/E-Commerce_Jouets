@@ -181,7 +181,6 @@ export default function Contact() {
         setIsSubmitted(false);
       }, 5000);
     } catch (error) {
-      console.error('Erreur lors de l\'envoi:', error);
       const message = error instanceof Error ? error.message : 'Une erreur est survenue';
       toast.error(message);
       setErrors({});

@@ -140,7 +140,6 @@ const token = session?.customToken;
       setStats(statsData);
       setStatsLoading(false);
     } catch (error: unknown) {
-      console.error('Error fetching stats:', error);
       setStatsLoading(false);
     }
   };

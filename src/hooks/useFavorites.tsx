@@ -46,7 +46,6 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
         setFavorites(favoritesData);
       }
     } catch (error) {
-      console.error("Erreur lors du chargement des favoris:", error);
       setFavorites([]);
     } finally {
       setLoading(false);

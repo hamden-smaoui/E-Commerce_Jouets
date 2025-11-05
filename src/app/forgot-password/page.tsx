@@ -41,7 +41,6 @@ export default function ForgotPassword() {
       }, 2000);
 
     } catch (err: any) {
-      console.error("Erreur forgot password:", err);
       const errorMessage = err?.response?.data?.message || "Erreur lors de l'envoi du code";
       setError(errorMessage);
       toast.error(errorMessage);

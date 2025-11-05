@@ -17,7 +17,6 @@ export default function FacebookAuthButton({ mode }: FacebookAuthButtonProps) {
         redirect: true 
       });
     } catch (error) {
-      console.error('Erreur lors de la connexion Facebook:', error);
     } finally {
       setLoading(false);
     }

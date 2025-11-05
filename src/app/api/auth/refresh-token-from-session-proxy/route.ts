@@ -24,7 +24,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(data);
 
   } catch (error: any) {
-    console.error('Erreur refresh-token-from-session-proxy:', error);
     return NextResponse.json(
       { message: error.message || 'Erreur serveur' },
       { status: 500 }

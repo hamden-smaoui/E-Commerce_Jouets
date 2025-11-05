@@ -66,7 +66,6 @@ api.interceptors.response.use(
       isRefreshing = true;
 
       try {
-        console.log("🔄 Token expiré, tentative de refresh...");
         
         // ✅ ÉTAPE 1: Essaie d'abord avec le refreshToken cookie (email/password)
         try {
@@ -77,7 +76,6 @@ api.interceptors.response.use(
           );
 
           const newToken = data.token;
-          console.log("✅ Refresh réussi via refreshToken cookie");
 
           sessionStorage.setItem('accessToken', newToken);
           api.defaults.headers.common['Authorization'] = `Bearer ${newToken}`;
@@ -87,24 +85,18 @@ api.interceptors.response.use(
           return api(originalRequest);
 
         } catch (refreshError: any) {
-          console.log("⚠️ Refresh via cookie échoué, tentative via session NextAuth...");
           
           // ✅ ÉTAPE 2: Si échec, essaie avec la session NextAuth (Google/Facebook)
           try {
             const session = await getSession();
             
-            // ✅ Debug: Affiche les infos de session
-            console.log("🔍 Session NextAuth:", session);
-            console.log("🔍 Session expires:", session?.expires);
-            console.log("🔍 Maintenant:", new Date().toISOString());
+        
             
             // ✅ Vérifie que la session existe et est valide
             if (!session || !session.userId) {
-              console.error("❌ Session NextAuth invalide ou expirée");
               throw new Error('Session NextAuth expirée');
             }
 
-            console.log("✅ Session NextAuth valide, demande nouveau token...");
             
             const { data } = await axios.post(
               `/api/auth/refresh-token-from-session-proxy`,
@@ -112,7 +104,6 @@ api.interceptors.response.use(
             );
 
             const newToken = data.token;
-            console.log("✅ Refresh réussi via session NextAuth");
 
             sessionStorage.setItem('accessToken', newToken);
             api.defaults.headers.common['Authorization'] = `Bearer ${newToken}`;
@@ -122,13 +113,11 @@ api.interceptors.response.use(
             return api(originalRequest);
             
           } catch (sessionError) {
-            console.error("❌ Erreur session NextAuth:", sessionError);
             throw sessionError; // Propage l'erreur pour déconnecter
           }
         }
 
       } catch (finalError) {
-        console.error("❌ Échec complet du refresh:", finalError);
         processQueue(finalError, null);
         
         sessionStorage.removeItem('accessToken');

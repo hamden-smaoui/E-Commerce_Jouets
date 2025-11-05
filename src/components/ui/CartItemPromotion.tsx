@@ -21,11 +21,6 @@ const CartItemPromotion: React.FC<CartItemPromotionProps> = ({
 
   // Mettre à jour le contexte à chaque changement - CORRECTION ICI
   React.useEffect(() => {
-    console.log('Updating item total for product', idProduit, {
-      original: prixOriginal,
-      final: prixFinal,
-      quantity: quantite
-    });
     updateItemTotal(idProduit, prixOriginal, prixFinal, quantite);
   }, [idProduit, prixOriginal, prixFinal, quantite, updateItemTotal]);
 

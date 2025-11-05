@@ -59,7 +59,6 @@ const token = session?.customToken;
         const fetchedFournisseurs = await FournisseursService.getAllFournisseurs(token);
         setFournisseurs(fetchedFournisseurs);
         setLoading(false);
-        console.log('Fournisseurs fetched:', fetchedFournisseurs);
       } catch (error: unknown) {
         const message = error instanceof Error ? error.message : 'Unknown error occurred';
         setError(message);

@@ -82,7 +82,6 @@ export default function Navbar() {
       router.push("/signIn");
       router.refresh();
     } catch (error) {
-      console.error("Erreur de déconnexion:", error);
       sessionStorage.removeItem('accessToken');
       setIsDropdownOpen(false);
       router.push("/signIn");

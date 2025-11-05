@@ -117,7 +117,6 @@ const { data: session, status } = useSession();
         image: file
       }));
       
-      console.log('Fichier sélectionné:', file);
     } else {
       if (imagePreview) {
         URL.revokeObjectURL(imagePreview);
@@ -283,7 +282,6 @@ const handleEditSubmit = async (data: CampaignFormData) => {
   if (!campaignToEdit) return;
   
   try {
-    console.log('Données de modification:', data);
     
     await NewsletterService.updateCampaign(campaignToEdit.idCampaign, data,token);
     await fetchCampaigns();
@@ -359,8 +357,7 @@ const handleCloseEditModal = () => {
 
   const handleAddSubmit = async (data: CampaignFormData) => {
     try {
-      console.log('Données avant envoi:', data);
-      console.log('Type de l\'image:', typeof data.image, data.image);
+     
       
       await NewsletterService.createCampaign(data,token);
       await fetchCampaigns();

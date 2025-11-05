@@ -67,22 +67,18 @@ export default function ProfilePage() {
   const [newsletterMsg, setNewsletterMsg] = useState<string | null>(null);
 
  useEffect(() => {
-  console.log("🔍 Status:", status);
-  console.log("🔍 Session:", session);
+ 
   
   if (status === "loading") {
-    console.log("⏳ NextAuth encore en chargement...");
     return;
   }
 
   if (status === "unauthenticated") {
-    console.log("❌ Non authentifié, redirection...");
     router.replace("/signIn");
     return;
   }
 
   if (status === "authenticated") {
-    console.log("✅ Authentifié! Chargement du profil...");
     fetchProfile();
   }
 }, [status, router]);
@@ -104,9 +100,7 @@ export default function ProfilePage() {
         adressePays: profile.adressePays || 'Tunisie',
       });
       setNewsletterEmail(profile.email || '');
-      console.log("Profil chargé avec succès");
     } catch (err) {
-      console.error("Erreur lors du chargement du profil:", err);
       toast.error("Impossible de charger le profil.");
     } finally {
       setGlobalLoading(false);
@@ -120,9 +114,7 @@ export default function ProfilePage() {
       if (token) {
         fetchUserOrders(token);
       } else {
-        console.warn("Token manquant : impossible de charger les commandes.");
-        // Optionnel : afficher un message utilisateur (toast) si tu veux
-        // toast.error("Session token manquant, reconnectez-vous.");
+        
       }
     }
   }, [activeTab, status, session?.customToken]);
@@ -173,7 +165,6 @@ useEffect(() => {
   // Fetch user orders — maintenant accepte token?: string et vérifie
   const fetchUserOrders = async (token?: string) => {
     if (!token) {
-      console.warn("No token provided to fetchUserOrders; aborting.");
       toast.error('Session token manquant, impossible de charger les commandes.');
       return;
     }
@@ -184,7 +175,6 @@ useEffect(() => {
       setOrders(userOrders);
       setFilteredOrders(userOrders.slice(0, 5));
     } catch (error) {
-      console.error("Erreur lors du chargement des commandes:", error);
       toast.error('Erreur lors du chargement des commandes');
     } finally {
       setOrdersLoading(false);
@@ -266,7 +256,6 @@ useEffect(() => {
         adressePays: profile.adressePays || 'Tunisie',
       });
     } catch (error) {
-      console.error("Erreur lors de la mise à jour:", error);
       toast.error('Erreur lors de la mise à jour du profil');
     } finally {
       setLoading(false);
@@ -289,7 +278,6 @@ useEffect(() => {
         adressePays: profile.adressePays || 'Tunisie',
       });
     }).catch(err => {
-      console.error("Erreur lors du rechargement du profil:", err);
     });
     setErrors({});
   };

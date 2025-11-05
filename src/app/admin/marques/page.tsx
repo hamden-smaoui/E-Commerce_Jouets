@@ -95,7 +95,6 @@ const token = session?.customToken;
         setError(null);
       } catch (error: unknown) {
         const message = error instanceof Error ? error.message : 'Erreur inconnue';
-        console.error('Erreur lors de la récupération:', error);
         setError(message);
         setMarques([]);
       } finally {
@@ -148,7 +147,6 @@ const token = session?.customToken;
             className="h-10 w-10 object-contain"
             onError={(e) => {
               e.currentTarget.src = '/images/image-profile.svg';
-              console.error(`Failed to load image: ${item.logoUrl}`);
             }}
           />
         ) : (
@@ -171,14 +169,12 @@ const handleImageChange = async (file: File | null, onChange: (value: any) => vo
         useWebWorker: true,
       };
       const compressedBlob = await imageCompression(file, options);
-      console.log('Image compressée:', compressedBlob);
 
       // Convert Blob to File
       const compressedFile = new File([compressedBlob], file.name, {
         type: compressedBlob.type,
         lastModified: file.lastModified,
       });
-      console.log('Fichier File créé:', compressedFile);
 
       // Revoke previous preview URL
       if (previewUrl) {
@@ -187,7 +183,6 @@ const handleImageChange = async (file: File | null, onChange: (value: any) => vo
 
       // Set new preview URL
       const newPreviewUrl = URL.createObjectURL(compressedFile);
-      console.log('Nouvelle URL de prévisualisation créée:', newPreviewUrl);
       setPreviewUrl(newPreviewUrl);
       setImageKey((prev) => prev + 1);
 
@@ -200,14 +195,12 @@ const handleImageChange = async (file: File | null, onChange: (value: any) => vo
       // Also call onChange for the FormModal
       onChange(compressedFile);
 
-      console.log('FormData mis à jour avec le nouveau fichier');
 
       setNotification({
         type: 'success',
         message: 'Image sélectionnée avec succès',
       });
     } catch (error) {
-      console.error('Erreur lors de la compression:', error);
       setNotification({
         type: 'error',
         message: 'Erreur lors de la compression de l\'image',
@@ -250,12 +243,7 @@ const marqueFields: Field<FormData>[] = [
     label: 'Logo',
     type: 'custom',
     render: ({ value, onChange }) => {
-      const getPreviewUrl = () => {
-        console.log('getPreviewUrl - value:', value);
-        console.log('getPreviewUrl - previewUrl:', previewUrl);
-        console.log('getPreviewUrl - imageLoading:', imageLoading);
-        console.log('getPreviewUrl - formData.logo:', formData.logo);
-        
+      const getPreviewUrl = () => {        
         // Si on est en train de charger
         if (imageLoading) {
           return '/images/image-profile.svg';
@@ -266,24 +254,20 @@ const marqueFields: Field<FormData>[] = [
         
         // Si on a un nouveau fichier sélectionné ET une URL de prévisualisation
         if (logoValue instanceof File && previewUrl) {
-          console.log('Utilisation de previewUrl:', previewUrl);
           return previewUrl;
         }
         
         // Si on a une URL d'image existante (cas de modification)
         if (typeof logoValue === 'string' && logoValue && !logoValue.startsWith('blob:')) {
           const url = `${logoValue}`;
-          console.log('Utilisation de l\'URL backend:', url);
           return url;
         }
         
         // Image par défaut
-        console.log('Utilisation de l\'image par défaut');
         return '/images/image-profile.svg';
       };
 
       const currentUrl = getPreviewUrl();
-      console.log('URL actuelle utilisée:', currentUrl);
 
       return (
         <div className="relative w-32 h-32">
@@ -298,10 +282,8 @@ const marqueFields: Field<FormData>[] = [
             alt="Aperçu"
             className="w-full h-full object-cover rounded border"
             onLoad={() => {
-              console.log('Image chargée avec succès:', currentUrl);
             }}
             onError={(e) => {
-              console.error('Erreur lors du chargement de l\'image:', currentUrl);
               if (e.currentTarget.src !== '/images/image-profile.svg') {
                 e.currentTarget.src = '/images/image-profile.svg';
               }
@@ -315,7 +297,6 @@ const marqueFields: Field<FormData>[] = [
               className="hidden"
               onChange={async (e) => {
                 const file = e.target.files ? e.target.files[0] : null;
-                console.log('Fichier sélectionné:', file);
                 if (file) {
                   await handleImageChange(file, onChange);
                 }
@@ -348,18 +329,15 @@ const marqueFields: Field<FormData>[] = [
 
   const handleAddSubmit = async (data: FormData) => {
     try {
-      console.log('Données à envoyer:', data);
 
       const formDataToSend = new FormData();
       formDataToSend.append('nom', data.nom);
       formDataToSend.append('description', data.description || '');
       if (data.logo && data.logo instanceof File) {
         formDataToSend.append('logo', data.logo);
-        console.log('Logo ajouté au FormData:', data.logo);
       }
 
       const newMarque = await MarquesService.createMarque(formDataToSend,token);
-      console.log('Nouvelle marque créée:', newMarque);
 
       setMarques([...marques, newMarque]);
       setIsAddModalOpen(false);
@@ -384,7 +362,6 @@ const marqueFields: Field<FormData>[] = [
       });
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Erreur inconnue';
-      console.error('Erreur lors de l\'ajout:', error);
       setNotification({
         type: 'error',
         message: `Erreur ! Échec de l'ajout de la marque: ${message}`,
@@ -402,18 +379,15 @@ const marqueFields: Field<FormData>[] = [
         return;
       }
 
-      console.log('Données de modification:', data);
 
       const formDataToSend = new FormData();
       formDataToSend.append('nom', data.nom);
       formDataToSend.append('description', data.description || '');
       if (data.logo && data.logo instanceof File) {
         formDataToSend.append('logo', data.logo);
-        console.log('Logo de modification ajouté:', data.logo);
       }
 
       const updatedMarque = await MarquesService.updateMarque(data.idMarque, formDataToSend,token);
-      console.log('Marque mise à jour:', updatedMarque);
 
       setMarques(marques.map((marque) => (marque.idMarque === data.idMarque ? updatedMarque : marque)));
       setIsEditModalOpen(false);
@@ -432,7 +406,6 @@ const marqueFields: Field<FormData>[] = [
       });
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Erreur inconnue';
-      console.error('Erreur lors de la modification:', error);
       setNotification({
         type: 'error',
         message: `Erreur ! Échec de la modification de la marque: ${message}`,
@@ -458,7 +431,6 @@ const marqueFields: Field<FormData>[] = [
       });
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Erreur inconnue';
-      console.error('Erreur lors de la suppression:', error);
       setNotification({
         type: 'error',
         message: `Erreur ! Échec de la suppression de la marque: ${message}`,
@@ -502,7 +474,6 @@ const marqueFields: Field<FormData>[] = [
   const handleEdit = async (marque: Marque) => {
     try {
       const fetchedMarque = await MarquesService.getMarqueById(marque.idMarque,token);
-      console.log('Marque récupérée pour modification:', fetchedMarque);
 
       // Nettoyer le previewUrl précédent
       if (previewUrl) {
@@ -522,7 +493,6 @@ const marqueFields: Field<FormData>[] = [
       setIsEditModalOpen(true);
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Erreur inconnue';
-      console.error('Erreur lors du chargement pour modification:', error);
       setNotification({
         type: 'error',
         message: `Erreur lors du chargement des données de la marque: ${message}`,

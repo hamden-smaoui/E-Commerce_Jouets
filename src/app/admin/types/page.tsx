@@ -70,7 +70,6 @@ const Types: React.FC = () => {
     const fetchData = async () => {
       try {
         const fetchedTypes = await TypesService.getAllTypes(token);
-        console.log('Types récupérés:', fetchedTypes);
         setTypes(fetchedTypes);
         setLoading(false);
       } catch (error: unknown) {
@@ -142,7 +141,6 @@ const Types: React.FC = () => {
   ];
 
   const handleAddSubmit = async (data: FormData) => {
-    console.log('Données à soumettre pour ajout:', data);
     try {
       const newType = await TypesService.createType(data,token);
       setTypes([...types, newType]);
@@ -161,7 +159,6 @@ const Types: React.FC = () => {
   };
 
   const handleEditSubmit = async (data: FormData) => {
-    console.log('Données à soumettre pour modification:', data);
     try {
       if (!data.idType) {
         setNotification({
@@ -233,7 +230,6 @@ const Types: React.FC = () => {
       nom: '',
       description: '',
     };
-    console.log('Initialisation formulaire ajout:', initialFormData);
     setFormData(initialFormData);
     setIsAddModalOpen(true);
   };
@@ -241,14 +237,12 @@ const Types: React.FC = () => {
   const handleEdit = async (type: Type) => {
     try {
       const fetchedType = await TypesService.getTypeById(type.idType,token);
-      console.log('Type récupéré pour édition:', fetchedType);
       
       const editFormData = {
         idType: fetchedType.idType,
         nom: fetchedType.nom || '',
         description: fetchedType.description || '',
       };
-      console.log('Données du formulaire d\'édition:', editFormData);
       
       setFormData(editFormData);
       setIsEditModalOpen(true);

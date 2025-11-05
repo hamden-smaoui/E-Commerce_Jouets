@@ -20,7 +20,6 @@ export const usePromotions = (idProduit?: number) => {
       const promotionsData = await PromotionsService.getPromotionsPourProduit(idProduit);
       setPromotions(promotionsData);
     } catch (error) {
-      console.error('Erreur chargement promotions:', error);
     } finally {
       setLoading(false);
     }

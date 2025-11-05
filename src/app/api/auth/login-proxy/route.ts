@@ -3,7 +3,6 @@ import { NextRequest, NextResponse } from 'next/server';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    console.log("📥 Login proxy - Requête reçue:", body);
 
     // ✅ Appelle le backend Express
     const response = await fetch(
@@ -19,17 +18,14 @@ export async function POST(request: NextRequest) {
     );
 
     const data = await response.json();
-    console.log("📦 Backend response status:", response.status);
-    console.log("📦 Backend response data:", data);
+  
 
     if (!response.ok) {
-      console.error("❌ Erreur backend:", data);
       return NextResponse.json(data, { status: response.status });
     }
 
     // ✅ Récupère tous les cookies du backend
     const setCookieHeaders = response.headers.getSetCookie();
-    console.log("🍪 Cookies from backend:", setCookieHeaders);
     
     // ✅ Crée la réponse Next.js
     const nextResponse = NextResponse.json(data);
@@ -39,11 +35,9 @@ export async function POST(request: NextRequest) {
       nextResponse.headers.append('Set-Cookie', cookie);
     });
 
-    console.log("✅ Réponse envoyée au client avec cookies");
     return nextResponse;
 
   } catch (error: any) {
-    console.error('❌ Erreur login-proxy:', error);
     return NextResponse.json(
       { message: error.message || 'Erreur serveur' },
       { status: 500 }

@@ -105,7 +105,6 @@ function SignUpContent() {
       }
 
     } catch (err: any) {
-      console.error("Erreur lors de l'inscription:", err);
       const errorMessage = err?.response?.data?.message || "Erreur lors de l'inscription";
       setErrors({ submit: errorMessage });
       toast.error(errorMessage);

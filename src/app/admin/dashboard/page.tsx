@@ -103,7 +103,6 @@ const token = session?.customToken;
 
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Une erreur est survenue');
-        console.error('Erreur lors du chargement des données du dashboard:', err);
       } finally {
         setIsLoading(false);
       }
@@ -153,7 +152,7 @@ const token = session?.customToken;
             </svg>
           </div>
           <div className="stat-title">Ventes Totales</div>
-          <div className="stat-value text-primary">${dashboardData.totalSales.toFixed(2)}</div>
+          <div className="stat-value text-primary">TND{dashboardData.totalSales.toFixed(2)}</div>
           <div className="stat-desc">Chiffre d'affaires total</div>
         </div>
         <div className="stat">
@@ -173,7 +172,7 @@ const token = session?.customToken;
             </svg>
           </div>
           <div className="stat-title">Panier Moyen</div>
-          <div className="stat-value">${dashboardData.averageOrderValue.toFixed(2)}</div>
+          <div className="stat-value">TND{dashboardData.averageOrderValue.toFixed(2)}</div>
           <div className="stat-desc">Par transaction</div>
         </div>
       </div>
@@ -299,7 +298,7 @@ const token = session?.customToken;
                         </div>
                       </div>
                     </td>
-                    <td>${product.prix.toFixed(2)}</td>
+                    <td>TND{product.prix.toFixed(2)}</td>
                     <td>
                       <span className={`badge ${product.quantiteStock > 0 ? 'badge-success' : 'badge-error'}`}>
                         {product.quantiteStock}

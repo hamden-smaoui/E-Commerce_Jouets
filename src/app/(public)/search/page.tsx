@@ -53,7 +53,6 @@ export default function SearchPage() {
       setCurrentPage(page);
     } catch (err) {
       setError('Erreur lors de la recherche');
-      console.error('Search error:', err);
     } finally {
       setLoading(false);
     }

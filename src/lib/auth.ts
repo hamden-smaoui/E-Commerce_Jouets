@@ -102,7 +102,6 @@ export const authOptions: NextAuthOptions = {
             token.userId = data.user.idUtilisateur.toString();
           }
         } catch (err) {
-          console.error(`Erreur ${account.provider} auth:`, err);
         }
       }
       

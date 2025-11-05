@@ -53,9 +53,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
     try {
       await PanierService.syncLocalCartToDB(token);
-      console.log('✅ Tentative de synchronisation terminée');
     } catch (error) {
-      console.error('❌ Erreur lors de la synchronisation:', error);
       throw error;
     }
   };
@@ -208,7 +206,6 @@ export function CartProvider({ children }: { children: ReactNode }) {
             await syncCartOnLogin();
             setSyncDone(true);
           } catch (error) {
-            console.error('Erreur de synchronisation:', error);
           }
         }
         // ✅ Charger le panier depuis la BDD
