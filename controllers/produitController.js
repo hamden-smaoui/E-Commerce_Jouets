@@ -7,107 +7,119 @@ class ProduitController {
   static uploadImages = upload.array('images', 10);
 
   async createProduit(req, res, next) {
-    ProduitController.uploadImages(req, res, async (err) => {
-      if (err) {
-        const error = new Error('Erreur lors du téléchargement des images');
-        error.code = "VALIDATION_ERROR";
-        return next(error);
-      }
+  ProduitController.uploadImages(req, res, async (err) => {
+    if (err) {
+      const error = new Error('Erreur lors du téléchargement des images');
+      error.code = "VALIDATION_ERROR";
+      return next(error);
+    }
+    
+    try {
+      const { 
+        nom, 
+        description, 
+        prix, 
+        quantiteStock, 
+        idCategorie, 
+        idMarque, 
+        idFournisseur, 
+        idType,
+        idAge,
+        genre, 
+        livraisonGratuite,
+        variants,
+        imageColors // ✅ NOUVEAU: Array des couleurs pour chaque image
+      } = req.body;
       
-      try {
-        const { 
-          nom, 
-          description, 
-          prix, 
-          quantiteStock, 
-          idCategorie, 
-          idMarque, 
-          idFournisseur, 
-          idType,
-          idAge, // ✅ NOUVEAU CHAMP
-          genre, 
-          livraisonGratuite,
-          variants 
-        } = req.body;
-        
-        const produit = await Produit.create({
-          nom,
-          description,
-          prix: parseFloat(prix),
-          quantiteStock: parseInt(quantiteStock),
-          idCategorie: parseInt(idCategorie),
-          idMarque: parseInt(idMarque),
-          idType: idType ? parseInt(idType) : null,
-          idFournisseur: parseInt(idFournisseur),
-          idAge: idAge ? parseInt(idAge) : null, // ✅ NOUVEAU CHAMP
-          genre,
-          livraisonGratuite: livraisonGratuite === 'true' || livraisonGratuite === true,
-        });
+      const produit = await Produit.create({
+        nom,
+        description,
+        prix: parseFloat(prix),
+        quantiteStock: parseInt(quantiteStock),
+        idCategorie: parseInt(idCategorie),
+        idMarque: parseInt(idMarque),
+        idType: idType ? parseInt(idType) : null,
+        idFournisseur: parseInt(idFournisseur),
+        idAge: idAge ? parseInt(idAge) : null,
+        genre,
+        livraisonGratuite: livraisonGratuite === 'true' || livraisonGratuite === true,
+      });
 
-        // Utiliser Cloudinary URLs
-        if (req.files && Array.isArray(req.files)) {
-          console.log('🔍 IMAGE MODEL DEFINITION:', Image.rawAttributes.publicId);
+      // ✅ MODIFIÉ: Associer couleur à chaque image
+      if (req.files && Array.isArray(req.files)) {
+        console.log('🔍 IMAGE MODEL DEFINITION:', Image.rawAttributes.publicId);
 
-          const images = req.files.map((file, i) => ({
-            url: file.path,
-            publicId: file.filename,
-            rang: i + 1,
-            idProduit: produit.idProduit,
-          }));
+        // Parse imageColors si c'est une string
+        const colorsArray = imageColors 
+          ? (typeof imageColors === 'string' ? JSON.parse(imageColors) : imageColors)
+          : [];
 
-          console.log('🔍 DATA TO INSERT:', images);
-          await Image.bulkCreate(images);
-        }
+        const images = req.files.map((file, i) => ({
+          url: file.path,
+          publicId: file.filename,
+          rang: i + 1,
+          idProduit: produit.idProduit,
+          idCouleur: colorsArray[i] || null, // ✅ Associer la couleur
+        }));
 
-        let variantsArray = [];
-        if (variants) {
-          variantsArray = typeof variants === "string" ? JSON.parse(variants) : variants;
-          for (const v of variantsArray) {
-            await ProduitVariation.create({
-              idProduit: produit.idProduit,
-              idCouleur: v.idCouleur,
-              idTaille: v.idTaille || null,
-              idAge: v.idAge || null,
-              quantiteStock: v.quantiteStock,
-            });
-          }
-        }
-
-        const createdProduit = await Produit.findByPk(produit.idProduit, {
-          include: [
-            { model: Categorie, as: 'categorie' },
-            { model: Marque, as: 'marque' },
-            { model: Type, as: 'type' },
-            { model: Fournisseur, as: 'fournisseur' },
-            { model: Age, as: 'age' }, // ✅ NOUVEAU
-            { model: Image, as: 'images', order: [['rang', 'ASC']] },
-            { 
-              model: ProduitVariation, as: 'variations',
-              include: [
-                { model: Couleur, as: 'couleur' },
-                { model: Taille, as: 'taille' },
-                { model: Age, as: 'age' }
-              ]
-            }
-          ]
-        });
-        
-        res.status(201).json({ message: 'Produit créé avec succès', data: createdProduit });
-      } catch (error) {
-        // En cas d'erreur, supprimer les images de Cloudinary
-        if (req.files && req.files.length > 0) {
-          for (const file of req.files) {
-            try {
-              await cloudinary.uploader.destroy(file.filename);
-            } catch (deleteErr) {
-              console.error('Erreur suppression image Cloudinary:', deleteErr);
-            }
-          }
-        }
-        next(error);
+        console.log('🔍 DATA TO INSERT:', images);
+        await Image.bulkCreate(images);
       }
-    });
-  }
+
+      let variantsArray = [];
+      if (variants) {
+        variantsArray = typeof variants === "string" ? JSON.parse(variants) : variants;
+        for (const v of variantsArray) {
+          await ProduitVariation.create({
+            idProduit: produit.idProduit,
+            idCouleur: v.idCouleur,
+            idTaille: v.idTaille || null,
+            idAge: v.idAge || null,
+            quantiteStock: v.quantiteStock,
+          });
+        }
+      }
+
+      const createdProduit = await Produit.findByPk(produit.idProduit, {
+        include: [
+          { model: Categorie, as: 'categorie' },
+          { model: Marque, as: 'marque' },
+          { model: Type, as: 'type' },
+          { model: Fournisseur, as: 'fournisseur' },
+          { model: Age, as: 'age' },
+          { 
+            model: Image, 
+            as: 'images', 
+            include: [{ model: Couleur, as: 'couleur' }], // ✅ Inclure couleur
+            order: [['rang', 'ASC']] 
+          },
+          { 
+            model: ProduitVariation, as: 'variations',
+            include: [
+              { model: Couleur, as: 'couleur' },
+              { model: Taille, as: 'taille' },
+              { model: Age, as: 'age' }
+            ]
+          }
+        ]
+      });
+      
+      res.status(201).json({ message: 'Produit créé avec succès', data: createdProduit });
+    } catch (error) {
+      // En cas d'erreur, supprimer les images de Cloudinary
+      if (req.files && req.files.length > 0) {
+        for (const file of req.files) {
+          try {
+            await cloudinary.uploader.destroy(file.filename);
+          } catch (deleteErr) {
+            console.error('Erreur suppression image Cloudinary:', deleteErr);
+          }
+        }
+      }
+      next(error);
+    }
+  });
+}
 
   async getAllProduits(req, res, next) {
     try {
@@ -118,7 +130,12 @@ class ProduitController {
           { model: Type, as: 'type' },
           { model: Fournisseur, as: 'fournisseur' },
           { model: Age, as: 'age' }, // ✅ NOUVEAU
-          { model: Image, as: 'images', order: [['rang', 'ASC']] },
+         { 
+  model: Image, 
+  as: 'images', 
+  include: [{ model: Couleur, as: 'couleur' }], // ✅ Ajouter partout
+  order: [['rang', 'ASC']] 
+},
           { 
             model: ProduitVariation, as: 'variations',
             include: [
@@ -144,7 +161,12 @@ class ProduitController {
           { model: Type, as: 'type' },
           { model: Fournisseur, as: 'fournisseur' },
           { model: Age, as: 'age' }, // ✅ NOUVEAU
-          { model: Image, as: 'images', order: [['rang', 'ASC']] },
+          { 
+  model: Image, 
+  as: 'images', 
+  include: [{ model: Couleur, as: 'couleur' }], // ✅ Ajouter partout
+  order: [['rang', 'ASC']] 
+},
           { 
             model: ProduitVariation, as: 'variations',
             include: [
@@ -201,6 +223,7 @@ class ProduitController {
           { 
             model: Image, 
             as: 'images', 
+            include: [{ model: Couleur, as: 'couleur' }],
             attributes: ['idImage', 'url', 'rang'],
             separate: true,
             order: [['rang', 'ASC']],
@@ -242,133 +265,182 @@ class ProduitController {
     }
   }
 
-  async updateProduit(req, res, next) {
-    ProduitController.uploadImages(req, res, async (err) => {
-      if (err) {
-        const error = new Error('Erreur upload');
-        error.code = "VALIDATION_ERROR";
+async updateProduit(req, res, next) {
+  ProduitController.uploadImages(req, res, async (err) => {
+    if (err) {
+      const error = new Error('Erreur upload');
+      error.code = "VALIDATION_ERROR";
+      return next(error);
+    }
+    
+    try {
+      const produit = await Produit.findByPk(req.params.id, { 
+        include: [{ 
+          model: Image, 
+          as: 'images',
+          include: [{ model: Couleur, as: 'couleur' }]
+        }] 
+      });
+      
+      if (!produit) {
+        const error = new Error('Produit non trouvé');
+        error.code = "NOT_FOUND";
         return next(error);
       }
       
-      try {
-        const produit = await Produit.findByPk(req.params.id, { include: [{ model: Image, as: 'images' }] });
-        if (!produit) {
-          const error = new Error('Produit non trouvé');
-          error.code = "NOT_FOUND";
-          return next(error);
-        }
-        
-        const {
-          nom,
-          description,
-          prix,
-          quantiteStock,
-          idCategorie,
-          idMarque,
-          idType,
-          idFournisseur,
-          idAge, // ✅ NOUVEAU
-          genre,
-          livraisonGratuite, 
-          imagesToDelete,
-          imageRangs,
-          variants,
-        } = req.body;
-        
-        await produit.update({
-          nom,
-          description,
-          prix: parseFloat(prix),
-          quantiteStock: parseInt(quantiteStock),
-          idCategorie: parseInt(idCategorie),
-          idMarque: parseInt(idMarque),
-          idType: idType ? parseInt(idType) : null,
-          idFournisseur: parseInt(idFournisseur),
-          idAge: idAge ? parseInt(idAge) : null, // ✅ NOUVEAU
-          genre,
-          livraisonGratuite: livraisonGratuite === 'true' || livraisonGratuite === true,
-        });
+      const {
+        nom,
+        description,
+        prix,
+        quantiteStock,
+        idCategorie,
+        idMarque,
+        idType,
+        idFournisseur,
+        idAge,
+        genre,
+        livraisonGratuite, 
+        imagesToDelete,
+        imageRangs,
+        existingImageColors, // ✅ NOUVEAU : Couleurs des images existantes modifiées
+        newImageColors, // ✅ Couleurs des nouvelles images
+        variants,
+      } = req.body;
+      
+      console.log('📦 existingImageColors reçu:', existingImageColors);
+      console.log('📦 Type de existingImageColors:', typeof existingImageColors);
+      console.log('📦 newImageColors reçu:', newImageColors);
+      console.log('📦 Type de newImageColors:', typeof newImageColors);
+      
+      await produit.update({
+        nom,
+        description,
+        prix: parseFloat(prix),
+        quantiteStock: parseInt(quantiteStock),
+        idCategorie: parseInt(idCategorie),
+        idMarque: parseInt(idMarque),
+        idType: idType ? parseInt(idType) : null,
+        idFournisseur: parseInt(idFournisseur),
+        idAge: idAge ? parseInt(idAge) : null,
+        genre,
+        livraisonGratuite: livraisonGratuite === 'true' || livraisonGratuite === true,
+      });
 
-        if (imagesToDelete) {
-          const idsToDelete = Array.isArray(imagesToDelete) 
-            ? imagesToDelete 
-            : JSON.parse(imagesToDelete);
-          
-          for (const idImage of idsToDelete) {
-            const image = await Image.findByPk(idImage);
-            if (image && image.publicId) {
-              try {
-                await cloudinary.uploader.destroy(image.publicId);
-              } catch (deleteErr) {
-                console.error('Erreur suppression Cloudinary:', deleteErr);
-              }
+      // Supprimer les images
+      if (imagesToDelete) {
+        const idsToDelete = Array.isArray(imagesToDelete) 
+          ? imagesToDelete 
+          : JSON.parse(imagesToDelete);
+        
+        for (const idImage of idsToDelete) {
+          const image = await Image.findByPk(idImage);
+          if (image && image.publicId) {
+            try {
+              await cloudinary.uploader.destroy(image.publicId);
+            } catch (deleteErr) {
+              console.error('Erreur suppression Cloudinary:', deleteErr);
             }
-            await Image.destroy({ where: { idImage } });
           }
+          await Image.destroy({ where: { idImage } });
         }
-
-        if (imageRangs) {
-          const rangs = JSON.parse(imageRangs);
-          for (const [idImage, rang] of Object.entries(rangs)) {
-            await Image.update({ rang: parseInt(rang) }, { where: { idImage: parseInt(idImage) } });
-          }
-        }
-
-        if (req.files && req.files.length > 0) {
-          const existingImages = await Image.findAll({ where: { idProduit: produit.idProduit } });
-          const maxRang = existingImages.length > 0 ? Math.max(...existingImages.map(img => img.rang)) : 0;
-
-          const images = req.files.map((file, i) => ({
-            url: file.path,
-            publicId: file.filename,
-            rang: maxRang + i + 1,
-            idProduit: produit.idProduit,
-          }));
-
-          await Image.bulkCreate(images);
-        }
-
-        if (variants) {
-          const variantsArray = typeof variants === 'string' ? JSON.parse(variants) : variants;
-          
-          await ProduitVariation.destroy({ where: { idProduit: produit.idProduit } });
-          
-          for (const v of variantsArray) {
-            await ProduitVariation.create({
-              idProduit: produit.idProduit,
-              idCouleur: v.idCouleur,
-              idTaille: v.idTaille || null,
-              idAge: v.idAge || null,
-              quantiteStock: v.quantiteStock,
-            });
-          }
-        }
-
-        const updatedProduit = await Produit.findByPk(produit.idProduit, {
-          include: [
-            { model: Categorie, as: 'categorie' },
-            { model: Marque, as: 'marque' },
-            { model: Type, as: 'type' },
-            { model: Fournisseur, as: 'fournisseur' },
-            { model: Age, as: 'age' }, // ✅ NOUVEAU
-            { model: Image, as: 'images', order: [['rang', 'ASC']] },
-            { 
-              model: ProduitVariation, as: 'variations',
-              include: [
-                { model: Couleur, as: 'couleur' },
-                { model: Taille, as: 'taille' },
-                { model: Age, as: 'age' }
-              ]
-            }
-          ]
-        });
-        
-        res.status(200).json({ message: 'Produit mis à jour avec succès', data: updatedProduit });
-      } catch (error) {
-        next(error);
       }
-    });
-  }
+
+      // ✅ MODIFIÉ : Mettre à jour les couleurs des images existantes
+      if (existingImageColors) {
+        const colorsMap = typeof existingImageColors === 'string' 
+          ? JSON.parse(existingImageColors) 
+          : existingImageColors;
+        
+        console.log('🎨 colorsMap parsé:', colorsMap);
+        
+        for (const [idImage, idCouleur] of Object.entries(colorsMap)) {
+          await Image.update(
+            { idCouleur: idCouleur || null }, 
+            { where: { idImage: parseInt(idImage) } }
+          );
+          console.log(`✅ Image ${idImage} mise à jour avec couleur ${idCouleur}`);
+        }
+      }
+
+      // Mettre à jour les rangs (séparément des couleurs maintenant)
+      if (imageRangs) {
+        const rangs = JSON.parse(imageRangs);
+        
+        for (const [idImage, rang] of Object.entries(rangs)) {
+          await Image.update(
+            { rang: parseInt(rang) }, 
+            { where: { idImage: parseInt(idImage) } }
+          );
+        }
+      }
+
+      // Nouvelles images avec couleurs
+      if (req.files && req.files.length > 0) {
+        const existingImages = await Image.findAll({ where: { idProduit: produit.idProduit } });
+        const maxRang = existingImages.length > 0 ? Math.max(...existingImages.map(img => img.rang)) : 0;
+
+        const colorsArray = newImageColors 
+          ? (typeof newImageColors === 'string' ? JSON.parse(newImageColors) : newImageColors)
+          : [];
+
+        const images = req.files.map((file, i) => ({
+          url: file.path,
+          publicId: file.filename,
+          rang: maxRang + i + 1,
+          idProduit: produit.idProduit,
+          idCouleur: colorsArray[i] || null,
+        }));
+
+        await Image.bulkCreate(images);
+      }
+
+      // Mettre à jour les variations
+      if (variants) {
+        const variantsArray = typeof variants === 'string' ? JSON.parse(variants) : variants;
+        
+        await ProduitVariation.destroy({ where: { idProduit: produit.idProduit } });
+        
+        for (const v of variantsArray) {
+          await ProduitVariation.create({
+            idProduit: produit.idProduit,
+            idCouleur: v.idCouleur,
+            idTaille: v.idTaille || null,
+            idAge: v.idAge || null,
+            quantiteStock: v.quantiteStock,
+          });
+        }
+      }
+
+      const updatedProduit = await Produit.findByPk(produit.idProduit, {
+        include: [
+          { model: Categorie, as: 'categorie' },
+          { model: Marque, as: 'marque' },
+          { model: Type, as: 'type' },
+          { model: Fournisseur, as: 'fournisseur' },
+          { model: Age, as: 'age' },
+          { 
+            model: Image, 
+            as: 'images', 
+            include: [{ model: Couleur, as: 'couleur' }],
+            order: [['rang', 'ASC']] 
+          },
+          { 
+            model: ProduitVariation, as: 'variations',
+            include: [
+              { model: Couleur, as: 'couleur' },
+              { model: Taille, as: 'taille' },
+              { model: Age, as: 'age' }
+            ]
+          }
+        ]
+      });
+      
+      res.status(200).json({ message: 'Produit mis à jour avec succès', data: updatedProduit });
+    } catch (error) {
+      next(error);
+    }
+  });
+}
 
   async deleteProduit(req, res, next) {
     try {
@@ -455,6 +527,7 @@ class ProduitController {
         { 
           model: Image, 
           as: 'images', 
+          include: [{ model: Couleur, as: 'couleur' }], 
           attributes: ['idImage', 'url', 'rang'],
           separate: true,
           order: [['rang', 'ASC']],
@@ -839,6 +912,7 @@ class ProduitController {
           { 
             model: Image, 
             as: 'images',
+            include: [{ model: Couleur, as: 'couleur' }], 
             separate: true,
             order: [['rang', 'ASC']],
           },

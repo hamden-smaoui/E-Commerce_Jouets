@@ -18,7 +18,7 @@ function validateClientData(clientData) {
     return "Adresse rue invalide";
   if (!clientData.clientAdresseVille || !validator.isLength(clientData.clientAdresseVille, { min: 2, max: 50 }))
     return "Adresse ville invalide";
-  if (!clientData.clientAdresseCodePostal || !validator.isLength(clientData.clientAdresseCodePostal, { min: 2, max: 12 }))
+  if (clientData.clientAdresseCodePostal && !validator.isLength(clientData.clientAdresseCodePostal, { min: 2, max: 12 }))
     return "Code postal invalide";
   if (!clientData.clientAdressePays || !validator.isLength(clientData.clientAdressePays, { min: 2, max: 50 }))
     return "Pays invalide";

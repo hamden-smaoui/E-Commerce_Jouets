@@ -1,11 +1,13 @@
 const sequelize = require('../config/database');
+
+// ✅ IMPORTANT : Importer TOUS les modèles AVANT de créer les associations
 const Utilisateur = require('./Utilisateur');
 const Categorie = require('./Categorie');
 const Produit = require('./Produit');
 const Commande = require('./Commande');
 const LigneCommande = require('./LigneCommande');
 const Facture = require('./Facture');
-const Image = require('./Image');
+const Image = require('./Image'); // ✅ Vérifier que ce fichier exporte bien le modèle
 const Panier = require('./Panier');
 const PanierProduit = require('./PanierProduit');
 const Favori = require('./Favori');
@@ -31,6 +33,9 @@ const Age = require('./Age');
 const NewsLetter = require('./NewsLetter');
 const NewsletterCampaign = require('./NewsletterCampaign');
 
+// ✅ DEBUG : Vérifier que Image est bien défini
+console.log('🔍 Type de Image:', typeof Image);
+console.log('🔍 Image est un modèle Sequelize?', Image.prototype instanceof sequelize.Sequelize.Model);
 
 // Existing associations
 Utilisateur.hasMany(Commande, { foreignKey: 'idClient', as: 'commandes' });
@@ -49,8 +54,9 @@ Produit.hasMany(LigneCommande, { foreignKey: 'idProduit', as: 'lignesCommandes' 
 LigneCommande.belongsTo(Produit, { foreignKey: 'idProduit', as: 'produit' });
 
 Commande.hasOne(Facture, { foreignKey: 'idCommande', as: 'facture' });
-Facture.belongsTo(Commande, { foreignKey: 'idCommande', as: 'commande' });
+Facture.belongsTo(Commande, { foreignKey: 'idCommande', as: 'facture' });
 
+// ✅ Cette ligne pose problème (ligne 54 probablement)
 Produit.hasMany(Image, { foreignKey: 'idProduit', as: 'images' });
 Image.belongsTo(Produit, { foreignKey: 'idProduit', as: 'produit' });
 
@@ -58,6 +64,15 @@ StoreInfo.hasMany(Image, { foreignKey: 'idStoreInfo', as: 'heroImages' });
 StoreInfo.hasMany(Image, { foreignKey: 'idStoreInfo', as: 'promotionImages' });
 Image.belongsTo(StoreInfo, { foreignKey: 'idStoreInfo', as: 'storeInfo' });
 
+// ✅ NOUVEAU : Association Image → Couleur
+Image.belongsTo(Couleur, { 
+    foreignKey: 'idCouleur', 
+    as: 'couleur' 
+});
+Couleur.hasMany(Image, { 
+    foreignKey: 'idCouleur', 
+    as: 'images' 
+});
 Utilisateur.hasOne(Panier, { foreignKey: 'idUtilisateur', as: 'panier' });
 Panier.belongsTo(Utilisateur, { foreignKey: 'idUtilisateur', as: 'utilisateur' });
 
@@ -208,6 +223,7 @@ ProduitVariation.hasMany(LigneCommande, { as: 'lignesCommandes', foreignKey: 'id
 Age.hasMany(Produit, { foreignKey: 'idAge', as: 'produits' });
 Produit.belongsTo(Age, { foreignKey: 'idAge', as: 'age' });
 
+
 module.exports = {
     sequelize,
     Utilisateur,
@@ -241,5 +257,4 @@ module.exports = {
     Age,
     NewsLetter,
     NewsletterCampaign,
-
 };

@@ -1,5 +1,6 @@
 const { DataTypes } = require('sequelize');
 const sequelize = require('../config/database');
+
 const Image = sequelize.define('Image', {
     idImage: {
         type: DataTypes.INTEGER,
@@ -7,13 +8,13 @@ const Image = sequelize.define('Image', {
         primaryKey: true,
     },
     url: {
-    type: DataTypes.STRING(500), 
-    allowNull: false
-  },
-     publicId: {  
-      type: DataTypes.STRING(255),
-      allowNull: true,
-      field: 'publicId'
+        type: DataTypes.STRING(500), 
+        allowNull: false
+    },
+    publicId: {  
+        type: DataTypes.STRING(255),
+        allowNull: true,
+        field: 'publicId'
     },
     rang: {
         type: DataTypes.INTEGER,
@@ -39,9 +40,19 @@ const Image = sequelize.define('Image', {
         type: DataTypes.ENUM('hero', 'promotion'),
         allowNull: true,
         defaultValue: 'hero'
-    }
+    },
+    idCouleur: {  
+        type: DataTypes.INTEGER,
+        allowNull: true,
+        references: {
+            model: 'couleurs',
+            key: 'idCouleur',
+        },
+        comment: 'Couleur représentée par cette image'
+    },
 }, {
     timestamps: true,
     tableName: 'images',
 });
+
 module.exports = Image;

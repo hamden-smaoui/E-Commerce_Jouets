@@ -48,7 +48,7 @@ const Commande = sequelize.define('Commande', {
     },
     clientAdresseCodePostal: {
         type: DataTypes.STRING,
-        allowNull: false,
+        allowNull: true,
     },
     clientAdressePays: {
         type: DataTypes.STRING,
