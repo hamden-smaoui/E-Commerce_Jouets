@@ -54,7 +54,7 @@ Produit.hasMany(LigneCommande, { foreignKey: 'idProduit', as: 'lignesCommandes' 
 LigneCommande.belongsTo(Produit, { foreignKey: 'idProduit', as: 'produit' });
 
 Commande.hasOne(Facture, { foreignKey: 'idCommande', as: 'facture' });
-Facture.belongsTo(Commande, { foreignKey: 'idCommande', as: 'facture' });
+Facture.belongsTo(Commande, { foreignKey: 'idCommande', as: 'commande' });
 
 // ✅ Cette ligne pose problème (ligne 54 probablement)
 Produit.hasMany(Image, { foreignKey: 'idProduit', as: 'images' });

@@ -34,7 +34,7 @@ class FactureController {
                     emailPrincipal: 'email@exemple.com',
                     entrepriseSiret: '',
                     tauxTVA: 19,
-                    logo1: null
+                    logo2: null
                 };
             }
             return storeInfo;
@@ -46,7 +46,7 @@ class FactureController {
                 emailPrincipal: 'email@exemple.com',
                 entrepriseSiret: '',
                 tauxTVA: 19,
-                logo1: null
+                logo2: null
             };
         }
     }
@@ -292,11 +292,11 @@ async generateSimpleFacturePDF(doc, facture) {
     const headerHeight = 120;
     
     // Charger le logo depuis Cloudinary
-    if (storeInfo.logo1) {
+    if (storeInfo.logo2) {
         try {
-            if (storeInfo.logo1.startsWith('http')) {
-                console.log('Chargement du logo depuis Cloudinary:', storeInfo.logo1);
-                const response = await axios.get(storeInfo.logo1, {
+            if (storeInfo.logo2.startsWith('http')) {
+                console.log('Chargement du logo depuis Cloudinary:', storeInfo.logo2);
+                const response = await axios.get(storeInfo.logo2, {
                     responseType: 'arraybuffer'
                 });
                 const imageBuffer = Buffer.from(response.data, 'binary');
@@ -306,7 +306,7 @@ async generateSimpleFacturePDF(doc, facture) {
                     fit: [60, 60]
                 });
             } else {
-                const logoPath = path.join(__dirname, '..', storeInfo.logo1.replace(/^\//, ''));
+                const logoPath = path.join(__dirname, '..', storeInfo.logo2.replace(/^\//, ''));
                 if (fs.existsSync(logoPath)) {
                     doc.image(logoPath, margin, yPosition, { 
                         width: 60, 
@@ -321,7 +321,7 @@ async generateSimpleFacturePDF(doc, facture) {
     }
 
     // Informations entreprise à côté du logo
-    const entrepriseX = margin + (storeInfo.logo1 ? 80 : 0);
+    const entrepriseX = margin + (storeInfo.logo2 ? 80 : 0);
     doc.fontSize(14)
        .font('Helvetica-Bold')
        .fillColor('#000000')
