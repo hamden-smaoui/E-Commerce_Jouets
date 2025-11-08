@@ -130,7 +130,7 @@ export default function Navbar() {
               ) : (
                 !logoLoading && (
                   <img
-                    src="/images/logoBamby.png"
+                    src="/images/logo_bambyjoy_long.png"
                     alt="Bamby Joy"
                     className="h-16 w-auto sm:h-20 object-contain"
                   />

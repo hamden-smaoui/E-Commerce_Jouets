@@ -107,7 +107,7 @@ function SignInContent() {
       <div className="max-w-md w-full space-y-8">
         <div className="text-center">
           <div className="flex justify-center mb-6">
-            <Image src="/images/logoBamby.png" alt="Bamby Joy Logo" width={120} height={120} />
+            <Image src="/images/logo_bambyjoy_long.png" alt="Bamby Joy Logo" width={400} height={400} />
           </div>
           <h2 className="text-3xl font-bold text-gray-900 mb-2">Connexion</h2>
         </div>

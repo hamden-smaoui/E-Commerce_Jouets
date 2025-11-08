@@ -69,7 +69,7 @@ export default function UnsubscribePage() {
         <div className="max-w-md w-full space-y-8">
           <div className="text-center">
             <div className="flex justify-center mb-6">
-              <Image src="/images/logoBamby.png" alt="Bamby Joy Logo" width={120} height={120} />
+              <Image src="/images/logo_bambyjoy_long.png" alt="Bamby Joy Logo" width={400} height={400} />
             </div>
             <h2 className="text-3xl font-bold text-gray-900 mb-2">Désinscription</h2>
           </div>
@@ -90,7 +90,7 @@ export default function UnsubscribePage() {
         <div className="max-w-md w-full space-y-8">
           <div className="text-center">
             <div className="flex justify-center mb-6">
-              <Image src="/images/logoBamby.png" alt="Bamby Joy Logo" width={120} height={120} />
+              <Image src="/images/logo_bambyjoy_long.png" alt="Bamby Joy Logo" width={400} height={400} />
             </div>
             <h2 className="text-3xl font-bold text-gray-900 mb-2">Désinscription réussie</h2>
           </div>
@@ -128,7 +128,7 @@ export default function UnsubscribePage() {
         <div className="max-w-md w-full space-y-8">
           <div className="text-center">
             <div className="flex justify-center mb-6">
-              <Image src="/images/logoBamby.png" alt="Bamby Joy Logo" width={120} height={120} />
+              <Image src="/images/logo_bambyjoy_long.png" alt="Bamby Joy Logo"width={400} height={400} />
             </div>
             <h2 className="text-3xl font-bold text-gray-900 mb-2">Email non trouvé</h2>
           </div>
@@ -171,7 +171,7 @@ export default function UnsubscribePage() {
       <div className="max-w-md w-full space-y-8">
         <div className="text-center">
           <div className="flex justify-center mb-6">
-            <Image src="/images/logoBamby.png" alt="Bamby Joy Logo" width={120} height={120} />
+            <Image src="/images/logo_bambyjoy_long.png" alt="Bamby Joy Logo" width={400} height={400} />
           </div>
           <h2 className="text-3xl font-bold text-gray-900 mb-2">Se désabonner</h2>
           <p className="text-gray-600">

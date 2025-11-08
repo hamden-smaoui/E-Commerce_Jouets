@@ -567,8 +567,8 @@ function Checkout() {
                       </div>
                     </div>
                   </div>
-
                   {/* Notes additionnelles */}
+
                   <div>
                     <h3 className="text-lg font-semibold mb-3 text-pink-600">Notes de livraison</h3>
                     <textarea

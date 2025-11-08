@@ -12,7 +12,7 @@ export const metadata: Metadata = {
  title: "Bamby Joy",
   description: "Magasin en ligne pour jouets",
   icons: {
-    icon: '/logoBamby.png',
+    icon: '/logo_bambyjoyF1.png',
   },
 };
 

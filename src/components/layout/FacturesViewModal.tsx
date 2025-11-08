@@ -119,9 +119,9 @@ const FactureViewModal: React.FC<FactureViewModalProps> = ({
           {/* En-tête avec logo */}
           <div className="flex justify-between items-start mb-8">
             <div className="flex items-start gap-4">
-              {storeInfo?.logo1 && (
+              {storeInfo?.logo2 && (
                 <img 
-                  src={`${storeInfo.logo1}`}
+                  src={`${storeInfo.logo2}`}
                   alt="Logo" 
                   className="w-20 h-20 object-contain"
                 />

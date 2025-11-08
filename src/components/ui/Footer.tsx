@@ -57,7 +57,7 @@ export default function Footer() {
                   !logoLoading && (
                     <img
                       className="w-48 h-36 object-contain drop-shadow-2xl transition-opacity duration-500 opacity-100"
-                      src="/images/logoBamby.png"
+                      src="/images/logo_bambyjoyF1.png"
                       alt="Bamby Joy Logo"
                     />
                   )

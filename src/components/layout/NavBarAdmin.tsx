@@ -74,7 +74,7 @@ const NavBarCentre: React.FC = () => {
                 />
               </div>
             ) : (
-              <img src="/images/logoBamby.png" alt="Logo" className="h-10 w-auto" />
+              <img src="/images/logo_bambyjoy_long.png" alt="Logo" className="h-10 w-auto" />
             )}
           </Link>
         </div>

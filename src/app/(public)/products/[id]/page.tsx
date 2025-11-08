@@ -640,58 +640,73 @@ export default function ProduitDetails() {
                           </label>
                           <div className="flex flex-wrap gap-2">
                             {availableCouleurs.map((couleur) => {
-                              const couleurVariations = produit.variations?.filter(
-                                v => v.idCouleur === couleur.idCouleur
-                              ) || [];
-                              const hasStock = couleurVariations.some(v => v.quantiteStock > 0);
+  const couleurVariations = produit.variations?.filter(
+    v => v.idCouleur === couleur.idCouleur
+  ) || [];
+  const hasStock = couleurVariations.some(v => v.quantiteStock > 0);
 
-                              return (
-                                <button
-                                  key={couleur.idCouleur}
-                                  onClick={() => {
-                                    if (hasStock) {
-                                      setSelectedCouleur(couleur.idCouleur);
-                                      setSelectedTaille(null);
-                                      setSelectedAge(null);
-                                      setQuantity(1);
+  return (
+    <div key={couleur.idCouleur} className="relative">
+      <button
+        onClick={() => {
+          setSelectedCouleur(couleur.idCouleur);
+          setSelectedTaille(null);
+          setSelectedAge(null);
+          setQuantity(1);
 
-                                      // ✅ Réinitialiser l'image à la première image de cette couleur
-                                      const imagesForColor = sortedImages.filter(
-                                        img => img.idCouleur === couleur.idCouleur || img.idCouleur === null
-                                      );
-                                      if (imagesForColor.length > 0) {
-                                        setSelectedImage(imagesForColor[0].url);
-                                        setCurrentImageIndex(0);
-                                      }
-                                    }
-                                  }}
-                                  disabled={!hasStock}
-                                  title={couleur.nom}
-                                  className={`relative w-12 h-12 rounded-full border-4 transition-all duration-200 
-                                    ${!hasStock
-                                      ? 'opacity-50 cursor-not-allowed grayscale border-gray-300'
-                                      : selectedCouleur === couleur.idCouleur
-                                        ? 'scale-125 shadow-xl'
-                                        : 'border-gray-300 hover:scale-110 hover:border-gray-400'
-                                    }`}
-                                  style={{
-                                    backgroundColor: couleur.ref || '#CCCCCC',
-                                  }}
-                                >
-                                  {!hasStock && (
-                                    <div className="absolute inset-0 flex items-center justify-center">
-                                      <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
-                                    </div>
-                                  )}
+          // Réinitialiser l'image
+          const imagesForColor = sortedImages.filter(
+            img => img.idCouleur === couleur.idCouleur || img.idCouleur === null
+          );
+          if (imagesForColor.length > 0) {
+            setSelectedImage(imagesForColor[0].url);
+            setCurrentImageIndex(0);
+          }
+        }}
+        title={`${couleur.nom}${!hasStock ? ' - Rupture de stock' : ''}`}
+        className={`relative w-12 h-12 rounded-full border-4 transition-all duration-200 
+          ${selectedCouleur === couleur.idCouleur
+            ? 'scale-125 shadow-xl border-pink-500'
+            : 'border-gray-300 hover:scale-110 hover:border-gray-400'
+          }`}
+        style={{
+          backgroundColor: couleur.ref || '#CCCCCC',
+        }}
+      >
+        {/* ✅ Barre diagonale pour rupture de stock (meilleur que grayscale) */}
+        {!hasStock && (
+          <>
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="w-full h-0.5 bg-red-500 transform rotate-45"></div>
+            </div>
+            <div className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full border-2 border-white flex items-center justify-center">
+              <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+              </svg>
+            </div>
+          </>
+        )}
 
-                                  {hasStock && selectedCouleur === couleur.idCouleur && (
-                                    <div className="absolute inset-0 flex items-center justify-center">
-                                      <div className="w-3 h-3 bg-white rounded-full shadow-sm"></div>
-                                    </div>
-                                  )}
-                                </button>
-                              );
-                            })}
+        {/* Point blanc si sélectionné */}
+        {hasStock && selectedCouleur === couleur.idCouleur && (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="w-3 h-3 bg-white rounded-full shadow-sm"></div>
+          </div>
+        )}
+      </button>
+
+      {/* ✅ Label sous le bouton */}
+      <p className={`text-xs text-center mt-1 font-medium ${
+        !hasStock ? 'text-red-600' : 'text-gray-600'
+      }`}>
+        {couleur.nom}
+        {!hasStock && (
+          <span className="block text-red-500 text-[10px]">Épuisé</span>
+        )}
+      </p>
+    </div>
+  );
+})}
                           </div>
                         </div>
                       )}

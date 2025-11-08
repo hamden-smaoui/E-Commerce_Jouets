@@ -14,7 +14,7 @@ export default function Hero({ title, description, buttonText, buttonLink }: Her
   const { storeInfo } = useStoreInfo();
 
   const defaultImages = [
-    { src: "/images/Hero1.jpeg", alt: "Jouets colorés pour enfants" },
+    { src: "/images/Hero1.png", alt: "Jouets colorés pour enfants" },
   ];
 
   const images =
