@@ -334,7 +334,7 @@ function GuestOrderConfirmation() {
             </p>
           </div>
 
-          {/* Countdown Timer et bouton d'annulation */}
+          {/* Countdown Timer et bouton d'annulation 
           {commande.statut !== 'annulée' && (
             <div className="mt-6">
               <CountdownTimer
@@ -365,7 +365,7 @@ function GuestOrderConfirmation() {
                 </div>
               </div>
             </div>
-          )}
+          )}*/}
         </div>
 
         {/* Order Success Message */}

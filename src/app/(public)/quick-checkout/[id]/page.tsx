@@ -95,7 +95,10 @@ export default function QuickCheckout() {
 
   const { promotions, calculatePriceWithPromotion, hasPromotions } = usePromotions(produit?.idProduit || 0);
   const priceData = produit ? calculatePriceWithPromotion(produit.prix) : null;
+const [touchStart, setTouchStart] = useState<number | null>(null);
+const [touchEnd, setTouchEnd] = useState<number | null>(null);
 
+const minSwipeDistance = 50;
   // Fetch product
   useEffect(() => {
     const fetchProduct = async () => {
@@ -550,7 +553,29 @@ export default function QuickCheckout() {
   const uniqueCouleurs = getUniqueCouleurs();
   const uniqueTailles = getUniqueTailles();
   const uniqueAges = getUniqueAges();
+const onTouchStart = (e: React.TouchEvent) => {
+  setTouchEnd(null);
+  setTouchStart(e.targetTouches[0].clientX);
+};
 
+const onTouchMove = (e: React.TouchEvent) => {
+  setTouchEnd(e.targetTouches[0].clientX);
+};
+
+const onTouchEnd = () => {
+  if (!touchStart || !touchEnd) return;
+  
+  const distance = touchStart - touchEnd;
+  const isLeftSwipe = distance > minSwipeDistance;
+  const isRightSwipe = distance < -minSwipeDistance;
+  
+  if (isLeftSwipe && filteredImages.length > 1) {
+    handleNextImage();
+  }
+  if (isRightSwipe && filteredImages.length > 1) {
+    handlePrevImage();
+  }
+};
   const tabs = [
     { 
       id: 'avis', 
@@ -640,8 +665,13 @@ export default function QuickCheckout() {
                   )}
 
                   <div className="flex-1 order-1 lg:order-2">
-                    <div className="relative w-full bg-white rounded-xl overflow-hidden border-2 border-pink-200" style={{ aspectRatio: "1/1" }}>
-                      <Image
+<div 
+  className="relative w-full bg-white rounded-xl overflow-hidden border-2 border-pink-200 touch-pan-y" 
+  style={{ aspectRatio: "1/1" }}
+  onTouchStart={onTouchStart}
+  onTouchMove={onTouchMove}
+  onTouchEnd={onTouchEnd}
+>                      <Image
                         src={`${selectedImage || '/images/placeholder.jpg'}`}
                         alt={produit.nom}
                         fill

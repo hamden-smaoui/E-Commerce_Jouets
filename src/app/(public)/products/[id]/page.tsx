@@ -74,6 +74,11 @@ export default function ProduitDetails() {
   const [showLoginModal, setShowLoginModal] = useState(false);
   const { data: session, status } = useSession();
   const isAuthenticated = status === "authenticated";
+const [touchStart, setTouchStart] = useState<number | null>(null);
+const [touchEnd, setTouchEnd] = useState<number | null>(null);
+
+// Distance minimale pour considérer un swipe
+const minSwipeDistance = 50;
 
   useEffect(() => {
     const token = localStorage.getItem('authToken');
@@ -451,7 +456,29 @@ export default function ProduitDetails() {
     if (!stockStatus.available) return 'Produit indisponible';
     return 'Ajouter au panier';
   };
+const onTouchStart = (e: React.TouchEvent) => {
+  setTouchEnd(null);
+  setTouchStart(e.targetTouches[0].clientX);
+};
 
+const onTouchMove = (e: React.TouchEvent) => {
+  setTouchEnd(e.targetTouches[0].clientX);
+};
+
+const onTouchEnd = () => {
+  if (!touchStart || !touchEnd) return;
+  
+  const distance = touchStart - touchEnd;
+  const isLeftSwipe = distance > minSwipeDistance;
+  const isRightSwipe = distance < -minSwipeDistance;
+  
+  if (isLeftSwipe && filteredImages.length > 1) {
+    handleNextImage();
+  }
+  if (isRightSwipe && filteredImages.length > 1) {
+    handlePrevImage();
+  }
+};
   const tabs = [
     {
       id: 'avis',
@@ -514,12 +541,15 @@ export default function ProduitDetails() {
 
                     <div className="flex-1 order-1 lg:order-2">
                       <div
-                        ref={imageRef}
-                        className="relative w-full bg-white rounded-xl overflow-hidden border-2 border-pink-200"
-                        style={{ aspectRatio: "1/1" }}
-                        onMouseMove={handleMouseMove}
-                        onMouseLeave={handleMouseLeave}
-                      >
+  ref={imageRef}
+  className="relative w-full bg-white rounded-xl overflow-hidden border-2 border-pink-200 touch-pan-y"
+  style={{ aspectRatio: "1/1" }}
+  onMouseMove={handleMouseMove}
+  onMouseLeave={handleMouseLeave}
+  onTouchStart={onTouchStart}
+  onTouchMove={onTouchMove}
+  onTouchEnd={onTouchEnd}
+>
                         <Image
                           src={`${selectedImage || '/images/placeholder.jpg'}`}
                           alt={produit.nom}

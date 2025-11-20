@@ -347,7 +347,7 @@ useEffect(() => {
             )}
           </div>
 
-          {commande.statut !== 'annulée' && (
+        {/*  {commande.statut !== 'annulée' && (
             <div className="mt-4 sm:mt-6">
               <CountdownTimer
                 endTime={cancellationDeadline}
@@ -378,7 +378,7 @@ useEffect(() => {
 </div>
               </div>
             </div>
-          )}
+          )} */}
         </div>
 
         {/* Card des produits commandés */}
