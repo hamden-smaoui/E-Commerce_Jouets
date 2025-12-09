@@ -269,7 +269,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
               alt={product.nom}
               fill
               sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, (max-width: 1400px) 25vw, 300px"
-              className={`object-cover transition-all duration-500 ${
+              className={`object-contain transition-all duration-500 ${
                 (!isMobile && isHovering) 
                   ? 'scale-110' 
                   : 'group-hover:scale-110'

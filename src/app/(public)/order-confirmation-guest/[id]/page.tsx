@@ -504,7 +504,7 @@ function GuestOrderConfirmation() {
             <p>• Pour toute question concernant votre commande, contactez-nous</p>
             <p>• Gardez ce lien pour suivre l'état de votre commande</p>
             <p>• Vous serez contacté par téléphone pour la livraison</p>
-            <p>• Vous avez 2 heures pour annuler votre commande après sa création</p>
+            {/*<p>• Vous avez 2 heures pour annuler votre commande après sa création</p> */}
           </div>
         </div>
       </div>

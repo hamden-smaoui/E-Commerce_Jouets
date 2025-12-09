@@ -675,7 +675,7 @@ const onTouchEnd = () => {
                         src={`${selectedImage || '/images/placeholder.jpg'}`}
                         alt={produit.nom}
                         fill
-                        className="object-cover"
+                        className="object-contain"
                       />
                       {priceData && priceData.reduction > 0 && (
                         <PromotionBadge pourcentageReduction={priceData.pourcentageReduction} />
