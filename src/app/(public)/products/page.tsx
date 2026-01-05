@@ -44,7 +44,9 @@ export default function Products() {
   useEffect(() => {
     setCurrentPage(1);
   }, [currentFilters, sortBy]);
-
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [currentPage]);
   const calculateTotalStock = (variations: ProduitVariation[] | undefined): number => {
     if (!variations || variations.length === 0) return 0;
     return variations.reduce((total, variation) => total + (variation.quantiteStock || 0), 0);
