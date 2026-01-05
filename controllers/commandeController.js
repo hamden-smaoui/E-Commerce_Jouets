@@ -1,6 +1,7 @@
 const { Commande, Utilisateur, LigneCommande, Facture, Produit, Image, Promotion, ProduitVariation, Couleur, Taille, Age } = require('../models');
 const PromotionService = require('../services/PromotionService');
 const CommandeService = require('../services/CommandeService');
+const EmailService = require('../services/EmailService');
 const sequelize = require('../config/database');
 const { Op } = require('sequelize');
 const validator = require('validator');
@@ -33,11 +34,9 @@ async createCommande(req, res, next) {
   let isTransactionCommitted = false;
   
   try {
-    // ✅ CORRECTION : Vérifier à la fois req.user ET req.body.idClient
     const isAuthenticated = !!(req.user?.idUtilisateur || req.body.idClient);
     const idClient = req.user?.idUtilisateur || req.body.idClient || null;
     
-    // Nettoyage des champs client
     const clientData = { ...req.body };
     Object.keys(clientData).forEach(field => {
       if (typeof clientData[field] === "string") {
@@ -45,7 +44,6 @@ async createCommande(req, res, next) {
       }
     });
 
-    // Validation
     const validationError = validateClientData(clientData);
     if (validationError) {
       await transaction.rollback();
@@ -54,14 +52,12 @@ async createCommande(req, res, next) {
       return next(error);
     }
 
-    // ✅ Si authentifié : commande normale
     if (isAuthenticated && idClient) {
       const resultat = await CommandeService.creerCommande(
-        { ...clientData, idClient }, // ✅ Utiliser idClient du body ou du middleware
+        { ...clientData, idClient },
         transaction
       );
       
-      // ✅ Créer la facture pour les commandes authentifiées aussi
       await CommandeService.creerFacture(
         resultat.commande,
         clientData,
@@ -76,10 +72,21 @@ async createCommande(req, res, next) {
         resultat.commande.idCommande
       );
 
-      // ✅ NE PAS retourner guestToken pour les commandes authentifiées
+      // ✅ ENVOI EMAIL APRÈS LE COMMIT (non-bloquant)
+      setImmediate(async () => {
+        try {
+          await EmailService.envoyerNotificationNouvelleCommande(
+            commandeComplete,
+            commandeComplete.lignesCommandes
+          );
+        } catch (emailError) {
+          console.error('Erreur envoi email notification:', emailError);
+        }
+      });
+
       res.status(201).json({
         message: 'Commande créée avec succès',
-        data: commandeComplete, // ✅ Sans guestToken
+        data: commandeComplete,
         calculDetails: {
           montantOriginal: resultat.montants.montantOriginal,
           montantProduits: resultat.montants.montantProduits,
@@ -105,14 +112,12 @@ async createCommande(req, res, next) {
         }
       });
     } 
-    // ✅ Si NON authentifié : commande guest
     else {
       const resultat = await CommandeService.creerCommandeGuest(
         { ...clientData, idClient: null },
         transaction
       );
       
-      // Créer la facture
       await CommandeService.creerFacture(
         resultat.commande,
         clientData,
@@ -128,12 +133,23 @@ async createCommande(req, res, next) {
         resultat.guestToken
       );
 
-      // ✅ Retourner guestToken pour les commandes guest
+      // ✅ ENVOI EMAIL APRÈS LE COMMIT (non-bloquant)
+      setImmediate(async () => {
+        try {
+          await EmailService.envoyerNotificationNouvelleCommande(
+            commandeComplete,
+            commandeComplete.lignesCommandes
+          );
+        } catch (emailError) {
+          console.error('Erreur envoi email notification:', emailError);
+        }
+      });
+
       res.status(201).json({
         message: 'Commande créée avec succès',
         data: {
           ...commandeComplete.toJSON(),
-          guestToken: resultat.guestToken // ✅ Avec guestToken
+          guestToken: resultat.guestToken
         },
         calculDetails: {
           montantOriginal: resultat.montants.montantOriginal,
