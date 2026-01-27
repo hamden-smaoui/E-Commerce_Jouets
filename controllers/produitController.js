@@ -122,35 +122,36 @@ class ProduitController {
 }
 
   async getAllProduits(req, res, next) {
-    try {
-      const produits = await Produit.findAll({
-        include: [
-          { model: Categorie, as: 'categorie' },
-          { model: Marque, as: 'marque' },
-          { model: Type, as: 'type' },
-          { model: Fournisseur, as: 'fournisseur' },
-          { model: Age, as: 'age' }, // ✅ NOUVEAU
-         { 
-  model: Image, 
-  as: 'images', 
-  include: [{ model: Couleur, as: 'couleur' }], // ✅ Ajouter partout
-  order: [['rang', 'ASC']] 
-},
-          { 
-            model: ProduitVariation, as: 'variations',
-            include: [
-              { model: Couleur, as: 'couleur' },
-              { model: Taille, as: 'taille' },
-              { model: Age, as: 'age' }
-            ]
-          }
-        ]
-      });
-      res.status(200).json(produits);
-    } catch (error) {
-      next(error);
-    }
+  try {
+    const produits = await Produit.findAll({
+      include: [
+        { model: Categorie, as: 'categorie' },
+        { model: Marque, as: 'marque' },
+        { model: Type, as: 'type' },
+        { model: Fournisseur, as: 'fournisseur' },
+        { model: Age, as: 'age' },
+        { 
+          model: Image, 
+          as: 'images', 
+          include: [{ model: Couleur, as: 'couleur' }],
+          order: [['rang', 'ASC']] 
+        },
+        { 
+          model: ProduitVariation, as: 'variations',
+          include: [
+            { model: Couleur, as: 'couleur' },
+            { model: Taille, as: 'taille' },
+            { model: Age, as: 'age' }
+          ]
+        }
+      ],
+      order: [['createdAt', 'DESC']]
+    });
+    res.status(200).json(produits);
+  } catch (error) {
+    next(error);
   }
+}
 
   async getProduitById(req, res, next) {
     try {
