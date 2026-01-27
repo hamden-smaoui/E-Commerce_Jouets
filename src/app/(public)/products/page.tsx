@@ -35,7 +35,7 @@ export default function Products() {
     age: { min: 0, max: 144 }, // ✅ RETOUR au format min/max
   };
 });
-  const PRODUCTS_PER_PAGE = 12;
+  const PRODUCTS_PER_PAGE = 24;
 
   useEffect(() => {
     loadProducts();
@@ -177,16 +177,31 @@ const filteredProducts = useMemo(() => {
   
   filtered = filtered.filter(matchesAgeFilter);
   
-  if (sortBy) {
+ if (sortBy) {
     switch (sortBy) {
-      case 'a-z': filtered.sort((a, b) => a.nom.localeCompare(b.nom)); break;
-      case 'z-a': filtered.sort((a, b) => b.nom.localeCompare(a.nom)); break;
-      case 'price-asc': filtered.sort((a, b) => a.prix - b.prix); break;
-      case 'price-desc': filtered.sort((a, b) => b.prix - a.prix); break;
-      case 'stock-desc': filtered.sort((a, b) => (b.totalStock || 0) - (a.totalStock || 0)); break;
-      default: break;
+      case 'a-z': 
+        filtered.sort((a, b) => a.nom.localeCompare(b.nom)); 
+        break;
+      case 'z-a': 
+        filtered.sort((a, b) => b.nom.localeCompare(a.nom)); 
+        break;
+      case 'price-asc': 
+        filtered.sort((a, b) => a.prix - b.prix); 
+        break;
+      case 'price-desc': 
+        filtered.sort((a, b) => b.prix - a.prix); 
+        break;
+      case 'stock-desc': 
+        filtered.sort((a, b) => (b.totalStock || 0) - (a.totalStock || 0)); 
+        break;
+      case 'oldest': // ✅ NOUVEAU : Trier par plus ancien
+        filtered.sort((a, b) => a.idProduit - b.idProduit); 
+        break;
+      default: 
+        break;
     }
   }
+  
   return filtered;
 }, [products, currentFilters, sortBy, calculateProductLimits]);
 
@@ -325,17 +340,18 @@ const filteredProducts = useMemo(() => {
                   {/* Tri */}
                   <div className="flex items-center gap-2">
                     <span className="text-xs sm:text-sm text-gray-600 font-bold">Trier par :</span>
-                    <select
-                      value={sortBy}
-                      onChange={e => setSortBy(e.target.value)}
-                      className="rounded-lg border-2 border-pink-200 bg-pink-50 px-2 py-1 sm:px-4 sm:py-2 text-xs sm:text-sm font-bold text-pink-600 focus:ring-2 focus:ring-blue-200 shadow-sm transition-all"
-                    >
-                      <option value="">Pertinence</option>
-                      <option value="a-z">Nom : A &rarr; Z</option>
-                      <option value="z-a">Nom : Z &rarr; A</option>
-                      <option value="price-asc">Prix : Croissant</option>
-                      <option value="price-desc">Prix : Décroissant</option>
-                    </select>
+                   <select
+  value={sortBy}
+  onChange={e => setSortBy(e.target.value)}
+  className="rounded-lg border-2 border-pink-200 bg-pink-50 px-2 py-1 sm:px-4 sm:py-2 text-xs sm:text-sm font-bold text-pink-600 focus:ring-2 focus:ring-blue-200 shadow-sm transition-all"
+>
+  <option value="">Nouveautés</option> {/* ✅ MODIFIÉ : Plus clair */}
+  <option value="a-z">Nom : A &rarr; Z</option>
+  <option value="z-a">Nom : Z &rarr; A</option>
+  <option value="price-asc">Prix : Croissant</option>
+  <option value="price-desc">Prix : Décroissant</option>
+  <option value="oldest">Plus anciens</option> {/* ✅ AJOUT : Option pour voir les anciens */}
+</select>
                   </div>
                 </div>
                 {/* Clear All Filters Button for Mobile */}
