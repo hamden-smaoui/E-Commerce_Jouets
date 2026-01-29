@@ -192,79 +192,105 @@ class ProduitController {
   }
 
   async getTop10BestSellingProduits(req, res, next) {
-    try {
-      const produits = await Produit.findAll({
-        attributes: [
-          'idProduit',
-          'nom',
-          'description',
-          'prix',
-          'quantiteStock',
-          'livraisonGratuite',
-          'idCategorie',
-          'idMarque',
-          'idType',
-          'idFournisseur',
-          'idAge', // ✅ NOUVEAU
-          'genre',
-          [Sequelize.fn('COALESCE', Sequelize.fn('SUM', Sequelize.col('lignesCommandes.quantite')), 0), 'totalVendu'],
-        ],
-        include: [
-          {
-            model: LigneCommande,
-            as: 'lignesCommandes',
-            attributes: [],
-            required: false,
-          },
-          { model: Categorie, as: 'categorie', attributes: ['idCategorie', 'nom'] },
-          { model: Marque, as: 'marque', attributes: ['idMarque', 'nom'] },
-          { model: Type, as: 'type', attributes: ['idType', 'nom'] },
-          { model: Fournisseur, as: 'fournisseur', attributes: ['idFournisseur', 'nom'] },
-          { model: Age, as: 'age', attributes: ['idAge', 'label', 'minAge', 'maxAge', 'minTypeAge', 'maxTypeAge'] }, // ✅ NOUVEAU
-          { 
-            model: Image, 
-            as: 'images', 
-            include: [{ model: Couleur, as: 'couleur' }],
-            attributes: ['idImage', 'url', 'rang'],
-            separate: true,
-            order: [['rang', 'ASC']],
-          },
-          { 
-            model: ProduitVariation, 
-            as: 'variations',
-            include: [
-              { model: Couleur, as: 'couleur' },
-              { model: Taille, as: 'taille' },
-              { model: Age, as: 'age' }
-            ]
-          },
-        ],
-        group: [
-          'Produit.idProduit',
-          'categorie.idCategorie',
-          'marque.idMarque',
-          'type.idType', 
-          'fournisseur.idFournisseur',
-          'age.idAge', // ✅ NOUVEAU
-          'variations.idProduitVariation',
-          'variations.couleur.idCouleur',
-          'variations.taille.idTaille',
-          'variations.age.idAge',
-        ],
-        order: [[Sequelize.literal('totalVendu'), 'DESC']],
-        limit: 10,
-        subQuery: false,
-      });
+  try {
 
-      res.status(200).json({
-        message: 'Top 10 des produits les plus vendus récupérés avec succès',
-        data: produits,
+    // 1️⃣ Calcul du top 10 (aggregation simple et fiable)
+    const topProduits = await LigneCommande.findAll({
+      attributes: [
+        'idProduit',
+        [Sequelize.fn('SUM', Sequelize.col('quantite')), 'totalVendu']
+      ],
+      group: ['idProduit'],
+      order: [[Sequelize.literal('totalVendu'), 'DESC']],
+      limit: 10,
+      raw: true
+    });
+
+    // Si aucun produit vendu
+    if (!topProduits.length) {
+      return res.status(200).json({
+        message: 'Aucun produit vendu',
+        data: []
       });
-    } catch (error) {
-      console.error('Get top 10 best-selling products error:', error);
-      next(error);
     }
+
+    // 2️⃣ Récupération des IDs
+    const produitIds = topProduits.map(p => p.idProduit);
+
+    // 3️⃣ Récupération des produits avec relations
+    const produits = await Produit.findAll({
+      where: { idProduit: produitIds },
+      include: [
+        {
+          model: Categorie,
+          as: 'categorie',
+          attributes: ['idCategorie', 'nom']
+        },
+        {
+          model: Marque,
+          as: 'marque',
+          attributes: ['idMarque', 'nom']
+        },
+        {
+          model: Type,
+          as: 'type',
+          attributes: ['idType', 'nom']
+        },
+        {
+          model: Fournisseur,
+          as: 'fournisseur',
+          attributes: ['idFournisseur', 'nom']
+        },
+        {
+          model: Age,
+          as: 'age',
+          attributes: ['idAge', 'label', 'minAge', 'maxAge', 'minTypeAge', 'maxTypeAge']
+        },
+        {
+          model: Image,
+          as: 'images',
+          attributes: ['idImage', 'url', 'rang'],
+          include: [{ model: Couleur, as: 'couleur' }],
+          separate: true,
+          order: [['rang', 'ASC']]
+        },
+        {
+          model: ProduitVariation,
+          as: 'variations',
+          include: [
+            { model: Couleur, as: 'couleur' },
+            { model: Taille, as: 'taille' },
+            { model: Age, as: 'age' }
+          ]
+        }
+      ]
+    });
+
+    // 4️⃣ Fusion du totalVendu + respect de l’ordre du top 10
+    const mapTotal = {};
+    topProduits.forEach(p => mapTotal[p.idProduit] = Number(p.totalVendu));
+
+    const produitsOrdonnes = produitIds.map(id =>
+      produits.find(p => p.idProduit === id)
+    ).filter(Boolean);
+
+    const result = produitsOrdonnes.map(p => ({
+      ...p.toJSON(),
+      totalVendu: mapTotal[p.idProduit] || 0
+    }));
+
+    // 5️⃣ Réponse
+    res.status(200).json({
+      message: 'Top 10 des produits les plus vendus récupérés avec succès',
+      data: result
+    });
+
+  } catch (error) {
+    console.error('Get top 10 best-selling products error:', error);
+    next(error);
   }
+}
+
 
 async updateProduit(req, res, next) {
   ProduitController.uploadImages(req, res, async (err) => {
