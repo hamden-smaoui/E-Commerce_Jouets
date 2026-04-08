@@ -16,5 +16,6 @@ router.delete('/:id',authMiddleware ,adminMiddleware, ProduitController.deletePr
 router.delete('/images/:imageId',authMiddleware ,adminMiddleware, ProduitController.deleteImage);
  router.get('/age/:ageId', ProduitController.getProduitsByAge);
 router.get('/search/stats/age', ProduitController.getSearchStatsByAge);
+router.patch('/:id/toggle-active', authMiddleware, adminMiddleware, ProduitController.toggleActive);
 
 module.exports = router;

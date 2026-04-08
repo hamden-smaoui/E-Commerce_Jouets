@@ -7,93 +7,134 @@ class ProduitController {
   static uploadImages = upload.array('images', 10);
 
   async createProduit(req, res, next) {
-  ProduitController.uploadImages(req, res, async (err) => {
-    if (err) {
-      const error = new Error('Erreur lors du téléchargement des images');
-      error.code = "VALIDATION_ERROR";
-      return next(error);
-    }
-    
-    try {
-      const { 
-        nom, 
-        description, 
-        prix, 
-        quantiteStock, 
-        idCategorie, 
-        idMarque, 
-        idFournisseur, 
-        idType,
-        idAge,
-        genre, 
-        livraisonGratuite,
-        variants,
-        imageColors // ✅ NOUVEAU: Array des couleurs pour chaque image
-      } = req.body;
-      
-      const produit = await Produit.create({
-        nom,
-        description,
-        prix: parseFloat(prix),
-        quantiteStock: parseInt(quantiteStock),
-        idCategorie: parseInt(idCategorie),
-        idMarque: parseInt(idMarque),
-        idType: idType ? parseInt(idType) : null,
-        idFournisseur: parseInt(idFournisseur),
-        idAge: idAge ? parseInt(idAge) : null,
-        genre,
-        livraisonGratuite: livraisonGratuite === 'true' || livraisonGratuite === true,
-      });
-
-      // ✅ MODIFIÉ: Associer couleur à chaque image
-      if (req.files && Array.isArray(req.files)) {
-        console.log('🔍 IMAGE MODEL DEFINITION:', Image.rawAttributes.publicId);
-
-        // Parse imageColors si c'est une string
-        const colorsArray = imageColors 
-          ? (typeof imageColors === 'string' ? JSON.parse(imageColors) : imageColors)
-          : [];
-
-        const images = req.files.map((file, i) => ({
-          url: file.path,
-          publicId: file.filename,
-          rang: i + 1,
-          idProduit: produit.idProduit,
-          idCouleur: colorsArray[i] || null, // ✅ Associer la couleur
-        }));
-
-        console.log('🔍 DATA TO INSERT:', images);
-        await Image.bulkCreate(images);
+    ProduitController.uploadImages(req, res, async (err) => {
+      if (err) {
+        const error = new Error('Erreur lors du téléchargement des images');
+        error.code = "VALIDATION_ERROR";
+        return next(error);
       }
 
-      let variantsArray = [];
-      if (variants) {
-        variantsArray = typeof variants === "string" ? JSON.parse(variants) : variants;
-        for (const v of variantsArray) {
-          await ProduitVariation.create({
+      try {
+        const {
+          nom,
+          description,
+          prix,
+          quantiteStock,
+          idCategorie,
+          idMarque,
+          idFournisseur,
+          idType,
+          idAge,
+          genre,
+          isActive,
+          livraisonGratuite,
+          variants,
+          imageColors
+        } = req.body;
+
+        const produit = await Produit.create({
+          nom,
+          description,
+          prix: parseFloat(prix),
+          quantiteStock: parseInt(quantiteStock),
+          idCategorie: parseInt(idCategorie),
+          idMarque: parseInt(idMarque),
+          idType: idType ? parseInt(idType) : null,
+          idFournisseur: parseInt(idFournisseur),
+          idAge: idAge ? parseInt(idAge) : null,
+          genre,
+          isActive: isActive !== undefined
+            ? (isActive === 'true' || isActive === true)
+            : true,
+          livraisonGratuite: livraisonGratuite === 'true' || livraisonGratuite === true,
+        });
+
+        if (req.files && Array.isArray(req.files)) {
+          const colorsArray = imageColors
+            ? (typeof imageColors === 'string' ? JSON.parse(imageColors) : imageColors)
+            : [];
+
+          const images = req.files.map((file, i) => ({
+            url: file.path,
+            publicId: file.filename,
+            rang: i + 1,
             idProduit: produit.idProduit,
-            idCouleur: v.idCouleur,
-            idTaille: v.idTaille || null,
-            idAge: v.idAge || null,
-            quantiteStock: v.quantiteStock,
-          });
-        }
-      }
+            idCouleur: colorsArray[i] || null,
+          }));
 
-      const createdProduit = await Produit.findByPk(produit.idProduit, {
+          await Image.bulkCreate(images);
+        }
+
+        let variantsArray = [];
+        if (variants) {
+          variantsArray = typeof variants === "string" ? JSON.parse(variants) : variants;
+          for (const v of variantsArray) {
+            await ProduitVariation.create({
+              idProduit: produit.idProduit,
+              idCouleur: v.idCouleur,
+              idTaille: v.idTaille || null,
+              idAge: v.idAge || null,
+              quantiteStock: v.quantiteStock,
+            });
+          }
+        }
+
+        const createdProduit = await Produit.findByPk(produit.idProduit, {
+          include: [
+            { model: Categorie, as: 'categorie' },
+            { model: Marque, as: 'marque' },
+            { model: Type, as: 'type' },
+            { model: Fournisseur, as: 'fournisseur' },
+            { model: Age, as: 'age' },
+            {
+              model: Image,
+              as: 'images',
+              include: [{ model: Couleur, as: 'couleur' }],
+              order: [['rang', 'ASC']]
+            },
+            {
+              model: ProduitVariation, as: 'variations',
+              include: [
+                { model: Couleur, as: 'couleur' },
+                { model: Taille, as: 'taille' },
+                { model: Age, as: 'age' }
+              ]
+            }
+          ]
+        });
+
+        res.status(201).json({ message: 'Produit créé avec succès', data: createdProduit });
+      } catch (error) {
+        if (req.files && req.files.length > 0) {
+          for (const file of req.files) {
+            try {
+              await cloudinary.uploader.destroy(file.filename);
+            } catch (deleteErr) {
+              console.error('Erreur suppression image Cloudinary:', deleteErr);
+            }
+          }
+        }
+        next(error);
+      }
+    });
+  }
+
+  async getAllProduits(req, res, next) {
+    try {
+      const produits = await Produit.findAll({
         include: [
           { model: Categorie, as: 'categorie' },
           { model: Marque, as: 'marque' },
           { model: Type, as: 'type' },
           { model: Fournisseur, as: 'fournisseur' },
           { model: Age, as: 'age' },
-          { 
-            model: Image, 
-            as: 'images', 
-            include: [{ model: Couleur, as: 'couleur' }], // ✅ Inclure couleur
-            order: [['rang', 'ASC']] 
+          {
+            model: Image,
+            as: 'images',
+            include: [{ model: Couleur, as: 'couleur' }],
+            order: [['rang', 'ASC']]
           },
-          { 
+          {
             model: ProduitVariation, as: 'variations',
             include: [
               { model: Couleur, as: 'couleur' },
@@ -101,57 +142,14 @@ class ProduitController {
               { model: Age, as: 'age' }
             ]
           }
-        ]
+        ],
+        order: [['createdAt', 'DESC']]
       });
-      
-      res.status(201).json({ message: 'Produit créé avec succès', data: createdProduit });
+      res.status(200).json(produits);
     } catch (error) {
-      // En cas d'erreur, supprimer les images de Cloudinary
-      if (req.files && req.files.length > 0) {
-        for (const file of req.files) {
-          try {
-            await cloudinary.uploader.destroy(file.filename);
-          } catch (deleteErr) {
-            console.error('Erreur suppression image Cloudinary:', deleteErr);
-          }
-        }
-      }
       next(error);
     }
-  });
-}
-
-  async getAllProduits(req, res, next) {
-  try {
-    const produits = await Produit.findAll({
-      include: [
-        { model: Categorie, as: 'categorie' },
-        { model: Marque, as: 'marque' },
-        { model: Type, as: 'type' },
-        { model: Fournisseur, as: 'fournisseur' },
-        { model: Age, as: 'age' },
-        { 
-          model: Image, 
-          as: 'images', 
-          include: [{ model: Couleur, as: 'couleur' }],
-          order: [['rang', 'ASC']] 
-        },
-        { 
-          model: ProduitVariation, as: 'variations',
-          include: [
-            { model: Couleur, as: 'couleur' },
-            { model: Taille, as: 'taille' },
-            { model: Age, as: 'age' }
-          ]
-        }
-      ],
-      order: [['createdAt', 'DESC']]
-    });
-    res.status(200).json(produits);
-  } catch (error) {
-    next(error);
   }
-}
 
   async getProduitById(req, res, next) {
     try {
@@ -161,14 +159,14 @@ class ProduitController {
           { model: Marque, as: 'marque' },
           { model: Type, as: 'type' },
           { model: Fournisseur, as: 'fournisseur' },
-          { model: Age, as: 'age' }, // ✅ NOUVEAU
-          { 
-  model: Image, 
-  as: 'images', 
-  include: [{ model: Couleur, as: 'couleur' }], // ✅ Ajouter partout
-  order: [['rang', 'ASC']] 
-},
-          { 
+          { model: Age, as: 'age' },
+          {
+            model: Image,
+            as: 'images',
+            include: [{ model: Couleur, as: 'couleur' }],
+            order: [['rang', 'ASC']]
+          },
+          {
             model: ProduitVariation, as: 'variations',
             include: [
               { model: Couleur, as: 'couleur' },
@@ -177,7 +175,12 @@ class ProduitController {
             ]
           },
           { model: Avis, as: 'avis', include: [{ model: Utilisateur, as: 'utilisateur' }] },
-          { model: Commentaire, as: 'commentaires', include: [{ model: Utilisateur, as: 'utilisateur' }], limit: 5, order: [['createdAt', 'DESC']] }
+          {
+            model: Commentaire, as: 'commentaires',
+            include: [{ model: Utilisateur, as: 'utilisateur' }],
+            limit: 5,
+            order: [['createdAt', 'DESC']]
+          }
         ]
       });
       if (!produit) {
@@ -192,266 +195,41 @@ class ProduitController {
   }
 
   async getTop10BestSellingProduits(req, res, next) {
-  try {
-
-    // 1️⃣ Calcul du top 10 (aggregation simple et fiable)
-    const topProduits = await LigneCommande.findAll({
-      attributes: [
-        'idProduit',
-        [Sequelize.fn('SUM', Sequelize.col('quantite')), 'totalVendu']
-      ],
-      group: ['idProduit'],
-      order: [[Sequelize.literal('totalVendu'), 'DESC']],
-      limit: 10,
-      raw: true
-    });
-
-    // Si aucun produit vendu
-    if (!topProduits.length) {
-      return res.status(200).json({
-        message: 'Aucun produit vendu',
-        data: []
-      });
-    }
-
-    // 2️⃣ Récupération des IDs
-    const produitIds = topProduits.map(p => p.idProduit);
-
-    // 3️⃣ Récupération des produits avec relations
-    const produits = await Produit.findAll({
-      where: { idProduit: produitIds },
-      include: [
-        {
-          model: Categorie,
-          as: 'categorie',
-          attributes: ['idCategorie', 'nom']
-        },
-        {
-          model: Marque,
-          as: 'marque',
-          attributes: ['idMarque', 'nom']
-        },
-        {
-          model: Type,
-          as: 'type',
-          attributes: ['idType', 'nom']
-        },
-        {
-          model: Fournisseur,
-          as: 'fournisseur',
-          attributes: ['idFournisseur', 'nom']
-        },
-        {
-          model: Age,
-          as: 'age',
-          attributes: ['idAge', 'label', 'minAge', 'maxAge', 'minTypeAge', 'maxTypeAge']
-        },
-        {
-          model: Image,
-          as: 'images',
-          attributes: ['idImage', 'url', 'rang'],
-          include: [{ model: Couleur, as: 'couleur' }],
-          separate: true,
-          order: [['rang', 'ASC']]
-        },
-        {
-          model: ProduitVariation,
-          as: 'variations',
-          include: [
-            { model: Couleur, as: 'couleur' },
-            { model: Taille, as: 'taille' },
-            { model: Age, as: 'age' }
-          ]
-        }
-      ]
-    });
-
-    // 4️⃣ Fusion du totalVendu + respect de l’ordre du top 10
-    const mapTotal = {};
-    topProduits.forEach(p => mapTotal[p.idProduit] = Number(p.totalVendu));
-
-    const produitsOrdonnes = produitIds.map(id =>
-      produits.find(p => p.idProduit === id)
-    ).filter(Boolean);
-
-    const result = produitsOrdonnes.map(p => ({
-      ...p.toJSON(),
-      totalVendu: mapTotal[p.idProduit] || 0
-    }));
-
-    // 5️⃣ Réponse
-    res.status(200).json({
-      message: 'Top 10 des produits les plus vendus récupérés avec succès',
-      data: result
-    });
-
-  } catch (error) {
-    console.error('Get top 10 best-selling products error:', error);
-    next(error);
-  }
-}
-
-
-async updateProduit(req, res, next) {
-  ProduitController.uploadImages(req, res, async (err) => {
-    if (err) {
-      const error = new Error('Erreur upload');
-      error.code = "VALIDATION_ERROR";
-      return next(error);
-    }
-    
     try {
-      const produit = await Produit.findByPk(req.params.id, { 
-        include: [{ 
-          model: Image, 
-          as: 'images',
-          include: [{ model: Couleur, as: 'couleur' }]
-        }] 
-      });
-      
-      if (!produit) {
-        const error = new Error('Produit non trouvé');
-        error.code = "NOT_FOUND";
-        return next(error);
-      }
-      
-      const {
-        nom,
-        description,
-        prix,
-        quantiteStock,
-        idCategorie,
-        idMarque,
-        idType,
-        idFournisseur,
-        idAge,
-        genre,
-        livraisonGratuite, 
-        imagesToDelete,
-        imageRangs,
-        existingImageColors, // ✅ NOUVEAU : Couleurs des images existantes modifiées
-        newImageColors, // ✅ Couleurs des nouvelles images
-        variants,
-      } = req.body;
-      
-      console.log('📦 existingImageColors reçu:', existingImageColors);
-      console.log('📦 Type de existingImageColors:', typeof existingImageColors);
-      console.log('📦 newImageColors reçu:', newImageColors);
-      console.log('📦 Type de newImageColors:', typeof newImageColors);
-      
-      await produit.update({
-        nom,
-        description,
-        prix: parseFloat(prix),
-        quantiteStock: parseInt(quantiteStock),
-        idCategorie: parseInt(idCategorie),
-        idMarque: parseInt(idMarque),
-        idType: idType ? parseInt(idType) : null,
-        idFournisseur: parseInt(idFournisseur),
-        idAge: idAge ? parseInt(idAge) : null,
-        genre,
-        livraisonGratuite: livraisonGratuite === 'true' || livraisonGratuite === true,
+      const topProduits = await LigneCommande.findAll({
+        attributes: [
+          'idProduit',
+          [Sequelize.fn('SUM', Sequelize.col('quantite')), 'totalVendu']
+        ],
+        group: ['idProduit'],
+        order: [[Sequelize.literal('totalVendu'), 'DESC']],
+        limit: 10,
+        raw: true
       });
 
-      // Supprimer les images
-      if (imagesToDelete) {
-        const idsToDelete = Array.isArray(imagesToDelete) 
-          ? imagesToDelete 
-          : JSON.parse(imagesToDelete);
-        
-        for (const idImage of idsToDelete) {
-          const image = await Image.findByPk(idImage);
-          if (image && image.publicId) {
-            try {
-              await cloudinary.uploader.destroy(image.publicId);
-            } catch (deleteErr) {
-              console.error('Erreur suppression Cloudinary:', deleteErr);
-            }
-          }
-          await Image.destroy({ where: { idImage } });
-        }
+      if (!topProduits.length) {
+        return res.status(200).json({ message: 'Aucun produit vendu', data: [] });
       }
 
-      // ✅ MODIFIÉ : Mettre à jour les couleurs des images existantes
-      if (existingImageColors) {
-        const colorsMap = typeof existingImageColors === 'string' 
-          ? JSON.parse(existingImageColors) 
-          : existingImageColors;
-        
-        console.log('🎨 colorsMap parsé:', colorsMap);
-        
-        for (const [idImage, idCouleur] of Object.entries(colorsMap)) {
-          await Image.update(
-            { idCouleur: idCouleur || null }, 
-            { where: { idImage: parseInt(idImage) } }
-          );
-          console.log(`✅ Image ${idImage} mise à jour avec couleur ${idCouleur}`);
-        }
-      }
+      const produitIds = topProduits.map(p => p.idProduit);
 
-      // Mettre à jour les rangs (séparément des couleurs maintenant)
-      if (imageRangs) {
-        const rangs = JSON.parse(imageRangs);
-        
-        for (const [idImage, rang] of Object.entries(rangs)) {
-          await Image.update(
-            { rang: parseInt(rang) }, 
-            { where: { idImage: parseInt(idImage) } }
-          );
-        }
-      }
-
-      // Nouvelles images avec couleurs
-      if (req.files && req.files.length > 0) {
-        const existingImages = await Image.findAll({ where: { idProduit: produit.idProduit } });
-        const maxRang = existingImages.length > 0 ? Math.max(...existingImages.map(img => img.rang)) : 0;
-
-        const colorsArray = newImageColors 
-          ? (typeof newImageColors === 'string' ? JSON.parse(newImageColors) : newImageColors)
-          : [];
-
-        const images = req.files.map((file, i) => ({
-          url: file.path,
-          publicId: file.filename,
-          rang: maxRang + i + 1,
-          idProduit: produit.idProduit,
-          idCouleur: colorsArray[i] || null,
-        }));
-
-        await Image.bulkCreate(images);
-      }
-
-      // Mettre à jour les variations
-      if (variants) {
-        const variantsArray = typeof variants === 'string' ? JSON.parse(variants) : variants;
-        
-        await ProduitVariation.destroy({ where: { idProduit: produit.idProduit } });
-        
-        for (const v of variantsArray) {
-          await ProduitVariation.create({
-            idProduit: produit.idProduit,
-            idCouleur: v.idCouleur,
-            idTaille: v.idTaille || null,
-            idAge: v.idAge || null,
-            quantiteStock: v.quantiteStock,
-          });
-        }
-      }
-
-      const updatedProduit = await Produit.findByPk(produit.idProduit, {
+      const produits = await Produit.findAll({
+        where: { idProduit: produitIds,isActive: true },
         include: [
-          { model: Categorie, as: 'categorie' },
-          { model: Marque, as: 'marque' },
-          { model: Type, as: 'type' },
-          { model: Fournisseur, as: 'fournisseur' },
-          { model: Age, as: 'age' },
-          { 
-            model: Image, 
-            as: 'images', 
+          { model: Categorie, as: 'categorie', attributes: ['idCategorie', 'nom'] },
+          { model: Marque, as: 'marque', attributes: ['idMarque', 'nom'] },
+          { model: Type, as: 'type', attributes: ['idType', 'nom'] },
+          { model: Fournisseur, as: 'fournisseur', attributes: ['idFournisseur', 'nom'] },
+          { model: Age, as: 'age', attributes: ['idAge', 'label', 'minAge', 'maxAge', 'minTypeAge', 'maxTypeAge'] },
+          {
+            model: Image,
+            as: 'images',
+            attributes: ['idImage', 'url', 'rang'],
             include: [{ model: Couleur, as: 'couleur' }],
-            order: [['rang', 'ASC']] 
+            separate: true,
+            order: [['rang', 'ASC']]
           },
-          { 
+          {
             model: ProduitVariation, as: 'variations',
             include: [
               { model: Couleur, as: 'couleur' },
@@ -461,17 +239,223 @@ async updateProduit(req, res, next) {
           }
         ]
       });
-      
-      res.status(200).json({ message: 'Produit mis à jour avec succès', data: updatedProduit });
+
+      const mapTotal = {};
+      topProduits.forEach(p => mapTotal[p.idProduit] = Number(p.totalVendu));
+
+      const produitsOrdonnes = produitIds
+        .map(id => produits.find(p => p.idProduit === id))
+        .filter(Boolean);
+
+      const result = produitsOrdonnes.map(p => ({
+        ...p.toJSON(),
+        totalVendu: mapTotal[p.idProduit] || 0
+      }));
+
+      res.status(200).json({
+        message: 'Top 10 des produits les plus vendus récupérés avec succès',
+        data: result
+      });
+    } catch (error) {
+      console.error('Get top 10 best-selling products error:', error);
+      next(error);
+    }
+  }
+
+  async updateProduit(req, res, next) {
+    ProduitController.uploadImages(req, res, async (err) => {
+      if (err) {
+        const error = new Error('Erreur upload');
+        error.code = "VALIDATION_ERROR";
+        return next(error);
+      }
+
+      try {
+        const produit = await Produit.findByPk(req.params.id, {
+          include: [{
+            model: Image,
+            as: 'images',
+            include: [{ model: Couleur, as: 'couleur' }]
+          }]
+        });
+
+        if (!produit) {
+          const error = new Error('Produit non trouvé');
+          error.code = "NOT_FOUND";
+          return next(error);
+        }
+
+        const {
+          nom,
+          description,
+          prix,
+          quantiteStock,
+          idCategorie,
+          idMarque,
+          idType,
+          idFournisseur,
+          idAge,
+          genre,
+          isActive,
+          livraisonGratuite,
+          imagesToDelete,
+          imageRangs,
+          existingImageColors,
+          newImageColors,
+          variants,
+        } = req.body;
+
+        await produit.update({
+          nom,
+          description,
+          prix: parseFloat(prix),
+          quantiteStock: parseInt(quantiteStock),
+          idCategorie: parseInt(idCategorie),
+          idMarque: parseInt(idMarque),
+          idType: idType ? parseInt(idType) : null,
+          idFournisseur: parseInt(idFournisseur),
+          idAge: idAge ? parseInt(idAge) : null,
+          genre,
+          isActive: isActive !== undefined
+            ? (isActive === 'true' || isActive === true)
+            : produit.isActive,
+          livraisonGratuite: livraisonGratuite === 'true' || livraisonGratuite === true,
+        });
+
+        if (imagesToDelete) {
+          const idsToDelete = Array.isArray(imagesToDelete)
+            ? imagesToDelete
+            : JSON.parse(imagesToDelete);
+
+          for (const idImage of idsToDelete) {
+            const image = await Image.findByPk(idImage);
+            if (image && image.publicId) {
+              try {
+                await cloudinary.uploader.destroy(image.publicId);
+              } catch (deleteErr) {
+                console.error('Erreur suppression Cloudinary:', deleteErr);
+              }
+            }
+            await Image.destroy({ where: { idImage } });
+          }
+        }
+
+        if (existingImageColors) {
+          const colorsMap = typeof existingImageColors === 'string'
+            ? JSON.parse(existingImageColors)
+            : existingImageColors;
+
+          for (const [idImage, idCouleur] of Object.entries(colorsMap)) {
+            await Image.update(
+              { idCouleur: idCouleur || null },
+              { where: { idImage: parseInt(idImage) } }
+            );
+          }
+        }
+
+        if (imageRangs) {
+          const rangs = JSON.parse(imageRangs);
+          for (const [idImage, rang] of Object.entries(rangs)) {
+            await Image.update(
+              { rang: parseInt(rang) },
+              { where: { idImage: parseInt(idImage) } }
+            );
+          }
+        }
+
+        if (req.files && req.files.length > 0) {
+          const existingImages = await Image.findAll({ where: { idProduit: produit.idProduit } });
+          const maxRang = existingImages.length > 0
+            ? Math.max(...existingImages.map(img => img.rang))
+            : 0;
+
+          const colorsArray = newImageColors
+            ? (typeof newImageColors === 'string' ? JSON.parse(newImageColors) : newImageColors)
+            : [];
+
+          const images = req.files.map((file, i) => ({
+            url: file.path,
+            publicId: file.filename,
+            rang: maxRang + i + 1,
+            idProduit: produit.idProduit,
+            idCouleur: colorsArray[i] || null,
+          }));
+
+          await Image.bulkCreate(images);
+        }
+
+        if (variants) {
+          const variantsArray = typeof variants === 'string' ? JSON.parse(variants) : variants;
+          await ProduitVariation.destroy({ where: { idProduit: produit.idProduit } });
+          for (const v of variantsArray) {
+            await ProduitVariation.create({
+              idProduit: produit.idProduit,
+              idCouleur: v.idCouleur,
+              idTaille: v.idTaille || null,
+              idAge: v.idAge || null,
+              quantiteStock: v.quantiteStock,
+            });
+          }
+        }
+
+        const updatedProduit = await Produit.findByPk(produit.idProduit, {
+          include: [
+            { model: Categorie, as: 'categorie' },
+            { model: Marque, as: 'marque' },
+            { model: Type, as: 'type' },
+            { model: Fournisseur, as: 'fournisseur' },
+            { model: Age, as: 'age' },
+            {
+              model: Image,
+              as: 'images',
+              include: [{ model: Couleur, as: 'couleur' }],
+              order: [['rang', 'ASC']]
+            },
+            {
+              model: ProduitVariation, as: 'variations',
+              include: [
+                { model: Couleur, as: 'couleur' },
+                { model: Taille, as: 'taille' },
+                { model: Age, as: 'age' }
+              ]
+            }
+          ]
+        });
+
+        res.status(200).json({ message: 'Produit mis à jour avec succès', data: updatedProduit });
+      } catch (error) {
+        next(error);
+      }
+    });
+  }
+
+  // ✅ CORRIGÉ : newStatus calculé avant l'update pour éviter l'inversion
+  async toggleActive(req, res, next) {
+    try {
+      const produit = await Produit.findByPk(req.params.id);
+      if (!produit) {
+        const error = new Error('Produit non trouvé');
+        error.code = "NOT_FOUND";
+        return next(error);
+      }
+
+      const newStatus = !produit.isActive;
+      await produit.update({ isActive: newStatus });
+
+      res.status(200).json({
+        message: `Produit ${newStatus ? 'activé' : 'désactivé'} avec succès`,
+        isActive: newStatus
+      });
     } catch (error) {
       next(error);
     }
-  });
-}
+  }
 
   async deleteProduit(req, res, next) {
     try {
-      const produit = await Produit.findByPk(req.params.id, { include: [{ model: Image, as: 'images' }] });
+      const produit = await Produit.findByPk(req.params.id, {
+        include: [{ model: Image, as: 'images' }]
+      });
       if (!produit) {
         const error = new Error('Produit non trouvé');
         error.code = "NOT_FOUND";
@@ -509,15 +493,22 @@ async updateProduit(req, res, next) {
         livraisonGratuite,
         genre,
         type,
-        age, // ✅ NOUVEAU FILTRE
+        age,
         sortBy = 'nom',
         order = 'ASC',
         page = 1,
-        limit = 12
+        limit = 12,
+        showAll // ✅ NOUVEAU : permet à l'admin de voir tous les produits
       } = req.query;
 
       const whereClause = {};
-      
+
+      // ✅ Les clients ne voient que les produits actifs
+      // L'admin peut passer ?showAll=true pour voir tous les produits
+      if (!showAll) {
+        whereClause.isActive = true;
+      }
+
       if (q.trim()) {
         whereClause[Op.or] = [
           { nom: { [Op.like]: `%${q}%` } },
@@ -532,12 +523,9 @@ async updateProduit(req, res, next) {
       if (marque) whereClause.idMarque = marque;
       if (type) whereClause.idType = type;
       if (genre) whereClause.genre = genre;
-      if (age) whereClause.idAge = age; // ✅ NOUVEAU FILTRE
+      if (age) whereClause.idAge = age;
       if (inStock === 'true') whereClause.quantiteStock = { [Op.gt]: 0 };
-      
-      if (livraisonGratuite === 'true') {
-        whereClause.livraisonGratuite = true;
-      }
+      if (livraisonGratuite === 'true') whereClause.livraisonGratuite = true;
 
       if (minPrice || maxPrice) {
         whereClause.prix = {};
@@ -550,17 +538,17 @@ async updateProduit(req, res, next) {
         { model: Marque, as: 'marque', attributes: ['idMarque', 'nom'] },
         { model: Type, as: 'type', attributes: ['idType', 'nom'] },
         { model: Fournisseur, as: 'fournisseur', attributes: ['idFournisseur', 'nom'] },
-        { model: Age, as: 'age', attributes: ['idAge', 'label', 'minAge', 'maxAge', 'minTypeAge', 'maxTypeAge'] }, // ✅ NOUVEAU
-        { 
-          model: Image, 
-          as: 'images', 
-          include: [{ model: Couleur, as: 'couleur' }], 
+        { model: Age, as: 'age', attributes: ['idAge', 'label', 'minAge', 'maxAge', 'minTypeAge', 'maxTypeAge'] },
+        {
+          model: Image,
+          as: 'images',
+          include: [{ model: Couleur, as: 'couleur' }],
           attributes: ['idImage', 'url', 'rang'],
           separate: true,
           order: [['rang', 'ASC']],
         },
-        { 
-          model: ProduitVariation, 
+        {
+          model: ProduitVariation,
           as: 'variations',
           include: [
             { model: Couleur, as: 'couleur' },
@@ -573,7 +561,6 @@ async updateProduit(req, res, next) {
       const validSortFields = ['nom', 'prix', 'quantiteStock', 'createdAt'];
       const sortField = validSortFields.includes(sortBy) ? sortBy : 'nom';
       const sortOrder = order.toUpperCase() === 'DESC' ? 'DESC' : 'ASC';
-
       const offset = (parseInt(page) - 1) * parseInt(limit);
 
       const { count, rows: produits } = await Produit.findAndCountAll({
@@ -610,7 +597,7 @@ async updateProduit(req, res, next) {
     const categories = [...new Set(results.map(p => p.categorie?.nom).filter(Boolean))];
     const marques = [...new Set(results.map(p => p.marque?.nom).filter(Boolean))];
     const types = [...new Set(results.map(p => p.type?.nom).filter(Boolean))];
-    const ages = [...new Set(results.map(p => p.age?.label).filter(Boolean))]; // ✅ NOUVEAU
+    const ages = [...new Set(results.map(p => p.age?.label).filter(Boolean))];
 
     categories.slice(0, 3).forEach(cat => {
       suggestions.push({
@@ -642,7 +629,6 @@ async updateProduit(req, res, next) {
       });
     });
 
-    // ✅ NOUVEAU : Suggestions par âge
     ages.slice(0, 2).forEach(age => {
       suggestions.push({
         type: 'age',
@@ -661,14 +647,12 @@ async updateProduit(req, res, next) {
       attributes: [
         [Sequelize.fn('COUNT', Sequelize.col('Produit.idProduit')), 'count']
       ],
-      include: [
-        {
-          model: Categorie,
-          as: 'categorie',
-          attributes: ['idCategorie', 'nom'],
-          required: true
-        }
-      ],
+      include: [{
+        model: Categorie,
+        as: 'categorie',
+        attributes: ['idCategorie', 'nom'],
+        required: true
+      }],
       where: {
         [Op.or]: [
           { nom: { [Op.like]: `%${searchTerm}%` } },
@@ -692,14 +676,12 @@ async updateProduit(req, res, next) {
       attributes: [
         [Sequelize.fn('COUNT', Sequelize.col('Produit.idProduit')), 'count']
       ],
-      include: [
-        {
-          model: Marque,
-          as: 'marque',
-          attributes: ['idMarque', 'nom'],
-          required: true
-        }
-      ],
+      include: [{
+        model: Marque,
+        as: 'marque',
+        attributes: ['idMarque', 'nom'],
+        required: true
+      }],
       where: {
         [Op.or]: [
           { nom: { [Op.like]: `%${searchTerm}%` } },
@@ -723,14 +705,12 @@ async updateProduit(req, res, next) {
       attributes: [
         [Sequelize.fn('COUNT', Sequelize.col('Produit.idProduit')), 'count']
       ],
-      include: [
-        {
-          model: Type,
-          as: 'type',
-          attributes: ['idType', 'nom'],
-          required: true
-        }
-      ],
+      include: [{
+        model: Type,
+        as: 'type',
+        attributes: ['idType', 'nom'],
+        required: true
+      }],
       where: {
         [Op.or]: [
           { nom: { [Op.like]: `%${searchTerm}%` } },
@@ -749,20 +729,17 @@ async updateProduit(req, res, next) {
     }));
   }
 
-  // ✅ NOUVELLE MÉTHODE : Statistiques de recherche par âge
   async getSearchStatsByAge(searchTerm) {
     const stats = await Produit.findAll({
       attributes: [
         [Sequelize.fn('COUNT', Sequelize.col('Produit.idProduit')), 'count']
       ],
-      include: [
-        {
-          model: Age,
-          as: 'age',
-          attributes: ['idAge', 'label'],
-          required: true
-        }
-      ],
+      include: [{
+        model: Age,
+        as: 'age',
+        attributes: ['idAge', 'label'],
+        required: true
+      }],
       where: {
         [Op.or]: [
           { nom: { [Op.like]: `%${searchTerm}%` } },
@@ -783,29 +760,30 @@ async updateProduit(req, res, next) {
   async getSearchSuggestions(req, res, next) {
     try {
       const { q } = req.query;
-      
+
       if (!q || q.trim().length < 2) {
         return res.status(200).json([]);
       }
 
       const searchTerm = q.trim();
-      
+
       const produits = await Produit.findAll({
         where: {
+          isActive: true, // ✅ Suggestions uniquement sur produits actifs
           [Op.or]: [
             { nom: { [Op.like]: `%${searchTerm}%` } },
             { description: { [Op.like]: `%${searchTerm}%` } },
             { '$categorie.nom$': { [Op.like]: `%${searchTerm}%` } },
             { '$marque.nom$': { [Op.like]: `%${searchTerm}%` } },
             { '$type.nom$': { [Op.like]: `%${searchTerm}%` } },
-            { '$age.label$': { [Op.like]: `%${searchTerm}%` } }, // ✅ NOUVEAU
+            { '$age.label$': { [Op.like]: `%${searchTerm}%` } },
           ]
         },
         include: [
           { model: Categorie, as: 'categorie', attributes: ['nom'], required: false },
           { model: Marque, as: 'marque', attributes: ['nom'], required: false },
           { model: Type, as: 'type', attributes: ['nom'], required: false },
-          { model: Age, as: 'age', attributes: ['label'], required: false }, // ✅ NOUVEAU
+          { model: Age, as: 'age', attributes: ['label'], required: false },
         ],
         limit: 15,
         attributes: ['nom']
@@ -815,66 +793,33 @@ async updateProduit(req, res, next) {
       const categories = new Set();
       const marques = new Set();
       const types = new Set();
-      const ages = new Set(); // ✅ NOUVEAU
+      const ages = new Set();
 
       produits.slice(0, 4).forEach(produit => {
-        suggestions.push({
-          type: 'product',
-          text: produit.nom,
-          query: produit.nom
-        });
+        suggestions.push({ type: 'product', text: produit.nom, query: produit.nom });
       });
 
       produits.forEach(produit => {
-        if (produit.categorie && produit.categorie.nom) {
-          categories.add(produit.categorie.nom);
-        }
-        if (produit.marque && produit.marque.nom) {
-          marques.add(produit.marque.nom);
-        }
-        if (produit.type && produit.type.nom) {
-          types.add(produit.type.nom);
-        }
-        if (produit.age && produit.age.label) { // ✅ NOUVEAU
-          ages.add(produit.age.label);
-        }
+        if (produit.categorie?.nom) categories.add(produit.categorie.nom);
+        if (produit.marque?.nom) marques.add(produit.marque.nom);
+        if (produit.type?.nom) types.add(produit.type.nom);
+        if (produit.age?.label) ages.add(produit.age.label);
       });
 
       Array.from(categories).slice(0, 3).forEach(category => {
-        suggestions.push({
-          type: 'category',
-          text: `${searchTerm} dans ${category}`,
-          query: searchTerm,
-          filter: { category }
-        });
+        suggestions.push({ type: 'category', text: `${searchTerm} dans ${category}`, query: searchTerm, filter: { category } });
       });
 
       Array.from(marques).slice(0, 2).forEach(marque => {
-        suggestions.push({
-          type: 'brand',
-          text: `${searchTerm} ${marque}`,
-          query: searchTerm,
-          filter: { marque }
-        });
+        suggestions.push({ type: 'brand', text: `${searchTerm} ${marque}`, query: searchTerm, filter: { marque } });
       });
 
       Array.from(types).slice(0, 2).forEach(type => {
-        suggestions.push({
-          type: 'type',
-          text: `${searchTerm} ${type}`,
-          query: searchTerm,
-          filter: { type }
-        });
+        suggestions.push({ type: 'type', text: `${searchTerm} ${type}`, query: searchTerm, filter: { type } });
       });
 
-      // ✅ NOUVEAU : Suggestions par âge
       Array.from(ages).slice(0, 2).forEach(age => {
-        suggestions.push({
-          type: 'age',
-          text: `${searchTerm} pour ${age}`,
-          query: searchTerm,
-          filter: { age }
-        });
+        suggestions.push({ type: 'age', text: `${searchTerm} pour ${age}`, query: searchTerm, filter: { age } });
       });
 
       res.status(200).json(suggestions);
@@ -886,7 +831,7 @@ async updateProduit(req, res, next) {
   async deleteImage(req, res, next) {
     try {
       const { imageId } = req.params;
-      
+
       const image = await Image.findByPk(imageId);
       if (!image) {
         const error = new Error('Image non trouvée');
@@ -903,17 +848,12 @@ async updateProduit(req, res, next) {
       }
 
       await image.destroy();
-
-      res.status(200).json({ 
-        success: true,
-        message: 'Image supprimée avec succès' 
-      });
+      res.status(200).json({ success: true, message: 'Image supprimée avec succès' });
     } catch (error) {
       next(error);
     }
   }
 
-  // ✅ NOUVELLE MÉTHODE : Obtenir tous les produits par tranche d'âge
   async getProduitsByAge(req, res, next) {
     try {
       const { ageId } = req.params;
@@ -929,22 +869,25 @@ async updateProduit(req, res, next) {
       const offset = (parseInt(page) - 1) * parseInt(limit);
 
       const { count, rows: produits } = await Produit.findAndCountAll({
-        where: { idAge: ageId },
+        where: {
+          idAge: ageId,
+          isActive: true // ✅ Clients voient uniquement les produits actifs
+        },
         include: [
           { model: Categorie, as: 'categorie' },
           { model: Marque, as: 'marque' },
           { model: Type, as: 'type' },
           { model: Fournisseur, as: 'fournisseur' },
           { model: Age, as: 'age' },
-          { 
-            model: Image, 
+          {
+            model: Image,
             as: 'images',
-            include: [{ model: Couleur, as: 'couleur' }], 
+            include: [{ model: Couleur, as: 'couleur' }],
             separate: true,
             order: [['rang', 'ASC']],
           },
-          { 
-            model: ProduitVariation, 
+          {
+            model: ProduitVariation,
             as: 'variations',
             include: [
               { model: Couleur, as: 'couleur' },

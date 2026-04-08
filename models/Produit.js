@@ -74,6 +74,13 @@ const Produit = sequelize.define('Produit', {
         allowNull: false,
         defaultValue: 'enfant',
     },
+    isActive: {
+    type: DataTypes.BOOLEAN,
+    allowNull: false,
+    defaultValue: true,
+    comment: 'Si false, le produit est désactivé et non visible côté client'
+},
+
      
 }, {
     timestamps: true,
