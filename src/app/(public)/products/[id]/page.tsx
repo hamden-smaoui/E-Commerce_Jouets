@@ -120,12 +120,13 @@ const minSwipeDistance = 50;
 
         const allProducts = await ProduitsService.getAllProduits();
         const relatedProducts = allProducts
-          .filter(
-            (p) =>
-              p.idProduit !== updatedProduct.idProduit &&
-              (p.idCategorie === updatedProduct.categorie?.idCategorie ||
-                (updatedProduct.type?.idType && p.idType === updatedProduct.type?.idType))
-          )
+  .filter(
+    (p) =>
+      p.isActive &&                          // ✅ NOUVEAU
+      p.idProduit !== updatedProduct.idProduit &&
+      (p.idCategorie === updatedProduct.categorie?.idCategorie ||
+        (updatedProduct.type?.idType && p.idType === updatedProduct.type?.idType))
+  )
           .slice(0, 5)
           .map((p) => {
             const firstImage = p.images?.sort((a, b) => a.rang - b.rang)[0];

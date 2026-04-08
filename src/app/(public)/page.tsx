@@ -56,7 +56,7 @@ export default function Home() {
           ProduitsService.getTop10BestSellingProduits(),
           CategoriesService.getAllCategories(),
         ]);
-        setBestOffers(bestOffersData);
+        setBestOffers(bestOffersData.filter(p => p.isActive));
         setCategories(categoriesData);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load data');

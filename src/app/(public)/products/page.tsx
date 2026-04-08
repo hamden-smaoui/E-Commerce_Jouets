@@ -56,13 +56,15 @@ export default function Products() {
     try {
       setLoading(true);
       const data = await ProduitsService.getAllProduits();
-      const transformedProducts: ProductWithDetails[] = data.map((product: ProduitResponse) => ({
-        ...product,
-        image: product.images && product.images.length > 0 
-          ? product.images.sort((a, b) => a.rang - b.rang)[0].url 
-          : '/images/placeholder.jpg',
-        totalStock: calculateTotalStock(product.variations),
-      }));
+     const transformedProducts: ProductWithDetails[] = data
+  .filter(product => product.isActive) 
+  .map((product: ProduitResponse) => ({
+    ...product,
+    image: product.images && product.images.length > 0 
+      ? product.images.sort((a, b) => a.rang - b.rang)[0].url 
+      : '/images/placeholder.jpg',
+    totalStock: calculateTotalStock(product.variations),
+  }));
       setProducts(transformedProducts);
     } catch (error) {
       setError('Erreur lors du chargement des produits');

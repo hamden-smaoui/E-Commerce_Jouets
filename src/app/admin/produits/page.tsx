@@ -7,7 +7,7 @@ import HeaderCardComponent from '@/components/layout/HeaderCardComponent';
 import FormModal from '@/components/layout/FormModal';
 import Notification from '@/components/layout/Notification';
 import ConfirmDeleteModal from '@/components/layout/ConfirmDeleteModal';
-import ProduitsService, { ProduitFormData, ImageData, ProduitVariation, Couleur, Taille, Age ,Produit } from '@/services/produits-service';
+import ProduitsService, { ProduitFormData, ImageData, ProduitVariation, Couleur, Taille, Age, Produit } from '@/services/produits-service';
 import CategoriesService from '@/services/categories-service';
 import MarquesService from '@/services/marques-service';
 import FournisseursService from '@/services/fournisseurs-service';
@@ -15,24 +15,22 @@ import CouleursService from '@/services/couleurs-service';
 import TaillesService from '@/services/tailles-service';
 import AgesService from '@/services/ages-service';
 import ImageManager from '@/components/layout/ImageManager';
-import VariationsManager from '@/components/layout/VariationsManager'; // Nouveau composant
+import VariationsManager from '@/components/layout/VariationsManager';
 import { useSession } from 'next-auth/react';
+
 interface Type {
   idType: number;
   nom: string;
 }
-
 interface Categorie {
   idCategorie: number;
   nom: string;
   types?: Type[];
 }
-
 interface Marque {
   idMarque: number;
   nom: string;
 }
-
 interface Fournisseur {
   idFournisseur: number;
   nom: string;
@@ -49,10 +47,10 @@ interface FormData {
   idFournisseur: number;
   livraisonGratuite: boolean;
   idType: number | null;
-  idAge: number | null; // ✅ NOUVEAU
+  idAge: number | null;
   genre: 'fille' | 'garçon' | 'enfant';
   images: File[];
-imageColors?: (number | null)[];
+  imageColors?: (number | null)[];
   variants: {
     idCouleur: number;
     idTaille?: number;
@@ -66,10 +64,11 @@ interface ProduitResponse extends Produit {
   marque?: Marque;
   fournisseur?: Fournisseur;
   type?: Type;
-  age?:Age;
+  age?: Age;
   images?: ImageData[];
   variations?: ProduitVariation[];
 }
+
 interface Field<T> {
   name: keyof T;
   label: string;
@@ -92,6 +91,10 @@ interface Field<T> {
   hidden?: boolean;
   disabled?: boolean;
 }
+
+// ✅ NOUVEAU : Type pour le filtre de statut
+type StatusFilter = 'all' | 'active' | 'inactive';
+
 const Produits: React.FC = () => {
   const [produits, setProduits] = useState<ProduitResponse[]>([]);
   const [categories, setCategories] = useState<Categorie[]>([]);
@@ -104,35 +107,42 @@ const Produits: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+
+  // ✅ NOUVEAU : filtre de statut + état de chargement du toggle
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+  const [togglingId, setTogglingId] = useState<number | null>(null);
+
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [selectedImages, setSelectedImages] = useState<File[]>([]);
   const [existingImages, setExistingImages] = useState<ImageData[]>([]);
   const [imagesToDelete, setImagesToDelete] = useState<number[]>([]);
-const [imageColors, setImageColors] = useState<(number | null)[]>([]); // ✅ MODIFIÉ
-const [existingImageColors, setExistingImageColors] = useState<{[key: number]: number | null}>({}); // ✅ NOUVEAU
+  const [imageColors, setImageColors] = useState<(number | null)[]>([]);
+  const [existingImageColors, setExistingImageColors] = useState<{[key: number]: number | null}>({});
 
- const [formData, setFormData] = useState<FormData>({
-  idProduit: null,
-  nom: '',
-  description: '',
-  prix: 0,
-  quantiteStock: 0,
-  idCategorie: 0,
-  idMarque: 0,
-  idFournisseur: 0,
-  idType: null,
-  idAge: null, // ✅ NOUVEAU
-  genre: 'enfant',
-  livraisonGratuite: false,
-  images: [],
-  variants: [],
-});
+  const [formData, setFormData] = useState<FormData>({
+    idProduit: null,
+    nom: '',
+    description: '',
+    prix: 0,
+    quantiteStock: 0,
+    idCategorie: 0,
+    idMarque: 0,
+    idFournisseur: 0,
+    idType: null,
+    idAge: null,
+    genre: 'enfant',
+    livraisonGratuite: false,
+    images: [],
+    variants: [],
+  });
+
   const [selectedProduits, setSelectedProduits] = useState<number[]>([]);
   const [notification, setNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
-  const { data: session, status } = useSession();
+  const { data: session } = useSession();
   const token = session?.customToken;
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -153,7 +163,7 @@ const [existingImageColors, setExistingImageColors] = useState<{[key: number]: n
           TaillesService.getAllTailles(token),
           AgesService.getAllAges(token),
         ]);
-        
+
         setProduits(fetchedProduits);
         setCategories(fetchedCategories);
         setMarques(fetchedMarques);
@@ -170,7 +180,8 @@ const [existingImageColors, setExistingImageColors] = useState<{[key: number]: n
     };
     fetchData();
   }, []);
-useEffect(() => {
+
+  useEffect(() => {
     if (formData.idCategorie > 0) {
       const selectedCategory = categories.find((cat) => cat.idCategorie === formData.idCategorie);
       const newTypes = selectedCategory?.types || [];
@@ -183,22 +194,47 @@ useEffect(() => {
       setFormData((prev) => ({ ...prev, idType: null }));
     }
   }, [formData.idCategorie, categories]);
-  // Calcul du stock total basé sur les variations
+
+  // ✅ NOUVEAU : Handler toggle actif/inactif directement depuis la table
+  const handleToggleActive = async (produit: ProduitResponse) => {
+    setTogglingId(produit.idProduit);
+    try {
+      const result = await ProduitsService.toggleActive(produit.idProduit, token);
+      setProduits(prev =>
+        prev.map(p =>
+          p.idProduit === produit.idProduit ? { ...p, isActive: result.isActive } : p
+        )
+      );
+      setNotification({
+        type: 'success',
+        message: result.message,
+      });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Erreur inconnue';
+      setNotification({
+        type: 'error',
+        message: `Erreur lors du changement de statut : ${message}`,
+      });
+    } finally {
+      setTogglingId(null);
+    }
+  };
+
   const calculateTotalStock = (variations: ProduitVariation[] | undefined): number => {
     if (!variations || variations.length === 0) return 0;
     return variations.reduce((total, variation) => total + (variation.quantiteStock || 0), 0);
   };
-const formatAgeLabel = (age: Age | undefined): string => {
-  if (!age) return 'N/A';
-  if (age.minTypeAge === age.maxTypeAge) {
-    return `${age.minAge}-${age.maxAge} ${age.minTypeAge}`;
-  }
-  return `${age.minAge} ${age.minTypeAge} - ${age.maxAge} ${age.maxTypeAge}`;
-};
-  // Formatage des variations pour l'affichage
+
+  const formatAgeLabel = (age: Age | undefined): string => {
+    if (!age) return 'N/A';
+    if (age.minTypeAge === age.maxTypeAge) {
+      return `${age.minAge}-${age.maxAge} ${age.minTypeAge}`;
+    }
+    return `${age.minAge} ${age.minTypeAge} - ${age.maxAge} ${age.maxTypeAge}`;
+  };
+
   const formatVariations = (variations: ProduitVariation[] | undefined): string => {
     if (!variations || variations.length === 0) return 'Aucune variation';
-    
     const variationTexts = variations.map(variation => {
       const parts = [];
       if (variation.couleur) parts.push(variation.couleur.nom);
@@ -206,52 +242,49 @@ const formatAgeLabel = (age: Age | undefined): string => {
       if (variation.age) parts.push(variation.age.label);
       return `${parts.join(' / ')} (${variation.quantiteStock})`;
     });
-    
     return variationTexts.join(', ');
   };
 
   const handleDeleteExistingImage = (imageId: number) => {
-  setImagesToDelete(prev => [...prev, imageId]);
-};
-const handleExistingImageColorChange = (imageId: number, colorId: number | null) => {
-  setExistingImageColors(prev => ({
-    ...prev,
-    [imageId]: colorId
-  }));
-};
-  const formatPrice = (prix: any): string => {
-    if (prix === null || prix === undefined || prix === '' || isNaN(Number(prix))) {
-      return '0.00 TND';
-    }
-    return `${Number(prix).toFixed(2)} TND`;
+    setImagesToDelete(prev => [...prev, imageId]);
   };
 
-  const formatStock = (stock: any): number => {
-    if (stock === null || stock === undefined || stock === '' || isNaN(Number(stock))) {
-      return 0;
-    }
-    return Number(stock);
+  const handleExistingImageColorChange = (imageId: number, colorId: number | null) => {
+    setExistingImageColors(prev => ({ ...prev, [imageId]: colorId }));
   };
-
- 
 
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(e.target.value);
   };
 
-  const filteredProduits = produits.filter(
-    (produit) =>
-      produit &&
-      ((produit.nom && produit.nom.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (produit.description && produit.description.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (produit.categorie && produit.categorie.nom.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (produit.marque && produit.marque.nom.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (produit.fournisseur && produit.fournisseur.nom.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (produit.type && produit.type.nom.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (produit.genre && produit.genre.toLowerCase().includes(searchTerm.toLowerCase())))
-  );
+  // ✅ MODIFIÉ : filtrage combiné recherche + statut
+  const filteredProduits = produits.filter((produit) => {
+    if (!produit) return false;
 
- const columns = [
+    // Filtre statut
+    if (statusFilter === 'active' && !produit.isActive) return false;
+    if (statusFilter === 'inactive' && produit.isActive) return false;
+
+    // Filtre recherche
+    if (!searchTerm.trim()) return true;
+    const term = searchTerm.toLowerCase();
+    return (
+      (produit.nom && produit.nom.toLowerCase().includes(term)) ||
+      (produit.description && produit.description.toLowerCase().includes(term)) ||
+      (produit.categorie && produit.categorie.nom.toLowerCase().includes(term)) ||
+      (produit.marque && produit.marque.nom.toLowerCase().includes(term)) ||
+      (produit.fournisseur && produit.fournisseur.nom.toLowerCase().includes(term)) ||
+      (produit.type && produit.type.nom.toLowerCase().includes(term)) ||
+      (produit.genre && produit.genre.toLowerCase().includes(term))
+    );
+  });
+
+  // ✅ Compteurs pour les onglets de filtre
+  const countAll = produits.length;
+  const countActive = produits.filter(p => p.isActive).length;
+  const countInactive = produits.filter(p => !p.isActive).length;
+
+  const columns = [
     {
       header: 'Produit',
       render: (item: ProduitResponse) => (
@@ -303,31 +336,74 @@ const handleExistingImageColorChange = (imageId: number, colorId: number | null)
       header: 'Genre',
       render: (item: ProduitResponse) => item.genre || 'N/A',
     },
-      {
-    header: 'Tranche d\'âge',
-    render: (item: ProduitResponse) => (
-      <div>
-        {item.age ? (
-          <>
-            <div className="font-semibold text-sm">{item.age.label}</div>
-            <div className="text-xs text-gray-500">{formatAgeLabel(item.age)}</div>
-          </>
-        ) : (
-          <span className="text-gray-400">Non spécifié</span>
-        )}
-      </div>
-    ),
-  },
-    { 
-      header: 'Livraison Gratuite', 
+    {
+      header: "Tranche d'âge",
+      render: (item: ProduitResponse) => (
+        <div>
+          {item.age ? (
+            <>
+              <div className="font-semibold text-sm">{item.age.label}</div>
+              <div className="text-xs text-gray-500">{formatAgeLabel(item.age)}</div>
+            </>
+          ) : (
+            <span className="text-gray-400">Non spécifié</span>
+          )}
+        </div>
+      ),
+    },
+    {
+      header: 'Livraison Gratuite',
       render: (produit: ProduitResponse) => (
         <span className={`badge ${produit.livraisonGratuite ? 'badge-success' : 'badge-ghost'}`}>
           {produit.livraisonGratuite ? 'Oui' : 'Non'}
         </span>
-      )
+      ),
+    },
+    // ✅ NOUVEAU : Colonne Statut avec badge + toggle switch
+    {
+      header: 'Statut',
+      render: (item: ProduitResponse) => (
+        <div className="flex flex-col items-center gap-1">
+          {/* Badge visuel */}
+          <span className={`badge badge-sm font-semibold ${item.isActive ? 'badge-success' : 'badge-error'}`}>
+            {item.isActive ? 'Actif' : 'Inactif'}
+          </span>
+          {/* Toggle switch */}
+          <label className="swap swap-rotate cursor-pointer">
+            <input
+              type="checkbox"
+              checked={item.isActive}
+              disabled={togglingId === item.idProduit}
+              onChange={() => handleToggleActive(item)}
+              className="hidden"
+            />
+            <div
+              onClick={() => togglingId !== item.idProduit && handleToggleActive(item)}
+              className={`
+                relative inline-flex items-center w-11 h-6 rounded-full transition-colors duration-200 cursor-pointer
+                ${item.isActive ? 'bg-success' : 'bg-error'}
+                ${togglingId === item.idProduit ? 'opacity-50 cursor-not-allowed' : ''}
+              `}
+            >
+              {togglingId === item.idProduit ? (
+                // Spinner pendant le chargement
+                <span className="absolute inset-0 flex items-center justify-center">
+                  <span className="loading loading-spinner loading-xs text-white"></span>
+                </span>
+              ) : (
+                <span
+                  className={`
+                    absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-transform duration-200
+                    ${item.isActive ? 'translate-x-6' : 'translate-x-1'}
+                  `}
+                />
+              )}
+            </div>
+          </label>
+        </div>
+      ),
     },
   ];
-
 
   const customSelectStyles = {
     menu: (provided: any) => ({
@@ -392,12 +468,7 @@ const handleExistingImageColorChange = (imageId: number, colorId: number | null)
       label: 'Prix (TND)',
       type: 'number',
       placeholder: '0.00',
-      validation: {
-        required: true,
-        min: 0.01,
-        step: 0.01,
-        title: 'Le prix doit être supérieur à 0',
-      },
+      validation: { required: true, min: 0.01, step: 0.01, title: 'Le prix doit être supérieur à 0' },
       hint: 'Prix en dinars tunisiens',
     },
     {
@@ -405,12 +476,8 @@ const handleExistingImageColorChange = (imageId: number, colorId: number | null)
       label: 'Quantité en stock',
       type: 'number',
       placeholder: '0',
-      validation: {
-        required: true,
-        min: 0,
-        title: 'La quantité doit être supérieure ou égale à 0',
-      },
-      hint: 'Nombre d\'unités en stock',
+      validation: { required: true, min: 0, title: 'La quantité doit être supérieure ou égale à 0' },
+      hint: "Nombre d'unités en stock",
     },
     {
       name: 'idCategorie',
@@ -421,25 +488,11 @@ const handleExistingImageColorChange = (imageId: number, colorId: number | null)
         return (
           <div className="relative">
             <Select
-              options={categories.map((categorie) => ({
-                value: categorie.idCategorie,
-                label: categorie.nom,
-              }))}
-              value={
-                currentValue > 0
-                  ? {
-                      value: currentValue,
-                      label: categories.find((c) => c.idCategorie === currentValue)?.nom || '',
-                    }
-                  : null
-              }
+              options={categories.map((categorie) => ({ value: categorie.idCategorie, label: categorie.nom }))}
+              value={currentValue > 0 ? { value: currentValue, label: categories.find((c) => c.idCategorie === currentValue)?.nom || '' } : null}
               onChange={(selectedOption) => {
                 const newValue = selectedOption ? selectedOption.value : 0;
-                setFormData((prev) => ({
-                  ...prev,
-                  idCategorie: newValue,
-                  idType: null,
-                }));
+                setFormData((prev) => ({ ...prev, idCategorie: newValue, idType: null }));
                 onChange(newValue);
               }}
               placeholder="Sélectionnez une catégorie"
@@ -455,10 +508,7 @@ const handleExistingImageColorChange = (imageId: number, colorId: number | null)
       },
       validation: {
         required: true,
-        validate: (value: any) => {
-          const idCategorie = value || 0;
-          return idCategorie > 0 ? '' : 'Sélectionnez une catégorie';
-        },
+        validate: (value: any) => (value > 0 ? '' : 'Sélectionnez une catégorie'),
         title: 'Sélectionnez une catégorie',
       },
       hint: 'Choisissez une catégorie associée',
@@ -473,28 +523,14 @@ const handleExistingImageColorChange = (imageId: number, colorId: number | null)
         return (
           <div>
             <Select
-              options={types.map((type) => ({
-                value: type.idType,
-                label: type.nom,
-              }))}
-              value={
-                selectedType
-                  ? { value: selectedType.idType, label: selectedType.nom }
-                  : null
-              }
+              options={types.map((type) => ({ value: type.idType, label: type.nom }))}
+              value={selectedType ? { value: selectedType.idType, label: selectedType.nom } : null}
               onChange={(selectedOption) => {
                 const newValue = selectedOption ? selectedOption.value : null;
-                setFormData((prev) => ({
-                  ...prev,
-                  idType: newValue,
-                }));
+                setFormData((prev) => ({ ...prev, idType: newValue }));
                 onChange(newValue);
               }}
-              placeholder={
-                formData.idCategorie === 0 || types.length === 0
-                  ? 'Sélectionnez d\'abord une catégorie'
-                  : 'Sélectionnez un type'
-              }
+              placeholder={formData.idCategorie === 0 || types.length === 0 ? "Sélectionnez d'abord une catégorie" : 'Sélectionnez un type'}
               className="w-full"
               isClearable
               isDisabled={formData.idCategorie === 0 || types.length === 0}
@@ -504,17 +540,12 @@ const handleExistingImageColorChange = (imageId: number, colorId: number | null)
               menuShouldScrollIntoView={true}
             />
             {formData.idCategorie > 0 && types.length === 0 && (
-              <div className="text-sm text-gray-500 mt-1">
-                Aucun type disponible pour cette catégorie
-              </div>
+              <div className="text-sm text-gray-500 mt-1">Aucun type disponible pour cette catégorie</div>
             )}
           </div>
         );
       },
-      validation: {
-        required: false,
-        title: 'Sélectionnez un type (optionnel)',
-      },
+      validation: { required: false, title: 'Sélectionnez un type (optionnel)' },
       hint: 'Choisissez un type associé (optionnel)',
     },
     {
@@ -526,24 +557,11 @@ const handleExistingImageColorChange = (imageId: number, colorId: number | null)
         return (
           <div>
             <Select
-              options={marques.map((marque) => ({
-                value: marque.idMarque,
-                label: marque.nom,
-              }))}
-              value={
-                currentValue > 0
-                  ? {
-                      value: currentValue,
-                      label: marques.find((m) => m.idMarque === currentValue)?.nom || '',
-                    }
-                  : null
-              }
+              options={marques.map((marque) => ({ value: marque.idMarque, label: marque.nom }))}
+              value={currentValue > 0 ? { value: currentValue, label: marques.find((m) => m.idMarque === currentValue)?.nom || '' } : null}
               onChange={(selectedOption) => {
                 const newValue = selectedOption ? selectedOption.value : 0;
-                setFormData((prev) => ({
-                  ...prev,
-                  idMarque: newValue,
-                }));
+                setFormData((prev) => ({ ...prev, idMarque: newValue }));
                 onChange(newValue);
               }}
               placeholder="Sélectionnez une marque"
@@ -559,10 +577,7 @@ const handleExistingImageColorChange = (imageId: number, colorId: number | null)
       },
       validation: {
         required: true,
-        validate: (value: any) => {
-          const idMarque = value || 0;
-          return idMarque > 0 ? '' : 'Sélectionnez une marque';
-        },
+        validate: (value: any) => (value > 0 ? '' : 'Sélectionnez une marque'),
         title: 'Sélectionnez une marque',
       },
       hint: 'Choisissez une marque associée',
@@ -576,24 +591,11 @@ const handleExistingImageColorChange = (imageId: number, colorId: number | null)
         return (
           <div>
             <Select
-              options={fournisseurs.map((fournisseur) => ({
-                value: fournisseur.idFournisseur,
-                label: fournisseur.nom,
-              }))}
-              value={
-                currentValue > 0
-                  ? {
-                      value: currentValue,
-                      label: fournisseurs.find((f) => f.idFournisseur === currentValue)?.nom || '',
-                    }
-                  : null
-              }
+              options={fournisseurs.map((fournisseur) => ({ value: fournisseur.idFournisseur, label: fournisseur.nom }))}
+              value={currentValue > 0 ? { value: currentValue, label: fournisseurs.find((f) => f.idFournisseur === currentValue)?.nom || '' } : null}
               onChange={(selectedOption) => {
                 const newValue = selectedOption ? selectedOption.value : 0;
-                setFormData((prev) => ({
-                  ...prev,
-                  idFournisseur: newValue,
-                }));
+                setFormData((prev) => ({ ...prev, idFournisseur: newValue }));
                 onChange(newValue);
               }}
               placeholder="Sélectionnez un fournisseur"
@@ -609,15 +611,12 @@ const handleExistingImageColorChange = (imageId: number, colorId: number | null)
       },
       validation: {
         required: true,
-        validate: (value: any) => {
-          const idFournisseur = value || 0;
-          return idFournisseur > 0 ? '' : 'Sélectionnez un fournisseur';
-        },
+        validate: (value: any) => (value > 0 ? '' : 'Sélectionnez un fournisseur'),
         title: 'Sélectionnez un fournisseur',
       },
       hint: 'Choisissez un fournisseur associé',
     },
-   {
+    {
       name: 'variants',
       label: 'Variations du produit',
       type: 'custom',
@@ -632,67 +631,46 @@ const handleExistingImageColorChange = (imageId: number, colorId: number | null)
       ),
       validation: {
         required: true,
-        validate: (value: any) => {
-          const variants = value || [];
-          return variants.length > 0 ? '' : 'Au moins une variation est requise';
-        },
+        validate: (value: any) => ((value || []).length > 0 ? '' : 'Au moins une variation est requise'),
         title: 'Ajoutez au moins une variation',
       },
       hint: 'Définissez les variations de couleur, taille et âge avec leurs stocks',
     },
     {
-    name: 'idAge',
-    label: 'Tranche d\'âge',
-    type: 'custom',
-    render: ({ value, onChange }) => {
-      const currentIdAge = value || null;
-      const selectedAge = currentIdAge ? ages.find((a) => a.idAge === currentIdAge) : null;
-      
-      return (
-        <div>
-          <Select
-            options={ages.map((age) => ({
-              value: age.idAge,
-              label: `${age.label} (${age.minAge} ${age.minTypeAge} - ${age.maxAge} ${age.maxTypeAge})`,
-            }))}
-            value={
-              selectedAge
-                ? { 
-                    value: selectedAge.idAge, 
-                    label: `${selectedAge.label} (${selectedAge.minAge} ${selectedAge.minTypeAge} - ${selectedAge.maxAge} ${selectedAge.maxTypeAge})`
-                  }
-                : null
-            }
-            onChange={(selectedOption) => {
-              const newValue = selectedOption ? selectedOption.value : null;
-              setFormData((prev) => ({
-                ...prev,
-                idAge: newValue,
-              }));
-              onChange(newValue);
-            }}
-            placeholder="Sélectionnez une tranche d'âge (optionnel)"
-            className="w-full"
-            isClearable
-            styles={customSelectStyles}
-            menuPortalTarget={document.body}
-            menuPosition="absolute"
-            menuShouldScrollIntoView={true}
-          />
-          {ages.length === 0 && (
-            <div className="text-sm text-gray-500 mt-1">
-              Aucune tranche d'âge disponible
-            </div>
-          )}
-        </div>
-      );
+      name: 'idAge',
+      label: "Tranche d'âge",
+      type: 'custom',
+      render: ({ value, onChange }) => {
+        const currentIdAge = value || null;
+        const selectedAge = currentIdAge ? ages.find((a) => a.idAge === currentIdAge) : null;
+        return (
+          <div>
+            <Select
+              options={ages.map((age) => ({
+                value: age.idAge,
+                label: `${age.label} (${age.minAge} ${age.minTypeAge} - ${age.maxAge} ${age.maxTypeAge})`,
+              }))}
+              value={selectedAge ? { value: selectedAge.idAge, label: `${selectedAge.label} (${selectedAge.minAge} ${selectedAge.minTypeAge} - ${selectedAge.maxAge} ${selectedAge.maxTypeAge})` } : null}
+              onChange={(selectedOption) => {
+                const newValue = selectedOption ? selectedOption.value : null;
+                setFormData((prev) => ({ ...prev, idAge: newValue }));
+                onChange(newValue);
+              }}
+              placeholder="Sélectionnez une tranche d'âge (optionnel)"
+              className="w-full"
+              isClearable
+              styles={customSelectStyles}
+              menuPortalTarget={document.body}
+              menuPosition="absolute"
+              menuShouldScrollIntoView={true}
+            />
+            {ages.length === 0 && <div className="text-sm text-gray-500 mt-1">Aucune tranche d'âge disponible</div>}
+          </div>
+        );
+      },
+      validation: { required: false, title: "Sélectionnez une tranche d'âge (optionnel)" },
+      hint: "Choisissez une tranche d'âge pour ce produit (optionnel)",
     },
-    validation: {
-      required: false,
-      title: 'Sélectionnez une tranche d\'âge (optionnel)',
-    },
-    hint: 'Choisissez une tranche d\'âge pour ce produit (optionnel)',
-  },
     {
       name: 'genre',
       label: 'Genre',
@@ -704,16 +682,10 @@ const handleExistingImageColorChange = (imageId: number, colorId: number | null)
             { value: 'fille', label: 'Fille' },
             { value: 'garçon', label: 'Garçon' },
           ]}
-          value={{
-            value: value,
-            label: value === 'enfant' ? 'Enfant' : value === 'fille' ? 'Fille' : 'Garçon',
-          }}
+          value={{ value, label: value === 'enfant' ? 'Enfant' : value === 'fille' ? 'Fille' : 'Garçon' }}
           onChange={(selectedOption) => {
             const newValue = selectedOption ? selectedOption.value : 'enfant';
-            setFormData((prev) => ({
-              ...prev,
-              genre: newValue as 'fille' | 'garçon' | 'enfant',
-            }));
+            setFormData((prev) => ({ ...prev, genre: newValue as 'fille' | 'garçon' | 'enfant' }));
             onChange(newValue);
           }}
           className="w-full"
@@ -724,16 +696,13 @@ const handleExistingImageColorChange = (imageId: number, colorId: number | null)
           menuShouldScrollIntoView={true}
         />
       ),
-      validation: {
-        required: true,
-        title: 'Sélectionnez le genre',
-      },
+      validation: { required: true, title: 'Sélectionnez le genre' },
       hint: 'Choisissez le genre associé',
     },
     {
       name: 'livraisonGratuite',
       label: 'Livraison Gratuite',
-      type: 'custom', // ✅ IMPORTANT : Spécifier 'custom' pour utiliser render
+      type: 'custom',
       render: ({ value, onChange }) => (
         <div className="flex items-center gap-2">
           <input
@@ -749,205 +718,144 @@ const handleExistingImageColorChange = (imageId: number, colorId: number | null)
       ),
     },
     {
-  name: 'images',
-  label: 'Images du produit',
-  type: 'custom',
-  render: () => (
-    <ImageManager
-      images={selectedImages}
-      existingImages={existingImages.filter(
-        img => !imagesToDelete.includes(img.idImage)
-      )}
-      onImagesChange={setSelectedImages}
-      onDeleteExistingImage={handleDeleteExistingImage}
-      onImageColorsChange={setImageColors}
-      onExistingImageColorChange={handleExistingImageColorChange} // ✅ NOUVEAU
-      couleurs={couleurs}
-      maxImages={10}
-    />
-  ),
-  validation: {
-    required: false,
-  },
-  hint: 'Sélectionnez jusqu\'à 10 images et associez-les à des couleurs',
-},
+      name: 'images',
+      label: 'Images du produit',
+      type: 'custom',
+      render: () => (
+        <ImageManager
+          images={selectedImages}
+          existingImages={existingImages.filter(img => !imagesToDelete.includes(img.idImage))}
+          onImagesChange={setSelectedImages}
+          onDeleteExistingImage={handleDeleteExistingImage}
+          onImageColorsChange={setImageColors}
+          onExistingImageColorChange={handleExistingImageColorChange}
+          couleurs={couleurs}
+          maxImages={10}
+        />
+      ),
+      validation: { required: false },
+      hint: "Sélectionnez jusqu'à 10 images et associez-les à des couleurs",
+    },
   ];
 
   const handleAddSubmit = async (data: FormData) => {
-  try {
-    if (data.idCategorie === 0) {
-      setNotification({
-        type: 'error',
-        message: 'Veuillez sélectionner une catégorie valide.',
-      });
-      return;
-    }
-
-    if (!data.variants || data.variants.length === 0) {
-      setNotification({
-        type: 'error',
-        message: 'Veuillez ajouter au moins une variation du produit.',
-      });
-      return;
-    }
-    console.log('🎨 imageColors à envoyer:', imageColors);
-
-    const produitData: ProduitFormData = {
-      ...data,
-      idAge: data.idAge, // ✅ NOUVEAU
-      images: selectedImages,
-      imageColors: imageColors, // ✅ AJOUTER
-      variants: data.variants,
-    };
- console.log('📦 produitData:', produitData);
-    const response = await ProduitsService.createProduit(produitData, token);
-    const newProduit: ProduitResponse = {
-      ...response,
-      categorie: categories.find((cat) => cat.idCategorie === data.idCategorie),
-      marque: marques.find((m) => m.idMarque === data.idMarque),
-      fournisseur: fournisseurs.find((f) => f.idFournisseur === data.idFournisseur),
-      type: data.idType ? types.find((t) => t.idType === data.idType) : undefined,
-      age: data.idAge ? ages.find((a) => a.idAge === data.idAge) : undefined, // ✅ NOUVEAU
-    };
-
-    setProduits([...produits, newProduit]);
-    setIsAddModalOpen(false);
-    setSelectedImages([]);
-    setExistingImages([]);
-    setNotification({
-      type: 'success',
-      message: 'Produit ajouté avec succès !',
-    });
-  } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : 'Erreur inconnue';
-    setNotification({
-      type: 'error',
-      message: `Erreur ! Échec de l'ajout du produit: ${message}`,
-    });
-  }
-};
-
-const handleEditSubmit = async (data: FormData) => {
-  try {
-    if (!data.idProduit) {
-      setNotification({
-        type: 'error',
-        message: 'Aucun produit sélectionné pour modification.',
-      });
-      return;
-    }
-    if (data.idCategorie === 0) {
-      setNotification({
-        type: 'error',
-        message: 'Veuillez sélectionner une catégorie valide.',
-      });
-      return;
-    }
-    if (data.idMarque === 0) {
-      setNotification({
-        type: 'error',
-        message: 'Veuillez sélectionner une marque valide.',
-      });
-      return;
-    }
-    if (data.idFournisseur === 0) {
-      setNotification({
-        type: 'error',
-        message: 'Veuillez sélectionner un fournisseur valide.',
-      });
-      return;
-    }
-    
-    if (imagesToDelete.length > 0) {
-      for (const imageId of imagesToDelete) {
-        await ProduitsService.deleteImage(imageId, token);
+    try {
+      if (data.idCategorie === 0) {
+        setNotification({ type: 'error', message: 'Veuillez sélectionner une catégorie valide.' });
+        return;
       }
+      if (!data.variants || data.variants.length === 0) {
+        setNotification({ type: 'error', message: 'Veuillez ajouter au moins une variation du produit.' });
+        return;
+      }
+
+      const produitData: ProduitFormData = {
+        ...data,
+        idAge: data.idAge,
+        images: selectedImages,
+        imageColors: imageColors,
+        variants: data.variants,
+        isActive: true, // ✅ Toujours actif à la création
+      };
+
+      const response = await ProduitsService.createProduit(produitData, token);
+      const newProduit: ProduitResponse = {
+        ...response,
+        categorie: categories.find((cat) => cat.idCategorie === data.idCategorie),
+        marque: marques.find((m) => m.idMarque === data.idMarque),
+        fournisseur: fournisseurs.find((f) => f.idFournisseur === data.idFournisseur),
+        type: data.idType ? types.find((t) => t.idType === data.idType) : undefined,
+        age: data.idAge ? ages.find((a) => a.idAge === data.idAge) : undefined,
+      };
+
+      setProduits([...produits, newProduit]);
+      setIsAddModalOpen(false);
+      setSelectedImages([]);
+      setExistingImages([]);
+      setNotification({ type: 'success', message: 'Produit ajouté avec succès !' });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Erreur inconnue';
+      setNotification({ type: 'error', message: `Erreur ! Échec de l'ajout du produit: ${message}` });
     }
-    console.log('🎨 imageColors (nouvelles images):', imageColors);
-    console.log('🎨 existingImageColors (images modifiées):', existingImageColors);
-    console.log('📦 selectedImages:', selectedImages);
-    console.log('📦 existingImages:', existingImages);
-
-    const produitData = {
-      ...data,
-      images: selectedImages,
-      imageColors: imageColors, // Pour les nouvelles images
-      existingImageColors: existingImageColors, // ✅ NOUVEAU : Pour les images existantes
-    };
-    
-    console.log('📦 produitData complet:', produitData);
-
-    const updatedProduit = await ProduitsService.updateProduit(data.idProduit, produitData, token);
-    
-    const updatedProduitWithDetails: ProduitResponse = {
-      ...updatedProduit,
-      categorie: categories.find((cat) => cat.idCategorie === data.idCategorie),
-      marque: marques.find((m) => m.idMarque === data.idMarque),
-      fournisseur: fournisseurs.find((f) => f.idFournisseur === data.idFournisseur),
-      type: data.idType ? types.find((t) => t.idType === data.idType) : undefined,
-      age: data.idAge ? ages.find((a) => a.idAge === data.idAge) : undefined, // ✅ AJOUTÉ
-    };
-
-    setProduits(
-      produits.map((produit) =>
-        produit.idProduit === data.idProduit ? updatedProduitWithDetails : produit
-      )
-    );
-    
-    setIsEditModalOpen(false);
-    setSelectedImages([]);
-    setExistingImages([]);
-    setImagesToDelete([]);
-    
-    setNotification({
-      type: 'success',
-      message: 'Produit modifié avec succès !',
-    });
-  } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : 'Erreur inconnue';
-    setNotification({
-      type: 'error',
-      message: `Erreur ! Échec de la modification du produit: ${message}`,
-    });
-  }
-};
-
-  const handleDelete = () => {
-    setIsDeleteModalOpen(true);
   };
+
+  const handleEditSubmit = async (data: FormData) => {
+    try {
+      if (!data.idProduit) {
+        setNotification({ type: 'error', message: 'Aucun produit sélectionné pour modification.' });
+        return;
+      }
+      if (data.idCategorie === 0) {
+        setNotification({ type: 'error', message: 'Veuillez sélectionner une catégorie valide.' });
+        return;
+      }
+      if (data.idMarque === 0) {
+        setNotification({ type: 'error', message: 'Veuillez sélectionner une marque valide.' });
+        return;
+      }
+      if (data.idFournisseur === 0) {
+        setNotification({ type: 'error', message: 'Veuillez sélectionner un fournisseur valide.' });
+        return;
+      }
+
+      if (imagesToDelete.length > 0) {
+        for (const imageId of imagesToDelete) {
+          await ProduitsService.deleteImage(imageId, token);
+        }
+      }
+
+      const produitData = {
+        ...data,
+        images: selectedImages,
+        imageColors: imageColors,
+        existingImageColors: existingImageColors,
+      };
+
+      const updatedProduit = await ProduitsService.updateProduit(data.idProduit, produitData, token);
+
+      const updatedProduitWithDetails: ProduitResponse = {
+        ...updatedProduit,
+        categorie: categories.find((cat) => cat.idCategorie === data.idCategorie),
+        marque: marques.find((m) => m.idMarque === data.idMarque),
+        fournisseur: fournisseurs.find((f) => f.idFournisseur === data.idFournisseur),
+        type: data.idType ? types.find((t) => t.idType === data.idType) : undefined,
+        age: data.idAge ? ages.find((a) => a.idAge === data.idAge) : undefined,
+      };
+
+      setProduits(
+        produits.map((produit) =>
+          produit.idProduit === data.idProduit ? updatedProduitWithDetails : produit
+        )
+      );
+
+      setIsEditModalOpen(false);
+      setSelectedImages([]);
+      setExistingImages([]);
+      setImagesToDelete([]);
+      setNotification({ type: 'success', message: 'Produit modifié avec succès !' });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Erreur inconnue';
+      setNotification({ type: 'error', message: `Erreur ! Échec de la modification du produit: ${message}` });
+    }
+  };
+
+  const handleDelete = () => setIsDeleteModalOpen(true);
 
   const confirmDelete = async () => {
     try {
       for (const id of selectedProduits) {
-        await ProduitsService.deleteProduit(id,token);
+        await ProduitsService.deleteProduit(id, token);
       }
       setProduits(produits.filter((produit) => !selectedProduits.includes(produit.idProduit)));
       setSelectedProduits([]);
       setIsDeleteModalOpen(false);
-      setNotification({
-        type: 'success',
-        message: 'Produit(s) supprimé(s) avec succès !',
-      });
+      setNotification({ type: 'success', message: 'Produit(s) supprimé(s) avec succès !' });
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Erreur inconnue';
-      setNotification({
-        type: 'error',
-        message: `Erreur ! Échec de la suppression du produit: ${message}`,
-      });
+      setNotification({ type: 'error', message: `Erreur ! Échec de la suppression du produit: ${message}` });
     }
   };
-const formatAgeRanges = (variations: ProduitVariation[] | undefined): string => {
-  if (!variations || variations.length === 0) return 'N/A';
-  // On récupère tous les labels de tranche d'âge uniques
-  const uniqueLabels = Array.from(
-    new Set(
-      variations
-        .filter((v) => v.age && v.age.label)
-        .map((v) => v.age!.label)
-    )
-  );
-  return uniqueLabels.length > 0 ? uniqueLabels.join(', ') : 'N/A';
-};
+
   const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>, id: number) => {
     if (e.target.checked) {
       setSelectedProduits([...selectedProduits, id]);
@@ -965,68 +873,63 @@ const formatAgeRanges = (variations: ProduitVariation[] | undefined): string => 
   };
 
   const handleAdd = () => {
-  const newFormData: FormData = {
-    idProduit: null,
-    nom: '',
-    description: '',
-    prix: 0,
-    quantiteStock: 0,
-    idCategorie: 0,
-    idMarque: 0,
-    idFournisseur: 0,
-    idType: null,
-    idAge: null, // ✅ NOUVEAU
-    genre: 'enfant',
-    livraisonGratuite: false,
-    images: [],
-    variants: [],
+    setFormData({
+      idProduit: null,
+      nom: '',
+      description: '',
+      prix: 0,
+      quantiteStock: 0,
+      idCategorie: 0,
+      idMarque: 0,
+      idFournisseur: 0,
+      idType: null,
+      idAge: null,
+      genre: 'enfant',
+      livraisonGratuite: false,
+      images: [],
+      variants: [],
+    });
+    setTypes([]);
+    setSelectedImages([]);
+    setExistingImages([]);
+    setExistingImageColors({});
+    setImageColors([]);
+    setIsAddModalOpen(true);
   };
-  setFormData(newFormData);
-  setTypes([]);
-  setSelectedImages([]);
-  setExistingImages([]);
-  setExistingImageColors({});
-  setImageColors([]);
-  setIsAddModalOpen(true);
-};
 
   const handleEdit = async (produit: ProduitResponse) => {
-  try {
-    const fetchedProduit = await ProduitsService.getProduitById(produit.idProduit, token);
-    const selectedCategory = categories.find((cat) => cat.idCategorie === fetchedProduit.idCategorie);
-    setTypes(selectedCategory?.types || []);
+    try {
+      const fetchedProduit = await ProduitsService.getProduitById(produit.idProduit, token);
+      const selectedCategory = categories.find((cat) => cat.idCategorie === fetchedProduit.idCategorie);
+      setTypes(selectedCategory?.types || []);
 
-    const newFormData: FormData = {
-      idProduit: fetchedProduit.idProduit,
-      nom: fetchedProduit.nom || '',
-      description: fetchedProduit.description || '',
-      prix: fetchedProduit.prix || 0,
-      quantiteStock: fetchedProduit.quantiteStock || 0,
-      idCategorie: fetchedProduit.idCategorie || 0,
-      idMarque: fetchedProduit.idMarque || 0,
-      idFournisseur: fetchedProduit.idFournisseur || 0,
-      idType: fetchedProduit.idType || null,
-      idAge: fetchedProduit.idAge || null, // ✅ NOUVEAU
-      genre: fetchedProduit.genre || 'enfant',
-      livraisonGratuite: fetchedProduit.livraisonGratuite || false,
-      images: [],
-      variants: fetchedProduit.variations || [],
-    };
+      setFormData({
+        idProduit: fetchedProduit.idProduit,
+        nom: fetchedProduit.nom || '',
+        description: fetchedProduit.description || '',
+        prix: fetchedProduit.prix || 0,
+        quantiteStock: fetchedProduit.quantiteStock || 0,
+        idCategorie: fetchedProduit.idCategorie || 0,
+        idMarque: fetchedProduit.idMarque || 0,
+        idFournisseur: fetchedProduit.idFournisseur || 0,
+        idType: fetchedProduit.idType || null,
+        idAge: fetchedProduit.idAge || null,
+        genre: fetchedProduit.genre || 'enfant',
+        livraisonGratuite: fetchedProduit.livraisonGratuite || false,
+        images: [],
+        variants: fetchedProduit.variations || [],
+      });
 
-    setFormData(newFormData);
-    setSelectedImages([]);
-    setExistingImages(fetchedProduit.images || []);
-    setImageColors([]);
-    setExistingImageColors({});
-    setIsEditModalOpen(true);
-  } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : 'Erreur inconnue';
-    setNotification({
-      type: 'error',
-      message: `Erreur lors du chargement des données du produit: ${message}`,
-    });
-  }
-};
+      setSelectedImages([]);
+      setExistingImages(fetchedProduit.images || []);
+      setImageColors([]);
+      setExistingImageColors({});
+      setIsEditModalOpen(true);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Erreur inconnue';
+      setNotification({ type: 'error', message: `Erreur lors du chargement des données du produit: ${message}` });
+    }
+  };
 
   if (loading) {
     return (
@@ -1044,16 +947,15 @@ const formatAgeRanges = (variations: ProduitVariation[] | undefined): string => 
     return (
       <div className="text-center p-6 text-error">
         {categories.length === 0 && marques.length === 0 && fournisseurs.length === 0
-          ? 'Aucune catégorie, marque ou fournisseur disponibles. Veuillez créer des catégories, marques et fournisseurs avant d\'ajouter un produit.'
+          ? "Aucune catégorie, marque ou fournisseur disponibles. Veuillez créer des catégories, marques et fournisseurs avant d'ajouter un produit."
           : categories.length === 0
-          ? 'Aucune catégorie disponible. Veuillez créer une catégorie avant d\'ajouter un produit.'
+          ? "Aucune catégorie disponible. Veuillez créer une catégorie avant d'ajouter un produit."
           : marques.length === 0
-          ? 'Aucune marque disponible. Veuillez créer une marque avant d\'ajouter un produit.'
-          : 'Aucun fournisseur disponible. Veuillez créer un fournisseur avant d\'ajouter un produit.'}
+          ? "Aucune marque disponible. Veuillez créer une marque avant d'ajouter un produit."
+          : "Aucun fournisseur disponible. Veuillez créer un fournisseur avant d'ajouter un produit."}
       </div>
     );
   }
-
 
   return (
     <div className="p-6 w-full h-screen flex flex-col relative">
@@ -1070,7 +972,34 @@ const formatAgeRanges = (variations: ProduitVariation[] | undefined): string => 
         onDelete={handleDelete}
         onAdd={handleAdd}
       />
-    <TableComponent
+
+      {/* ✅ NOUVEAU : Barre de filtres Actifs / Inactifs / Tous */}
+      <div className="flex items-center gap-2 my-3">
+        <span className="text-sm font-medium text-gray-500 mr-1">Statut :</span>
+        <button
+          onClick={() => setStatusFilter('all')}
+          className={`btn btn-sm rounded-full ${statusFilter === 'all' ? 'btn-neutral' : 'btn-ghost border border-gray-300'}`}
+        >
+          Tous
+          <span className="badge badge-sm ml-1">{countAll}</span>
+        </button>
+        <button
+          onClick={() => setStatusFilter('active')}
+          className={`btn btn-sm rounded-full ${statusFilter === 'active' ? 'btn-success text-white' : 'btn-ghost border border-gray-300'}`}
+        >
+          ● Actifs
+          <span className={`badge badge-sm ml-1 ${statusFilter === 'active' ? 'badge-success' : ''}`}>{countActive}</span>
+        </button>
+        <button
+          onClick={() => setStatusFilter('inactive')}
+          className={`btn btn-sm rounded-full ${statusFilter === 'inactive' ? 'btn-error text-white' : 'btn-ghost border border-gray-300'}`}
+        >
+          ● Inactifs
+          <span className={`badge badge-sm ml-1 ${statusFilter === 'inactive' ? 'badge-error' : ''}`}>{countInactive}</span>
+        </button>
+      </div>
+
+      <TableComponent
         data={filteredProduits}
         columns={columns}
         loading={loading}

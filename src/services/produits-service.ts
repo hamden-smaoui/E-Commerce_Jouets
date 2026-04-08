@@ -17,7 +17,6 @@ interface Type {
   nom: string;
 }
 
-// Interfaces pour les variations
 export interface Couleur {
   idCouleur: number;
   nom: string;
@@ -31,8 +30,8 @@ export interface Age {
   idAge: number;
   minAge: number;
   maxAge: number;
-  minTypeAge: 'mois' | 'ans'; // ✅ MODIFIÉ
-  maxTypeAge: 'mois' | 'ans';  // ✅ MODIFIÉ
+  minTypeAge: 'mois' | 'ans';
+  maxTypeAge: 'mois' | 'ans';
   label: string;
 }
 export interface ProduitVariation {
@@ -51,8 +50,8 @@ export interface ImageData {
   idImage: number;
   rang: number;
   url: string;
-  idCouleur?: number; 
-  couleur?: Couleur;  
+  idCouleur?: number;
+  couleur?: Couleur;
 }
 
 export interface Produit {
@@ -65,12 +64,12 @@ export interface Produit {
   idMarque: number;
   idFournisseur: number;
   idType: number | null;
-  idAge: number | null; // ✅ NOUVEAU CHAMP
+  idAge: number | null;
   genre: 'fille' | 'garçon' | 'enfant';
   livraisonGratuite?: boolean;
+  isActive: boolean; // ✅ NOUVEAU
 }
 
-// Format pour les données du formulaire
 export interface ProduitFormData {
   idProduit?: number | null;
   nom: string;
@@ -81,9 +80,10 @@ export interface ProduitFormData {
   idMarque: number;
   idFournisseur: number;
   idType: number | null;
-  idAge: number | null; // ✅ NOUVEAU CHAMP
+  idAge: number | null;
   genre: 'fille' | 'garçon' | 'enfant';
   livraisonGratuite?: boolean;
+  isActive?: boolean; // ✅ NOUVEAU
   images?: File[];
   imageRangs?: number[];
   imageColors?: (number | null)[];
@@ -114,7 +114,7 @@ class ProduitsService {
   async createProduit(produitData: ProduitFormData, token?: string): Promise<ProduitResponse> {
     const headers: any = { 'Content-Type': 'multipart/form-data' };
     if (token) headers.Authorization = `Bearer ${token}`;
-    
+
     const formData = new FormData();
     formData.append('nom', produitData.nom);
     formData.append('description', produitData.description);
@@ -124,15 +124,18 @@ class ProduitsService {
     formData.append('idMarque', produitData.idMarque.toString());
     formData.append('idFournisseur', produitData.idFournisseur.toString());
     if (produitData.idType) formData.append('idType', produitData.idType.toString());
-    if (produitData.idAge) formData.append('idAge', produitData.idAge.toString()); // ✅ NOUVEAU
+    if (produitData.idAge) formData.append('idAge', produitData.idAge.toString());
     formData.append('genre', produitData.genre);
     formData.append('livraisonGratuite', produitData.livraisonGratuite ? 'true' : 'false');
-    
+    // ✅ NOUVEAU : isActive (true par défaut à la création)
+    formData.append('isActive', produitData.isActive !== undefined ? String(produitData.isActive) : 'true');
+
     if (produitData.variants?.length) formData.append('variants', JSON.stringify(produitData.variants));
     if (produitData.images?.length) produitData.images.forEach(img => formData.append('images', img));
-if (produitData.imageColors?.length) {
-    formData.append('imageColors', JSON.stringify(produitData.imageColors));
-  }
+    if (produitData.imageColors?.length) {
+      formData.append('imageColors', JSON.stringify(produitData.imageColors));
+    }
+
     const response = await api.post<{ data: ProduitResponse }>('/produits', formData, { headers });
     return response.data.data;
   }
@@ -142,10 +145,12 @@ if (produitData.imageColors?.length) {
     const response = await api.get<ProduitResponse[]>('/produits', { headers });
     return response.data;
   }
-async getAllProduitsSitemap(): Promise<ProduitResponse[]> {
+
+  async getAllProduitsSitemap(): Promise<ProduitResponse[]> {
     const response = await api.get<ProduitResponse[]>('/produits');
     return response.data;
   }
+
   async getProduitById(id: number, token?: string): Promise<ProduitResponse> {
     const headers = token ? { Authorization: `Bearer ${token}` } : {};
     const response = await api.get<ProduitResponse>(`/produits/${id}`, { headers });
@@ -155,7 +160,7 @@ async getAllProduitsSitemap(): Promise<ProduitResponse[]> {
   async updateProduit(id: number, produitData: ProduitFormData, token?: string): Promise<ProduitResponse> {
     const headers: any = { 'Content-Type': 'multipart/form-data' };
     if (token) headers.Authorization = `Bearer ${token}`;
-    
+
     const formData = new FormData();
     formData.append('nom', produitData.nom);
     formData.append('description', produitData.description);
@@ -165,19 +170,23 @@ async getAllProduitsSitemap(): Promise<ProduitResponse[]> {
     formData.append('idMarque', produitData.idMarque.toString());
     formData.append('idFournisseur', produitData.idFournisseur.toString());
     if (produitData.idType) formData.append('idType', produitData.idType.toString());
-    if (produitData.idAge) formData.append('idAge', produitData.idAge.toString()); // ✅ NOUVEAU
+    if (produitData.idAge) formData.append('idAge', produitData.idAge.toString());
     formData.append('genre', produitData.genre);
     formData.append('livraisonGratuite', produitData.livraisonGratuite ? 'true' : 'false');
-    
+    // ✅ NOUVEAU
+    if (produitData.isActive !== undefined) {
+      formData.append('isActive', String(produitData.isActive));
+    }
+
     if (produitData.variants?.length) formData.append('variants', JSON.stringify(produitData.variants));
     if (produitData.images?.length) produitData.images.forEach(img => formData.append('images', img));
-if (produitData.imageColors?.length) {
-    formData.append('newImageColors', JSON.stringify(produitData.imageColors));
-  }
-   // ✅ Images existantes avec couleurs modifiées
-  if (produitData.existingImageColors && Object.keys(produitData.existingImageColors).length > 0) {
-    formData.append('existingImageColors', JSON.stringify(produitData.existingImageColors));
-  }
+    if (produitData.imageColors?.length) {
+      formData.append('newImageColors', JSON.stringify(produitData.imageColors));
+    }
+    if (produitData.existingImageColors && Object.keys(produitData.existingImageColors).length > 0) {
+      formData.append('existingImageColors', JSON.stringify(produitData.existingImageColors));
+    }
+
     const response = await api.put<{ data: ProduitResponse }>(`/produits/${id}`, formData, { headers });
     return response.data.data;
   }
@@ -185,6 +194,17 @@ if (produitData.imageColors?.length) {
   async deleteProduit(id: number, token?: string): Promise<void> {
     const headers = token ? { Authorization: `Bearer ${token}` } : {};
     await api.delete(`/produits/${id}`, { headers });
+  }
+
+  // ✅ NOUVEAU : Toggle actif/inactif sans passer par updateProduit
+  async toggleActive(id: number, token?: string): Promise<{ isActive: boolean; message: string }> {
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    const response = await api.patch<{ isActive: boolean; message: string }>(
+      `/produits/${id}/toggle-active`,
+      {},
+      { headers }
+    );
+    return response.data;
   }
 
   async getTop10BestSellingProduits(token?: string): Promise<BestSellingProduit[]> {
@@ -198,7 +218,6 @@ if (produitData.imageColors?.length) {
     await api.delete(`/produits/images/${imageId}`, { headers });
   }
 
-  // ✅ NOUVELLE MÉTHODE : Recherche avec filtres
   async searchProduits(params: {
     q?: string;
     category?: number;
@@ -209,18 +228,18 @@ if (produitData.imageColors?.length) {
     livraisonGratuite?: boolean;
     genre?: string;
     type?: number;
-    age?: number; // ✅ NOUVEAU FILTRE
+    age?: number;
     sortBy?: string;
     order?: string;
     page?: number;
     limit?: number;
+    showAll?: boolean; // ✅ NOUVEAU : pour l'admin
   }, token?: string): Promise<{ data: ProduitResponse[]; pagination: any }> {
     const headers = token ? { Authorization: `Bearer ${token}` } : {};
     const response = await api.get('/produits/search', { headers, params });
     return response.data;
   }
 
-  // ✅ NOUVELLE MÉTHODE : Obtenir les produits par tranche d'âge
   async getProduitsByAge(ageId: number, page: number = 1, limit: number = 12, token?: string): Promise<any> {
     const headers = token ? { Authorization: `Bearer ${token}` } : {};
     const response = await api.get(`/produits/age/${ageId}`, {
